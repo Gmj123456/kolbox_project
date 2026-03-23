@@ -1,0 +1,387 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jeecg.modules.kol.mapper.KolTagsMapper">
+
+    <select id="queryPageList" resultType="org.jeecg.modules.kol.entity.KolTags">
+        SELECT
+        tt.*,
+        ktc.id AS store_tags_id,
+        c.brand_ids,
+        c.brand_name
+        FROM
+        kol_tags tt
+        LEFT JOIN kol_tag_category ktc ON tt.store_tags = ktc.category_name
+        LEFT JOIN kol_tag_product ktp ON tt.id = ktp.tag_id
+        LEFT JOIN (SELECT
+        tag_id,
+        a.platform_type,
+        GROUP_CONCAT( b.id ) AS brand_ids,
+        GROUP_CONCAT( b.brand_name ) AS brand_name
+        FROM
+        kol_tag_brand a
+        LEFT JOIN kol_brand b ON a.brand_id = b.id
+        GROUP BY
+        tag_id,platform_type) c ON tt.id = c.tag_id  and tt.platform_type = c.platform_type
+        WHERE tt.is_delete = 0 AND tt.is_active = 1
+        <if test="tiktokTagsModel.tagName != null and tiktokTagsModel.tagName != ''">
+            AND tt.tag_name like CONCAT('%', #{tiktokTagsModel.tagName}, '%')
+        </if>
+        <if test="tiktokTagsModel.subCategory != null and tiktokTagsModel.subCategory != ''">
+            AND tt.sub_category like CONCAT('%', #{tiktokTagsModel.subCategory}, '%')
+        </if>
+        <if test="tiktokTagsModel.tagProduct != null and tiktokTagsModel.tagProduct != ''">
+            AND tt.tag_product like CONCAT('%', #{tiktokTagsModel.tagProduct}, '%')
+        </if>
+        <if test="tiktokTagsModel.tagAudience != null and tiktokTagsModel.tagAudience != ''">
+            AND tt.tag_audience like CONCAT('%', #{tiktokTagsModel.tagAudience}, '%')
+        </if>
+        <if test="tiktokTagsModel.platformType != null">
+            AND tt.platform_type = #{tiktokTagsModel.platformType}
+        </if>
+        <!-- <if test="tiktokTagsModel.tagStatus != null"> -->
+        <!--     AND tt.tag_status = #{tiktokTagsModel.tagStatus} -->
+        <!-- </if> -->
+        <if test="tiktokTagsModel.tagType != null">
+            AND tt.tag_type = #{tiktokTagsModel.tagType}
+        </if>
+        <if test="tiktokTagsModel.storeTags != null and tiktokTagsModel.storeTags != ''">
+            <foreach collection="tiktokTagsModel.storeTags.split(',')" item="element" separator=" OR ">
+                AND JSON_SEARCH(tt.store_tags, 'one', #{element}, NULL, '$[*]') IS NOT NULL
+                AND JSON_EXTRACT(tt.store_tags, '$[*]') LIKE CONCAT('%', #{element}, '%')
+            </foreach>
+        </if>
+        <if test="tiktokTagsModel.categoryIdList != null and tiktokTagsModel.categoryIdList.size > 0">
+            AND tt.category_id IN
+            <foreach collection="tiktokTagsModel.categoryIdList" item="item" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="tiktokTagsModel.tagProduct != null and tiktokTagsModel.tagProduct != ''">
+            AND tt.tag_product LIKE CONCAT('%', #{tiktokTagsModel.tagProduct}, '%')
+        </if>
+        <if test="tiktokTagsModel.brandId != null and tiktokTagsModel.brandId != ''">
+            AND ktp.brand_id = #{tiktokTagsModel.brandId}
+        </if>
+        GROUP BY
+        tt.id
+        <if test="tiktokTagsModel.column != null and tiktokTagsModel.order != ''">
+            ORDER BY ${tiktokTagsModel.column} ${tiktokTagsModel.order}
+        </if>
+        <if test="tiktokTagsModel.column == null || tiktokTagsModel.order == ''">
+            ORDER BY
+            sort_code IS NULL ASC, sort_code asc
+        </if>
+    </select>
+
+    <select id="queryTagsListByName" resultType="org.jeecg.modules.kol.entity.KolTags">
+        SELECT DISTINCT
+        tt.tag_name
+        FROM
+        kol_tags tt
+        <if test="tiktokTagsModel.tagNames!=null and tiktokTagsModel.tagNames!=''">
+            JOIN
+            <foreach collection="tiktokTagsModel.tagNames.split('\\|')" item="item" open="("
+                     separator=" UNION ALL " close=")">
+                SELECT #{item} AS tag_name
+            </foreach>
+            AS tags ON tt.tag_name = tags.tag_name
+        </if>
+        <where>
+            <if test="tiktokTagsModel.isDelete != null">
+                AND tt.is_delete=#{tiktokTagsModel.isDelete}
+            </if>
+            <if test="tiktokTagsModel.platformType != null">
+                AND tt.platform_type=#{tiktokTagsModel.platformType}
+            </if>
+            <!--     <if test="tiktokTagsModel.tagStatus != null">
+                    AND tt.tag_status=#{tiktokTagsModel.tagStatus}
+                </if> -->
+            <if test="tiktokTagsModel.tagType != null">
+                AND tt.tag_type=#{tiktokTagsModel.tagType}
+            </if>
+            <if test="tiktokTagsModel.tagName != null and tiktokTagsModel.tagName != ''">
+                AND tt.tag_name like CONCAT('%', #{tiktokTagsModel.tagName}, '%')
+            </if>
+        </where>
+        <!--   UNION
+          SELECT
+          tte.tag_name
+          FROM
+          tiktok_tags_extract tte
+          <if test="tiktokTagsModel.tagNames!=null and tiktokTagsModel.tagNames!=''">
+              JOIN
+              <foreach collection="tiktokTagsModel.tagNames.split(',')" item="item" open="(" separator=" UNION ALL "
+                       close=")">
+                  SELECT #{item} AS tag_name
+              </foreach>
+              AS tags_e ON tte.tag_name = tags_e.tag_name
+          </if>
+          <where>
+            &lt;!&ndash;   <if test="tiktokTagsModel.tagStatus != null">
+                  AND tte.tag_status=#{tiktokTagsModel.tagStatus}
+              </if> &ndash;&gt;
+              <if test="tiktokTagsModel.tagName != null and tiktokTagsModel.tagName != ''">
+                  AND tte.tag_name like '%${tiktokTagsModel.tagName}%'
+              </if>
+
+          </where> -->
+    </select>
+
+    <select id="queryPageListNew" resultType="org.jeecg.modules.kol.model.KolTagsModel">
+        SELECT
+        tt.*,
+        ktc.id AS store_tags_id,
+        c.brand_ids,
+        c.brand_name
+        FROM
+        kol_tags tt
+        LEFT JOIN kol_tag_product ktp ON tt.id = ktp.tag_id
+        LEFT JOIN kol_tag_category ktc ON tt.store_tags = ktc.category_name
+        LEFT JOIN (
+        SELECT
+        tag_id,
+        platform_type,
+        GROUP_CONCAT( b.id ) AS brand_ids,
+        GROUP_CONCAT( b.brand_name ) AS brand_name
+        FROM
+        kol_tag_brand a
+        LEFT JOIN kol_brand b ON a.brand_id = b.id
+        WHERE
+        a.platform_type = #{tiktokTagsModel.platformType}
+        GROUP BY
+        tag_id,
+        platform_type
+        ) c ON tt.id = c.tag_id
+        AND tt.platform_type = c.platform_type
+        WHERE tt.is_delete = 0 AND tt.is_active = 1
+        <if test="tiktokTagsModel.productId != null and tiktokTagsModel.productId != ''">
+            AND ktp.is_delete = 0
+            AND ktp.product_id = #{tiktokTagsModel.productId}
+        </if>
+        <if test="tiktokTagsModel.subCategoryIds != null and tiktokTagsModel.subCategoryIds != ''">
+            AND EXISTS (
+            SELECT
+            1
+            FROM
+            kol_tag_attribute_relation ktr
+            WHERE
+            ktr.tag_id = tt.id
+            AND ktr.is_delete = 0
+            AND FIND_IN_SET( ktr.attribute_id, #{tiktokTagsModel.subCategoryIds} ) > 0
+            )
+        </if>
+        <if test="tiktokTagsModel.tagName != null and tiktokTagsModel.tagName != ''">
+            AND tt.tag_name like CONCAT('%', #{tiktokTagsModel.tagName}, '%')
+        </if>
+        <if test="tiktokTagsModel.subCategory != null and tiktokTagsModel.subCategory != ''">
+            AND tt.sub_category like CONCAT('%', #{tiktokTagsModel.subCategory}, '%')
+        </if>
+        <if test="tiktokTagsModel.tagProduct != null and tiktokTagsModel.tagProduct != ''">
+            AND tt.tag_product like CONCAT('%', #{tiktokTagsModel.tagProduct}, '%')
+        </if>
+        <if test="tiktokTagsModel.tagAudience != null and tiktokTagsModel.tagAudience != ''">
+            AND tt.tag_audience like CONCAT('%', #{tiktokTagsModel.tagAudience}, '%')
+        </if>
+        <if test="tiktokTagsModel.platformType != null">
+            AND tt.platform_type = #{tiktokTagsModel.platformType}
+        </if>
+        <if test="tiktokTagsModel.tagType != null">
+            AND tt.tag_type = #{tiktokTagsModel.tagType}
+        </if>
+        <if test="tiktokTagsModel.storeTags != null and tiktokTagsModel.storeTags != ''">
+            <foreach collection="tiktokTagsModel.storeTags.split(',')" item="element" separator=" OR ">
+                AND JSON_SEARCH(tt.store_tags, 'one', #{element}, NULL, '$[*]') IS NOT NULL
+                AND JSON_EXTRACT(tt.store_tags, '$[*]') LIKE CONCAT('%', #{element}, '%')
+            </foreach>
+        </if>
+        <if test="tiktokTagsModel.categoryIdList != null and tiktokTagsModel.categoryIdList.size > 0">
+            AND tt.category_id IN
+            <foreach collection="tiktokTagsModel.categoryIdList" item="item" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="tiktokTagsModel.tagProduct != null and tiktokTagsModel.tagProduct != ''">
+            AND tt.tag_product LIKE CONCAT('%', #{tiktokTagsModel.tagProduct}, '%')
+        </if>
+        <if test="tiktokTagsModel.brandId != null and tiktokTagsModel.brandId != ''">
+            AND ktp.brand_id = #{tiktokTagsModel.brandId}
+        </if>
+        group by tt.id
+        <if test="tiktokTagsModel.column != null and tiktokTagsModel.order != ''">
+            ORDER BY ${tiktokTagsModel.column} ${tiktokTagsModel.order}
+        </if>
+        <if test="tiktokTagsModel.column == null || tiktokTagsModel.order == ''">
+            ORDER BY
+            sort_code IS NULL ASC, sort_code asc
+        </if>
+    </select>
+
+    <select id="countBySearch" resultType="java.lang.Integer">
+        SELECT
+        COUNT( 1 ) from (
+        SELECT
+        COUNT( 1 )
+        FROM
+        kol_tags tt
+        LEFT JOIN kol_tag_product ktp ON tt.id = ktp.tag_id
+        LEFT JOIN kol_tag_category ktc ON tt.store_tags = ktc.category_name
+        LEFT JOIN (
+        SELECT
+        tag_id,
+        platform_type,
+        GROUP_CONCAT( b.id ) AS brand_ids,
+        GROUP_CONCAT( b.brand_name ) AS brand_name
+        FROM
+        kol_tag_brand a
+        LEFT JOIN kol_brand b ON a.brand_id = b.id
+        WHERE
+        a.platform_type = #{tiktokTagsModel.platformType}
+        GROUP BY
+        tag_id,
+        platform_type
+        ) c ON tt.id = c.tag_id
+        AND tt.platform_type = c.platform_type
+        WHERE tt.is_delete = 0 AND tt.is_active = 1
+        <if test="tiktokTagsModel.productId != null and tiktokTagsModel.productId != ''">
+            AND ktp.is_delete = 0
+            AND ktp.product_id = #{tiktokTagsModel.productId}
+        </if>
+        <if test="tiktokTagsModel.subCategoryIds != null and tiktokTagsModel.subCategoryIds != ''">
+            AND EXISTS (
+            SELECT
+            1
+            FROM
+            kol_tag_attribute_relation ktr
+            WHERE
+            ktr.tag_id = tt.id
+            AND ktr.is_delete = 0
+            AND FIND_IN_SET( ktr.attribute_id, #{tiktokTagsModel.subCategoryIds} ) > 0
+            )
+        </if>
+        <if test="tiktokTagsModel.tagName != null and tiktokTagsModel.tagName != ''">
+            AND tt.tag_name like CONCAT('%', #{tiktokTagsModel.tagName}, '%')
+        </if>
+        <if test="tiktokTagsModel.subCategory != null and tiktokTagsModel.subCategory != ''">
+            AND tt.sub_category like CONCAT('%', #{tiktokTagsModel.subCategory}, '%')
+        </if>
+        <if test="tiktokTagsModel.tagProduct != null and tiktokTagsModel.tagProduct != ''">
+            AND tt.tag_product like CONCAT('%', #{tiktokTagsModel.tagProduct}, '%')
+        </if>
+        <if test="tiktokTagsModel.tagAudience != null and tiktokTagsModel.tagAudience != ''">
+            AND tt.tag_audience like CONCAT('%', #{tiktokTagsModel.tagAudience}, '%')
+        </if>
+        <if test="tiktokTagsModel.platformType != null">
+            AND tt.platform_type = #{tiktokTagsModel.platformType}
+        </if>
+        <if test="tiktokTagsModel.tagType != null">
+            AND tt.tag_type = #{tiktokTagsModel.tagType}
+        </if>
+        <if test="tiktokTagsModel.storeTags != null and tiktokTagsModel.storeTags != ''">
+            <foreach collection="tiktokTagsModel.storeTags.split(',')" item="element" separator=" OR ">
+                AND JSON_SEARCH(tt.store_tags, 'one', #{element}, NULL, '$[*]') IS NOT NULL
+                AND JSON_EXTRACT(tt.store_tags, '$[*]') LIKE CONCAT('%', #{element}, '%')
+            </foreach>
+        </if>
+        <if test="tiktokTagsModel.categoryIdList != null and tiktokTagsModel.categoryIdList.size > 0">
+            AND tt.category_id IN
+            <foreach collection="tiktokTagsModel.categoryIdList" item="item" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="tiktokTagsModel.tagProduct != null and tiktokTagsModel.tagProduct != ''">
+            AND tt.tag_product LIKE CONCAT('%', #{tiktokTagsModel.tagProduct}, '%')
+        </if>
+        <if test="tiktokTagsModel.brandId != null and tiktokTagsModel.brandId != ''">
+            AND ktp.brand_id = #{tiktokTagsModel.brandId}
+        </if>
+        group by tt.id
+        ) AS tag_count
+    </select>
+
+    <select id="getUnAllottedTagCount" resultType="org.jeecg.modules.kol.model.KolTagCountModel">
+        SELECT DISTINCT
+        kt.tag_name,
+        CAST( countries.unassignedCount AS UNSIGNED ) AS tagNum,
+        kt.snapshot_time
+        FROM
+        `kol_tags` kt,
+        JSON_TABLE ( kt.country_data_json, '$[*]' COLUMNS ( country VARCHAR ( 255 ) PATH '$.country', unassignedCount INT PATH '$.unassignedCount' ) ) AS countries
+        <where>
+            <if test="searchModel.platformType != null">
+                platform_type = #{searchModel.platformType}
+            </if>
+            <if test="searchModel.countryCode != null and searchModel.countryCode != ''">
+                AND countries.country = #{searchModel.countryCode}
+            </if>
+            <include refid="kol.common.tagListInCondition"/>
+        </where>
+        ORDER BY
+        tagNum DESC
+    </select>
+
+    <update id="batchUpdateKolTags">
+        UPDATE kol_tags
+        <trim prefix="SET">
+            <!-- unassigned_count 字段：每条记录不同 -->
+            <trim prefix="unassigned_count = CASE" suffix="END," >
+                <foreach collection="list" item="item">
+                    WHEN id = #{item.id} THEN #{item.unassignedCount}
+                </foreach>
+            </trim>
+
+            <!-- country_data_json 字段：每条记录不同 -->
+            <trim prefix="country_data_json = CASE" suffix="END," >
+                <foreach collection="list" item="item">
+                    WHEN id = #{item.id} THEN #{item.countryDataJson}
+                </foreach>
+            </trim>
+            update_by = #{list[0].updateBy},
+            update_time = NOW()
+        </trim>
+
+        <!-- 仅更新传入的 ID 列表 -->
+        WHERE id IN
+        <foreach collection="list" item="item" open="(" separator="," close=")">
+            #{item.id}
+        </foreach>
+    </update>
+    <update id="createTempUpdateTable">
+        CREATE TEMPORARY TABLE ${tableName}
+        (
+            tag_name         VARCHAR(255) NOT NULL,
+            unassigned_count INT          NOT NULL,
+            platform_type    TINYINT      NOT NULL,
+            country_data_json    TEXT         NOT NULL,
+            snapshot_time    DATETIME     NOT NULL,
+            PRIMARY KEY (tag_name, platform_type)
+        )
+    </update>
+
+    <insert id="batchInsertIntoTempTable">
+        INSERT IGNORE INTO ${tableName} (tag_name,unassigned_count, country_data_json, platform_type, snapshot_time)
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.tagName},#{item.unassignedCount}, #{item.countryDataJson}, #{item.platformType}, #{item.snapshotTime})
+        </foreach>
+    </insert>
+
+    <update id="updateKolTagsFromTempTable">
+        UPDATE kol_tags k
+            JOIN ${tableName} t ON k.tag_name = t.tag_name AND k.platform_type = t.platform_type
+        SET
+            k.country_data_json = t.country_data_json,
+            k.snapshot_time = t.snapshot_time
+    </update>
+
+    <update id="dropTempTable">
+        DROP TABLE IF EXISTS ${tableName}
+    </update>
+
+    <delete id="deleteByTagIdAndProductIdBatch">
+        DELETE FROM kol_tag_attribute_relation
+        WHERE (tag_id, product_id) IN
+        <foreach collection="params" item="item" open="(" close=")" separator=",">
+            (#{item.tagId}, #{item.productId})
+        </foreach>
+    </delete>
+</mapper>

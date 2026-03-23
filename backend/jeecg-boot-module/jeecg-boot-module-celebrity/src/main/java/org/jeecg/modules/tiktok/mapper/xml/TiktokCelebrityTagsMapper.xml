@@ -1,0 +1,722 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jeecg.modules.tiktok.mapper.TiktokCelebrityTagsMapper">
+    <!-- ******************* 提取公共部分查询条件 ******************** -->
+
+    <!-- 组合列表JOIN条件 -->
+    <!-- 查询未分配的网红标签列表关联条件(Join) -->
+    <sql id="listJoinConditions">
+        <include refid="tk.common.tagCounselorLeftJoinCondition"/>
+        <include refid="kol.common.brandJoinCondition">
+            <property name="uniqueId" value="tc.unique_id"/>
+        </include>
+        <include refid="tk.common.tagNameJoinCondition"/>
+        <include refid="tk.common.tagListJoinCondition"/>
+        <include refid="tk.common.uniqueIdJoinCondition"/>
+        <include refid="kol.common.emailJoinCondition">
+            <property name="alias" value="tc"/>
+        </include>
+    </sql>
+    <!--  2025年4月8日10:51:12 刘峰 增加过滤Tag标签临时表 -->
+    <sql id="filteredTagsCondition">
+        ,filtered_tags AS (
+        SELECT tct.id,tct.author_id,tct.unique_id,tct.tag_name,tct.country
+        FROM tiktok_celebrity_tags tct
+        <include refid="kol.common.tagNameJoinConditionPlus">
+            <property name="alias" value="tct"/>
+        </include>
+        <where>
+            <include refid="JoinTagsWhereConditions"/>
+        </where>
+        )
+    </sql>
+    <sql id="filteredTagsConditionNew">
+        WITH filtered_tags AS (
+        SELECT
+        tct.id,
+        tct.author_id,
+        tct.unique_id,
+        tct.tag_name,
+        tct.country
+        FROM ${searchModel.tempTableName} tl
+        STRAIGHT_JOIN tiktok_celebrity_tags tct ON tct.tag_name = tl.tag_name
+        <where>
+            <include refid="JoinTagsWhereConditions"/>
+        </where>
+        GROUP BY
+        tct.unique_id
+        )
+    </sql>
+    <sql id="filteredTagsCountCondition">
+        WITH filtered_tags AS (
+        SELECT
+        tct.unique_id, tct.author_id
+        FROM ${searchModel.tempTableName} tl
+        STRAIGHT_JOIN tiktok_celebrity_tags tct ON tct.tag_name = tl.tag_name
+        <where>
+            <include refid="JoinTagsWhereConditions"/>
+        </where>
+        GROUP BY
+        tct.unique_id, tct.author_id
+        )
+    </sql>
+    <sql id="filteredCelebrityCondition">
+        ,filtered_tc AS (
+        SELECT tc.sec_uid,tc.unique_id,tc.author_id,tc.author_follower_count,tc.email
+        FROM tiktok_celebrity tc
+        <include refid="kol.common.uniqueIdJoinConditionPlus">
+            <property name="unique_field" value="tc.unique_id"/>
+        </include>
+        <include refid="kol.common.emailJoinConditionPlus">
+            <property name="alias" value="tc"/>
+        </include>
+        <where>
+            <include refid="JoinCelebrityWhereConditions"/>
+            <include refid="kol.common.isHasEmailCondition">
+                <property name="alias" value="tc"/>
+            </include>
+        </where>
+        ORDER BY
+        create_time Desc
+        <include refid="kol.common.totalCountCondition"/>
+        )
+    </sql>
+    <sql id="notAllotCountCondition">
+        WITH filtered_tc AS (
+        SELECT tc.author_id
+        FROM tiktok_celebrity tc
+        <include refid="kol.common.uniqueIdJoinConditionPlus">
+            <property name="unique_field" value="tc.unique_id"/>
+        </include>
+        <include refid="kol.common.emailJoinConditionPlus">
+            <property name="alias" value="tc"/>
+        </include>
+        <where>
+            <include refid="JoinCelebrityWhereConditions"/>
+            <include refid="kol.common.isHasEmailCondition">
+                <property name="alias" value="tc"/>
+            </include>
+        </where>
+        ORDER BY
+        tc.update_time Desc
+        <include refid="kol.common.totalCountCondition"/>
+        )
+    </sql>
+    <sql id="filteredTagsConditionCountNew">
+        ,filtered_tags AS (
+        SELECT distinct
+        tct.author_id
+        FROM
+        tiktok_celebrity_tags tct
+        INNER JOIN ${searchModel.tempTableName} tl ON tct.tag_name = tl.tag_name
+        INNER JOIN tiktok_celebrity tc ON tct.author_id = tc.author_id
+        <if test="searchModel.countryCode != null and searchModel.countryCode != ''">
+            AND tc.country = #{searchModel.countryCode}
+        </if>
+        <if test="searchModel.minFollowers != null">
+            AND tc.author_follower_count >= #{searchModel.minFollowers}
+        </if>
+        INNER JOIN kol_tag_product ktp ON tct.tag_name = ktp.tag_name
+        AND ktp.platform_type = 2
+        <if test="searchModel.productId != null and searchModel.productId != ''">
+            AND ktp.product_id = #{searchModel.productId}
+        </if>
+        WHERE
+        (tct.is_allot = 0 OR tct.allot_time &lt; DATE_SUB(CURDATE(), INTERVAL #{searchModel.allotDays} DAY))
+        )
+    </sql>
+    <sql id="filteredCelebrityCountCondition">
+        ,filtered_tc AS (
+        SELECT tc.unique_id
+        FROM tiktok_celebrity tc
+        <include refid="kol.common.uniqueIdJoinConditionPlus">
+            <property name="unique_field" value="tc.unique_id"/>
+        </include>
+        <include refid="kol.common.emailJoinConditionPlus">
+            <property name="alias" value="tc"/>
+        </include>
+        <where>
+            <include refid="JoinCelebrityWhereConditions"/>
+            <include refid="kol.common.isHasEmailCondition">
+                <property name="alias" value="tc"/>
+            </include>
+        </where>
+        ORDER BY
+        create_time Desc
+        <include refid="kol.common.totalCountCondition"/>
+        )
+    </sql>
+    <sql id="filteredProductCondition">
+        ,filtered_tctc AS (
+        SELECT
+        id,
+        author_id
+        FROM
+        tiktok_celebrity_tags_counselor tctc
+        <where>
+            <include refid="kol.common.countryCodeCondition">
+                <property name="alias" value="tctc"/>
+            </include>
+            <include refid="kol.common.productIdCondition">
+                <property name="alias" value="tctc"/>
+            </include>
+        </where>
+        )
+    </sql>
+    <!-- 组合列表查询条件 -->
+    <!-- 查询未分配的网红标签列表查询条件(Where) -->
+    <sql id="listQueryConditions">
+        <!--     <include refid="kol.common.isHighFollowerCountCondition">
+              <property name="alias" value="tc"/>
+            </include> -->
+        <!--     <include refid="kol.common.isHighFollowerCountCondition">
+              <property name="alias" value="tct"/>
+            </include> -->
+        <include refid="kol.common.isNotAllotCondition">
+            <property name="alias" value="tct"/>
+        </include>
+        <include refid="kol.common.tagCounselorIdCondition">
+            <property name="alias" value="tctc"/>
+        </include>
+        <include refid="kol.common.countryCodeCondition">
+            <property name="alias" value="tc"/>
+        </include>
+        <include refid="kol.common.countryCodeCondition">
+            <property name="alias" value="tct"/>
+        </include>
+        <include refid="kol.common.videoStandardCountCondition">
+            <property name="alias" value="tc"/>
+        </include>
+        <include refid="kol.common.followerCountCondition">
+            <property name="followerCount" value="tc.author_follower_count"/>
+        </include>
+        <include refid="kol.common.isHasEmailCondition">
+            <property name="alias" value="tc"/>
+        </include>
+        <include refid="kol.common.isPrivateKolConditionNew"/>
+        <include refid="tk.common.signatureCondition"/>
+        <!--  <include refid="kol.common.tagTypeCondition">
+              <property name="alias" value="ic"/>
+          </include>-->
+    </sql>
+    <!--  2025年4月8日11:09:48 刘峰 创建CelebrityTags（Where）连接-->
+    <sql id="JoinTagsWhereConditions">
+        <!--    <include refid="kol.common.isHighFollowerCountCondition">
+              <property name="alias" value="tct"/>
+            </include> -->
+        <include refid="kol.common.countryCodeCondition">
+            <property name="alias" value="tct"/>
+        </include>
+        <include refid="kol.common.followerCountCondition">
+            <property name="followerCount" value="tct.author_follower_count"/>
+        </include>
+        <!--
+        按照产品分配时，需要有15天保护区
+        <if test="searchModel.productId == null"> -->
+        <!--      -->
+        <!-- </if> -->
+        <include refid="kol.common.isNotAllotCondition">
+            <property name="alias" value="tct"/>
+        </include>
+    </sql>
+
+    <sql id="JoinCelebrityWhereConditions">
+        <include refid="kol.common.countryCodeCondition">
+            <property name="alias" value="tc"/>
+        </include>
+        <!--      <include refid="kol.common.isHighFollowerCountCondition">
+              <property name="alias" value="tc"/>
+            </include> -->
+        <include refid="kol.common.followerCountCondition">
+            <property name="followerCount" value="tc.author_follower_count"/>
+        </include>
+        <include refid="kol.common.videoStandardCountCondition">
+            <property name="alias" value="tc"/>
+        </include>
+        <include refid="tk.common.signatureCondition"/>
+    </sql>
+    <!-- 导出excel，未分配标签对应的网红列表查询条件 -->
+    <sql id="exportUnassignedKolListForExcel">
+        <include refid="kol.common.isNotAllotCondition">
+            <property name="alias" value="tct"/>
+        </include>
+        <include refid="kol.common.countryCodeCondition">
+            <property name="alias" value="tc"/>
+        </include>
+        <include refid="kol.common.countryCodeCondition">
+            <property name="alias" value="tct"/>
+        </include>
+        <include refid="kol.common.followerCountCondition">
+            <property name="followerCount" value="tc.author_follower_count"/>
+        </include>
+        <include refid="kol.common.videoCountRangeCondition">
+            <property name="videoCount" value="tc.video_standard_count"/>
+        </include>
+    </sql>
+    <!-- ********************** 以下为业务查询部分 ********************** -->
+
+    <!-- 查询Tiktok网红未分配的数量 -->
+    <select id="getUnallottedTagCount" resultType="java.lang.Long">
+        <include refid="kol.common.celebrityPrivateCondition">
+            <property name="alias" value="2"/>
+        </include>
+        SELECT count(*) FROM tiktok_celebrity_tags AS tct
+        LEFT JOIN tiktok_celebrity AS tc ON tc.unique_id = tct.unique_id
+        <include refid="kol.common.celebrityPrivateJoinCondition">
+            <property name="alias" value="tc.sec_uid"/>
+            <property name="account" value="tc.unique_id"/>
+        </include>
+        <include refid="listJoinConditions"/>
+        <where>
+            <include refid="listQueryConditions"/>
+        </where>
+    </select>
+
+
+    <!-- 查询Tiktok网红未分配的数量 升级版 -->
+    <!--  2025年4月8日09:28:57 刘峰 增加-->
+    <select id="getUnallottedTagCountPlus" resultType="java.lang.Long">
+        <if test="searchModel.tempTableName == null">
+            <include refid="kol.common.tagNameTempTable"/>
+            <include refid="filteredTagsCondition"/>
+        </if>
+        <if test="searchModel.tempTableName != null and searchModel.tempTableName !=''">
+            <include refid="filteredTagsCountCondition"/>
+        </if>
+        <include refid="kol.common.uniqueIdTempTable"/>
+        <include refid="kol.common.emailTempTable"/>
+        <include refid="filteredCelebrityCountCondition"/>
+        <if test="searchModel.productId != null and searchModel.productId != ''">
+            <include refid="filteredProductCondition"/>
+        </if>
+        SELECT count(*) FROM filtered_tags AS ft
+        JOIN filtered_tc AS tc ON tc.unique_id = ft.unique_id
+        <if test="searchModel.productId!= null and searchModel.productId != ''">
+            LEFT JOIN filtered_tctc AS tctc ON tctc.author_id = ft.author_id
+        </if>
+        <where>
+            <if test="searchModel.productId!= null and searchModel.productId != ''">
+                and tctc.id is null
+            </if>
+        </where>
+    </select>
+
+    <!-- 获取Tiktok未分配网红标签列表 -->
+    <select id="getUnallottedTagList" resultType="org.jeecg.modules.kol.model.UserTagAllotModel">
+        <include refid="kol.common.celebrityPrivateCondition">
+            <property name="alias" value="2"/>
+        </include>
+        SELECT tct.id,
+        tct.unique_id,
+        tct.tag_name,
+        tct.country,
+        <!--               tct.tag_type,-->
+        tc.author_follower_count,
+        cp.id as celebrity_private_id,
+        cp.celebrity_counselor_id AS counselor_id,
+        cp.celebrity_counselor_name AS counselor_name
+        FROM tiktok_celebrity_tags AS tct
+        LEFT JOIN tiktok_celebrity AS tc ON tc.unique_id = tct.unique_id
+        <include refid="kol.common.celebrityPrivateJoinCondition">
+            <property name="alias" value="tc.sec_uid"/>
+            <property name="account" value="tc.unique_id"/>
+        </include>
+        <include refid="listJoinConditions"/>
+        <where>
+            <include refid="listQueryConditions"/>
+        </where>
+    </select>
+
+    <!-- 获取Tiktok未分配网红标签列表 升级版-->
+    <!--2025年4月8日14:06:34 刘峰 增加  -->
+    <select id="getUnallottedTagListPlus" resultType="org.jeecg.modules.kol.model.UserTagAllotModel">
+        <include refid="kol.common.tagNameTempTable"/>
+        <include refid="kol.common.uniqueIdTempTable"/>
+        <include refid="kol.common.emailTempTable"/>
+        <include refid="filteredTagsCondition"/>
+        <include refid="filteredCelebrityCondition"/>
+        <include refid="kol.common.celebrityPrivateConditionNew">
+            <property name="alias" value="2"/>
+        </include>
+        <if test="searchModel.productId!= null and searchModel.productId != ''">
+            <include refid="filteredProductCondition"/>
+        </if>
+        SELECT
+        ft.id,
+        ft.author_id,
+        ft.unique_id,
+        ft.tag_name,
+        ft.country,
+        tc.author_follower_count,
+        cp.id AS celebrity_private_id,
+        cp.celebrity_counselor_id AS counselor_id,
+        cp.celebrity_counselor_name AS counselor_name
+        FROM filtered_tags AS ft
+        JOIN filtered_tc AS tc ON tc.unique_id = ft.unique_id
+        <include refid="kol.common.celebrityPrivateJoinCondition">
+            <property name="alias" value="tc.sec_uid"/>
+            <property name="account" value="tc.unique_id"/>
+        </include>
+        <if test="searchModel.productId!= null and searchModel.productId != ''">
+            LEFT JOIN filtered_tctc AS tctc ON tctc.author_id = ft.author_id
+        </if>
+        <where>
+            <if test="searchModel.productId!= null and searchModel.productId != ''">
+                tctc.id is null
+            </if>
+        </where>
+    </select>
+
+    <!-- 获取导出Tiktok未分配标签对应的网红列表 -->
+    <select id="exportTagsExcel" resultType="org.jeecg.modules.tiktok.model.TiktokTagsNumModel">
+        <include refid="kol.common.celebrityPrivateCondition">
+            <property name="alias" value="2"/>
+        </include>
+        SELECT tct.unique_id,
+        tc.author_follower_count,
+        tc.video_standard_count,
+        tct.tag_name,
+        tc.email
+        FROM tiktok_celebrity_tags tct
+        <include refid="kol.common.joinTagNameListForFilter">
+            <property name="tagCelebrityTable" value="tct"/>
+        </include>
+        LEFT JOIN tiktok_celebrity tc ON tct.unique_id = tc.unique_id
+        <include refid="kol.common.celebrityPrivateJoinCondition">
+            <property name="alias" value="tct.author_id"/>
+            <property name="account" value="tct.unique_id"/>
+        </include>
+        WHERE cp.id IS NULL
+        <include refid="exportUnassignedKolListForExcel"/>
+    </select>
+
+    <!-- 获取Tiktok标签未分配数量分类汇总 -->
+    <select id="getUnallottedTagCountSummary" resultType="org.jeecg.modules.kol.model.KolTagCountModel">
+        SELECT tag_name,
+        count(*) AS tag_num
+        FROM tiktok_celebrity_tags AS tct
+        <where>
+            <!--       <include refid="kol.common.isHighFollowerCountCondition">
+                    <property name="alias" value="tct"/>
+                  </include> -->
+            <include refid="kol.common.countryCodeCondition">
+                <property name="alias" value="tct"/>
+            </include>
+            <include refid="kol.common.isNotAllotCondition">
+                <property name="alias" value="tct"/>
+            </include>
+            <include refid="kol.common.tagListInCondition"/>
+        </where>
+        GROUP BY tag_name
+        ORDER BY tag_num DESC
+    </select>
+
+    <select id="getUnallottedTagCountSummaryCount" resultType="int">
+        select count(*) from (
+        SELECT tag_name
+        FROM tiktok_celebrity_tags AS tct
+        <where>
+            <!--       <include refid="kol.common.isHighFollowerCountCondition">
+                    <property name="alias" value="tct"/>
+                  </include> -->
+            <include refid="kol.common.isNotAllotCondition">
+                <property name="alias" value="tct"/>
+            </include>
+            <include refid="kol.common.countryCodeCondition">
+                <property name="alias" value="tct"/>
+            </include>
+            <include refid="kol.common.tagListInCondition"/>
+        </where>
+        GROUP BY tag_name) total
+    </select>
+
+    <select id="getUnAlloteTagList" resultType="org.jeecg.modules.tiktok.model.TiktokCelebrityTagsModel">
+        SELECT
+        tct.id,
+        tct.author_id,
+        tct.unique_id,
+        tct.tag_name,
+        tct.country,
+        tct.author_follower_count
+        <if test="searchModel.isPrivateKol !=null">
+            ,
+            cp.id AS celebrity_private_id,
+            cp.celebrity_counselor_id AS celebrity_counselor_id,
+            cp.celebrity_counselor_name AS celebrity_counselor_name
+        </if>
+        FROM
+        tiktok_celebrity tc
+        LEFT JOIN tiktok_celebrity_tags tct ON tc.author_id = tct.author_id
+        INNER JOIN ${searchModel.tempTableName} tl ON tct.tag_name = tl.tag_name
+        LEFT JOIN tiktok_celebrity_tags_counselor AS tctc ON tctc.author_id = tct.author_id
+        <if test="searchModel.countryCode != null and searchModel.countryCode != ''">
+            AND tctc.country = #{searchModel.countryCode}
+        </if>
+        <if test="searchModel.productId != null and searchModel.productId != ''">
+            AND tctc.product_id = #{searchModel.productId}
+        </if>
+        <if test="searchModel.productId != null and searchModel.productId != ''">
+            AND tctc.allot_time &gt; DATE_SUB(CURDATE(), INTERVAL #{searchModel.allotDays} DAY)
+        </if>
+        <if test="searchModel.isPrivateKol == 1">
+            INNER JOIN store_celebrity_private cp ON cp.account = tc.unique_id AND cp.platform_type = 2
+        </if>
+        <if test="searchModel.isPrivateKol == 0">
+            LEFT JOIN store_celebrity_private cp ON cp.account = tc.unique_id AND cp.platform_type = 2
+        </if>
+        <where>
+            <!-- 私有KOL筛选 -->
+            <if test="searchModel.isPrivateKol == 0">
+                AND cp.id is null
+            </if>
+            <if test="searchModel.countryCode != null and searchModel.countryCode != ''">
+                AND tct.country = #{searchModel.countryCode}
+                AND tc.country = #{searchModel.countryCode}
+            </if>
+            <if test="searchModel.minFollowers != null">
+                AND tct.author_follower_count &gt;= #{searchModel.minFollowers}
+            </if>
+            <if test="searchModel.maxFollowers != null">
+                AND tct.author_follower_count &lt;= #{searchModel.maxFollowers}
+            </if>
+            <if test="searchModel.productId == null or searchModel.productId == '' ">
+                AND (tct.is_allot = 0 OR tct.allot_time &lt; DATE_SUB(CURDATE(), INTERVAL #{searchModel.allotDays} DAY))
+            </if>
+            <if test="searchModel.productId != null and searchModel.productId != ''">
+                AND tctc.id IS NULL
+            </if>
+            <if test="searchModel.minVideoStandardCount != null">
+                AND tc.video_standard_count &gt;= #{searchModel.minVideoStandardCount}
+            </if>
+            <if test="searchModel.maxVideoStandardCount != null">
+                AND tc.video_standard_count &lt;= #{searchModel.maxVideoStandardCount}
+            </if>
+            <if test="searchModel.signatureKeyword != null and searchModel.signatureKeyword != ''">
+                and tc.signature like '%${searchModel.signatureKeyword}%'
+            </if>
+            <if test="searchModel.isHasEmail != null">
+                <choose>
+                    <when test="searchModel.isHasEmail == 1">
+                        AND tc.email != ''
+                    </when>
+                    <when test="searchModel.isHasEmail == 0">
+                        AND ( tc.email IS NULL OR tc.email = '')
+                    </when>
+                </choose>
+            </if>
+            <if test="searchModel.uniqueId != null and searchModel.uniqueId != ''">
+                and tc.unique_id in
+                <foreach collection="searchModel.uniqueId.split(',')" item="item" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="searchModel.emailKeyword != null and searchModel.emailKeyword != '' and searchModel.isHasEmail != 0">
+                and tc.email in
+                <foreach collection="searchModel.emailKeyword.split(',')" item="item" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+        </where>
+        group by tct.id
+    </select>
+
+    <update id="batchUpdateTags">
+        UPDATE tiktok_celebrity_tags
+        <trim prefix="SET">
+            <!-- 以下字段：每条记录不同值，使用 CASE WHEN -->
+            <trim prefix="unique_id = CASE" suffix="END,">
+                <foreach collection="list" item="item">
+                    WHEN id = #{item.id} THEN #{item.uniqueId}
+                </foreach>
+            </trim>
+
+            <trim prefix="tag_name = CASE" suffix="END,">
+                <foreach collection="list" item="item">
+                    WHEN id = #{item.id} THEN #{item.tagName}
+                </foreach>
+            </trim>
+
+            <trim prefix="is_allot = CASE" suffix="END,">
+                <foreach collection="list" item="item">
+                    WHEN id = #{item.id} THEN #{item.isAllot}
+                </foreach>
+            </trim>
+
+            <trim prefix="celebrity_counselor_id = CASE" suffix="END,">
+                <foreach collection="list" item="item">
+                    WHEN id = #{item.id} THEN #{item.celebrityCounselorId}
+                </foreach>
+            </trim>
+
+            <trim prefix="celebrity_counselor_name = CASE" suffix="END,">
+                <foreach collection="list" item="item">
+                    WHEN id = #{item.id} THEN #{item.celebrityCounselorName}
+                </foreach>
+            </trim>
+
+            <trim prefix="allot_time = CASE" suffix="END,">
+                <foreach collection="list" item="item">
+                    WHEN id = #{item.id} THEN #{item.allotTime}
+                </foreach>
+            </trim>
+
+            <trim prefix="platform_type = CASE" suffix="END,">
+                <foreach collection="list" item="item">
+                    WHEN id = #{item.id} THEN #{item.platformType}
+                </foreach>
+            </trim>
+            update_by = #{list[0].updateBy},
+            update_time =NOW()
+        </trim>
+        WHERE id IN
+        <foreach collection="list" item="item" open="(" separator="," close=")">
+            #{item.id}
+        </foreach>
+    </update>
+
+    <select id="getNotAllotTagsList" resultType="org.jeecg.modules.kol.model.KolTagUpdateDTO">
+        <include refid="kol.common.tagsCountTempTable">
+            <property name="platform_type" value="2"/>
+            <property name="alias" value="tiktok_celebrity_tags"/>
+        </include>
+    </select>
+
+    <select id="getCelebrityTagsList" resultType="org.jeecg.modules.tiktok.entity.TiktokCelebrityTags">
+        select
+        tct.unique_id,
+        tct.author_id,
+        tct.tag_name,
+        tct.is_allot,
+        tct.tag_type,
+        tct.allot_time
+        from ${tempTableName} t STRAIGHT_JOIN tiktok_celebrity_tags tct on tct.author_id = t.unique_id
+        <if test="searchModel.productId != null and searchModel.productId != ''">
+            join kol_tag_product ktp on tct.tag_name = ktp.tag_name and ktp.platform_type = 2 and ktp.product_id = #{searchModel.productId}
+        </if>
+        <where>
+            <if test="searchModel.countryCode != null and searchModel.countryCode != ''">
+                and tct.country = #{searchModel.countryCode}
+            </if>
+            <if test="searchModel.tagType != null">
+                and tct.tag_type = #{searchModel.tagType}
+            </if>
+        </where>
+    </select>
+
+    <select id="getUnAlloteTagPageList" resultType="org.jeecg.modules.tiktok.model.TiktokCelebrityTagsModel">
+        <if test="searchModel.tempTableName == null or searchModel.tempTableName ==''">
+            <include refid="kol.common.tagNameTempTable"/>
+        </if>
+        <if test="searchModel.tempTableName != null and searchModel.tempTableName !=''">
+            <include refid="filteredTagsConditionNew"/>
+        </if>
+        <include refid="kol.common.uniqueIdTempTable"/>
+        <include refid="kol.common.emailTempTable"/>
+        <include refid="filteredCelebrityCondition"/>
+        <include refid="kol.common.celebrityPrivateConditionNew">
+            <property name="alias" value="2"/>
+        </include>
+        <if test="searchModel.productId!= null and searchModel.productId != ''">
+            <include refid="filteredProductCondition"/>
+        </if>
+        SELECT
+        ft.id,
+        ft.author_id,
+        ft.unique_id,
+        ft.tag_name,
+        ft.country,
+        tc.author_follower_count,
+        cp.id AS celebrity_private_id,
+        cp.celebrity_counselor_id AS celebrity_counselor_id,
+        cp.celebrity_counselor_name AS celebrity_counselor_name
+        FROM filtered_tags AS ft
+        JOIN filtered_tc AS tc ON tc.unique_id = ft.unique_id
+        <include refid="kol.common.celebrityPrivateJoinCondition">
+            <property name="alias" value="tc.sec_uid"/>
+            <property name="account" value="tc.unique_id"/>
+        </include>
+        <if test="searchModel.productId!= null and searchModel.productId != ''">
+            LEFT JOIN filtered_tctc AS tctc ON tctc.author_id = ft.author_id
+        </if>
+        <where>
+            <if test="searchModel.productId!= null and searchModel.productId != ''">
+                tctc.id is null
+            </if>
+        </where>
+    </select>
+
+    <select id="getNotAllotCount" resultType="int">
+        SELECT
+        count( 1 )
+        FROM
+        (
+        SELECT
+        tct.author_id
+        FROM
+        tiktok_celebrity tc
+        LEFT JOIN tiktok_celebrity_tags tct ON tc.author_id = tct.author_id
+        INNER JOIN ${searchModel.tempTableName} tl ON tct.tag_name = tl.tag_name
+        LEFT JOIN tiktok_celebrity_tags_counselor AS tctc ON tctc.author_id = tct.author_id
+        <if test="searchModel.countryCode != null and searchModel.countryCode != ''">
+            AND tctc.country = #{searchModel.countryCode}
+        </if>
+        <if test="searchModel.productId != null and searchModel.productId != ''">
+            AND tctc.product_id = #{searchModel.productId}
+        </if>
+        <if test="searchModel.productId != null and searchModel.productId != ''">
+            AND tctc.allot_time &gt; DATE_SUB(CURDATE(), INTERVAL #{searchModel.allotDays} DAY)
+        </if>
+        <where>
+            <if test="searchModel.countryCode != null and searchModel.countryCode != ''">
+                AND tct.country = #{searchModel.countryCode}
+                AND tc.country = #{searchModel.countryCode}
+            </if>
+            <if test="searchModel.minFollowers != null">
+                AND tct.author_follower_count &gt;= #{searchModel.minFollowers}
+            </if>
+            <if test="searchModel.maxFollowers != null">
+                AND tct.author_follower_count &lt;= #{searchModel.maxFollowers}
+            </if>
+            <if test="searchModel.productId == null or searchModel.productId == ''">
+                AND (tct.is_allot = 0 OR tct.allot_time &lt; DATE_SUB(CURDATE(), INTERVAL #{searchModel.allotDays} DAY))
+            </if>
+            <if test="searchModel.productId != null and searchModel.productId != ''">
+                AND tctc.id IS NULL
+            </if>
+            <if test="searchModel.minVideoStandardCount != null">
+                AND tc.video_standard_count &gt;= #{searchModel.minVideoStandardCount}
+            </if>
+            <if test="searchModel.maxVideoStandardCount != null">
+                AND tc.video_standard_count &lt;= #{searchModel.maxVideoStandardCount}
+            </if>
+            <if test="searchModel.signatureKeyword != null and searchModel.signatureKeyword != ''">
+                and tc.signature like '%${searchModel.signatureKeyword}%'
+            </if>
+            <if test="searchModel.isHasEmail != null">
+                <choose>
+                    <when test="searchModel.isHasEmail == 1">
+                        AND tc.email != ''
+                    </when>
+                    <when test="searchModel.isHasEmail == 0">
+                        AND ( tc.email IS NULL OR tc.email = '')
+                    </when>
+                </choose>
+            </if>
+            <if test="searchModel.uniqueId != null and searchModel.uniqueId != ''">
+                and tc.unique_id in
+                <foreach collection="searchModel.uniqueId.split(',')" item="item" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="searchModel.emailKeyword != null and searchModel.emailKeyword != '' and searchModel.isHasEmail != 0">
+                and tc.email in
+                <foreach collection="searchModel.emailKeyword.split(',')" item="item" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+        </where>
+        GROUP BY
+        tct.author_id
+        ) total_tc
+    </select>
+</mapper>

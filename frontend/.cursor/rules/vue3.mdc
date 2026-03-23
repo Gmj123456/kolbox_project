@@ -1,0 +1,10 @@
+---
+alwaysApply: true
+---
+
+# vue3
+
+在 Vue3 语法中，不使用 `reactive`，可以直接使用 `ref` 或普通变量。
+
+
+

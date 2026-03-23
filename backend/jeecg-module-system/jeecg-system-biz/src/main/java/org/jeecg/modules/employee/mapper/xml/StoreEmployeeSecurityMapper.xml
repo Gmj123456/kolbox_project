@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jeecg.modules.employee.mapper.StoreEmployeeSecurityMapper">
+
+    <select id="frontList" resultType="java.util.Map">
+        SELECT *
+        FROM calendar_list
+        WHERE `date` &gt;= #{jsonObject.start_time}
+          AND `date` &lt;= #{jsonObject.end_time}
+        ORDER BY `date`
+    </select>
+</mapper>

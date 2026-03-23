@@ -1,0 +1,682 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kol.common">
+    <!-- 标签循环创建临时表 -->
+    <sql id="tagNameListForeach">
+        <!-- 通过循环tagNameList来构造关联的子查询 -->
+        <foreach collection="searchModel.tagNameList" item="item" open="(" separator=" UNION ALL " close=")">
+            SELECT #{item} AS tag_name
+        </foreach>
+    </sql>
+    <!-- 标签列表IN条件查询 -->
+    <sql id="tagListInCondition">
+        <if test="searchModel.tagNameList != null and searchModel.tagNameList.size() > 0">
+            AND tag_name in
+            <foreach collection="searchModel.tagNameList" item="item" open="(" close=")" separator=",">
+                #{item}
+            </foreach>
+        </if>
+    </sql>
+    <!-- 国家简码查询条件 -->
+    <sql id="countryCodeCondition">
+        <if test="searchModel.countryCode != null and searchModel.countryCode != ''">
+            AND ${alias}.country = #{searchModel.countryCode}
+        </if>
+    </sql>
+    <!-- 商品id查询条件 -->
+    <sql id="productIdCondition">
+        <if test="searchModel.productId != null and searchModel.productId != ''">
+            AND ${alias}.product_id = #{searchModel.productId}
+        </if>
+    </sql>
+    <!-- 品牌id查询条件 -->
+    <sql id="brandIdCondition">
+        <if test="searchModel.brandId != null and searchModel.brandId != ''">
+            AND ${alias}.brand_id = #{searchModel.brandId}
+        </if>
+    </sql>
+    <!-- 网红顾问关联查询条件 -->
+    <sql id="counselorJoinCondition">
+        <if test="searchModel.counselorId != null and searchModel.counselorId != ''">
+            JOIN (
+            SELECT DISTINCT unique_id
+            FROM kol_contact
+            <where>
+                AND counselor_id = #{searchModel.counselorId}
+            </where>
+            )
+            kct ON kct.unique_id =
+            ${uniqueId}
+        </if>
+    </sql>
+    <!-- 品牌开发关联查询条件 -->
+    <sql id="brandJoinCondition">
+        <if test="searchModel.productId != null and searchModel.productId != ''">
+            <if test="searchModel.isContact != null and searchModel.isContact == 1">
+                JOIN kol_contact kct ON kct.unique_id = ${uniqueId}
+                AND kct.product_id = #{searchModel.productId}
+                AND kct.platform_type = #{searchModel.platformType}
+            </if>
+            <if test="searchModel.isContact != null and searchModel.isContact == 0">
+                LEFT JOIN kol_contact kct ON kct.unique_id = ${uniqueId}
+                AND kct.product_id = #{searchModel.productId}
+                AND kct.platform_type = #{searchModel.platformType}
+            </if>
+        </if>
+    </sql>
+    <!-- 邮箱关联查询条件 -->
+    <sql id="emailJoinCondition">
+        <if test="searchModel.emailKeyword != null and searchModel.emailKeyword != '' and searchModel.isHasEmail != 0">
+            JOIN
+            <foreach collection="searchModel.emailKeyword.split(',')" item="item" open="("
+                     separator=" UNION ALL " close=")">
+                SELECT #{item} AS email
+            </foreach>
+            AS email_list ON
+            ${alias}
+            .
+            email
+            =
+            email_list
+            .
+            email
+        </if>
+    </sql>
+
+
+    <!-- 私有网红表关联条件 -->
+    <sql id="privateKolJoinCondition">
+        LEFT JOIN store_celebrity_private AS scp
+        ON scp.celebrity_id =
+        ${uniqueId}
+        AND
+        scp
+        .
+        platform_type
+        =
+        ${platformType}
+    </sql>
+    <sql id="blacklistKolJoinCondition">
+        <if test="searchModel.includeBlacklist == 1">
+            INNER JOIN kol_blacklist AS k
+            ON k.celebrity_id = ${uniqueId} AND k.platform_type = ${platformType}
+        </if>
+        <if test="searchModel.includeBlacklist == 0">
+            LEFT JOIN kol_blacklist AS k
+            ON k.celebrity_id = ${uniqueId} AND k.platform_type = ${platformType}
+        </if>
+    </sql>
+    <!-- 屏蔽网红，根据产品查询需要过滤掉产品的屏蔽网红   -->
+    <sql id="shieldsKolJoinCondition">
+        <if test="searchModel.productId != null and searchModel.productId != ''">
+            LEFT JOIN kol_shields AS k
+            ON k.celebrity_id = ${uniqueId} AND k.platform_type = ${platformType}
+            AND k.product_id = #{searchModel.productId}
+        </if>
+    </sql>
+    <!-- 是否包含邮箱查询条件 -->
+    <sql id="isHasEmailCondition">
+        <if test="searchModel.isHasEmail != null">
+            <choose>
+                <when test="searchModel.isHasEmail == 1">
+                    AND ${alias}.email != ''
+                </when>
+                <when test="searchModel.isHasEmail == 0">
+                    AND ( ${alias}.email IS NULL OR ${alias}.email = '')
+                </when>
+            </choose>
+        </if>
+    </sql>
+    <!-- 标准视频区间查询条件 -->
+    <sql id="videoStandardCountCondition">
+        <if test="searchModel.minVideoStandardCount != null">
+            AND ${alias}.video_standard_count &gt;= #{searchModel.minVideoStandardCount}
+        </if>
+        <if test="searchModel.maxVideoStandardCount != null">
+            AND ${alias}.video_standard_count &lt;= #{searchModel.maxVideoStandardCount}
+        </if>
+    </sql>
+    <sql id="videoCountRangeCondition">
+        <if test="searchModel.minVideoStandardCount != null">
+            AND ${videoCount} &gt;= #{searchModel.minVideoStandardCount}
+        </if>
+        <if test="searchModel.maxVideoStandardCount != null">
+            AND ${videoCount} &lt;= #{searchModel.maxVideoStandardCount}
+        </if>
+    </sql>
+    <!-- 粉丝数区间查询条件 -->
+    <sql id="followerCountCondition">
+        <if test="searchModel.minFollowers != null">
+            AND ${followerCount} &gt;= #{searchModel.minFollowers}
+        </if>
+        <if test="searchModel.maxFollowers != null">
+            AND ${followerCount} &lt;= #{searchModel.maxFollowers}
+        </if>
+    </sql>
+    <!-- 播放量中位数区间查询条件 -->
+    <sql id="medianViewsCountCondition">
+        <if test="searchModel.minMedianViews != null">
+            AND ${medianViewsCount} &gt;= #{searchModel.minMedianViews}
+        </if>
+        <if test="searchModel.maxMedianViews != null">
+            AND ${medianViewsCount} &lt;= #{searchModel.maxMedianViews}
+        </if>
+    </sql>
+
+    <!-- 均播区间查询条件 -->
+    <sql id="playAvgNumCountCondition">
+        <choose>
+            <!-- isNonPinned = 1 → 只看非置顶视频数据 -->
+            <when test="searchModel.isNonPinned == 1">
+                <if test="searchModel.minPlayAvgNum != null">
+                    AND JSON_EXTRACT(${playAvgNumCount}, '$.non_pinned.play_avg_num') >= #{searchModel.minPlayAvgNum}
+                </if>
+                <if test="searchModel.maxPlayAvgNum != null">
+                    AND JSON_EXTRACT(${playAvgNumCount}, '$.non_pinned.play_avg_num') &lt; #{searchModel.maxPlayAvgNum}
+                </if>
+            </when>
+
+            <!-- isNonPinned = 0 或 null 或不传 → 看全部视频数据（包含置顶） -->
+            <otherwise>
+                <if test="searchModel.minPlayAvgNum != null">
+                    AND JSON_EXTRACT(${playAvgNumCount}, '$.total.play_avg_num') >= #{searchModel.minPlayAvgNum}
+                </if>
+                <if test="searchModel.maxPlayAvgNum != null">
+                    AND JSON_EXTRACT(${playAvgNumCount}, '$.total.play_avg_num') &lt; #{searchModel.maxPlayAvgNum}
+                </if>
+            </otherwise>
+        </choose>
+    </sql>
+    <!-- 是否私有网红关联查询条件 -->
+    <sql id="isPrivateKolJoinCondition">
+        <if test="searchModel.isPrivateKol != null">
+            LEFT JOIN store_celebrity_private AS scp
+            ON scp.celebrity_id = ${uniqueId} AND scp.platform_type = ${platformType}
+        </if>
+    </sql>
+    <sql id="isPrivateKolConditionNew">
+        <if test="searchModel.isPrivateKol != null">
+            AND cp.id is ${searchModel.isPrivateKol==1? 'not null' : 'null'}
+        </if>
+    </sql>
+    <!-- 是否高粉丝数量查询条件 -->
+    <!-- 2025年6月6日15:00:06 刘工说不用加这个条件了，现在库里的数据都符合 -->
+    <sql id="isHighFollowerCountCondition">
+        AND
+        ${alias}
+        .
+        is_high_follower
+        =
+        1
+    </sql>
+    <!-- 标签未分配查询条件 -->
+    <sql id="isNotAllotCondition">
+        AND
+            ( ${alias}.is_allot=0 or ${alias}.allot_time &lt; DATE_ADD(CURDATE(), INTERVAL - ${searchModel.allotDays} DAY))
+    </sql>
+    <!-- 标签顾问id查询条件 -->
+    <sql id="tagCounselorIdCondition">
+        <if test="searchModel.tagCounselorId != null and searchModel.tagCounselorId != ''">
+            AND ${alias}.counselor_id = #{searchModel.tagCounselorId}
+        </if>
+    </sql>
+    <!-- 未开发 -->
+    <sql id="isNotDevelopCondition">
+        <if test="searchModel.brandName != null and searchModel.brandName != ''">
+            <if test="searchModel.isContact != null and searchModel.isContact == 0">
+                and ${alias}.unique_id not in (SELECT unique_id FROM kol_contact WHERE brand_name = #{searchModel.brandName}
+                AND platform_type = #{searchModel.platformType} group by unique_id)
+            </if>
+        </if>
+    </sql>
+    <!-- 黑名单网红查询条件 -->
+    <sql id="blacklistKolCondition">
+        <if test="searchModel.includeBlacklist == 0">
+            AND k.celebrity_id IS NULL
+        </if>
+    </sql>
+    <!-- 屏蔽网红查询条件 -->
+    <sql id="shieldsKolCondition">
+        <if test="searchModel.productId != null and searchModel.productId != ''">
+            AND k.celebrity_id IS NULL
+        </if>
+    </sql>
+    <!-- 品牌开发建联查询条件 -->
+    <sql id="brandContactJoinCondition">
+        <if test="searchModel.brandName != null and searchModel.brandName != ''">
+            <if test="searchModel.isContact != null and searchModel.isContact == 0">
+                AND ${uniqueId} not in (SELECT unique_id FROM kol_contact
+                <where>
+                    <!-- counselor_id = #{searchModel.counselorId}
+                     AND -->brand_name = #{searchModel.brandName}
+                    AND platform_type = #{searchModel.platformType}
+                </where>
+                )
+            </if>
+            <if test="searchModel.isContact != null and searchModel.isContact == 1">
+                AND ${uniqueId} in (SELECT unique_id FROM kol_contact AS kc
+                <where>
+                    <!--counselor_id = #{searchModel.counselorId}
+                    AND -->brand_name = #{searchModel.brandName}
+                    AND platform_type = #{searchModel.platformType}
+                </where>
+                )
+            </if>
+        </if>
+    </sql>
+    <!-- 私有网红平台类型查询条件 -->
+    <!--    <sql id="privatePlatformTypeCondition">-->
+    <!--        AND  scp.platform_type = ${platformType}-->
+    <!--    </sql>-->
+    <!-- 网红账号模糊匹配(unique_id)查询条件 为兼容前端统一参数-->
+    <sql id="uniqueIdCondition">
+        <!--     <if test="searchModel.uniqueId != null and searchModel.uniqueId != ''">
+                 AND ${uniqueId} like '%${searchModel.uniqueId}%'
+             </if>-->
+        <if test="searchModel.uniqueId != null and searchModel.uniqueId != ''">
+            AND ${uniqueId} IN
+            <foreach collection="searchModel.uniqueId.split(',')" item="item"
+                     open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+    </sql>
+    <!-- 网红顾问id查询条件 -->
+    <sql id="counselorIdCondition">
+        <if test="searchModel.counselorId != null and searchModel.counselorId != ''">
+            AND ${alias}.counselor_id = #{searchModel.counselorId}
+        </if>
+    </sql>
+    <!-- 邮箱模糊查询条件 -->
+    <sql id="emailCondition">
+        <if test="searchModel.emailKeyword != null and searchModel.emailKeyword != ''">
+            AND ${alias}.email like CONCAT(CONCAT('%',
+            #{searchModel.emailKeyword}), '%')
+        </if>
+    </sql>
+    <!-- 分配日期区间查询条件 -->
+    <sql id="allotTimeCondition">
+        <if test="searchModel.allotStartTime != null">
+            AND ${alias}.allot_time &gt;= #{searchModel.allotStartTime}
+        </if>
+        <if test="searchModel.allotEndTime != null">
+            <!-- 使用 DATE_ADD 将结束时间加1天 -->
+            AND ${alias}.allot_time &lt; DATE_ADD(#{searchModel.allotEndTime}
+            , INTERVAL 1 DAY)
+        </if>
+    </sql>
+    <!--连接标签名称列表用于过滤-->
+    <sql id="joinTagNameListForFilter">
+        <if test="searchModel.tagNameList != null and searchModel.tagNameList.size() > 0">
+            JOIN (
+            <include refid="kol.common.tagNameListForeach"/>
+            )
+            AS tags ON ${tagCelebrityTable}.tag_name = tags.tag_name
+        </if>
+    </sql>
+    <!-- 标签类型查询条件 -->
+    <sql id="tagTypeCondition">
+        <if test="searchModel.tagType != null">
+            AND ${alias}.tag_type = #{searchModel.tagType}
+        </if>
+    </sql>
+
+    <!--    2025年4月8日09:32:38 刘峰 创建tagNameList临时表-->
+    <sql id="tagNameTempTable">
+        <if test="searchModel.tagNameList != null and searchModel.tagNameList.size() > 0">
+            WITH tag_list AS
+            <include refid="kol.common.tagNameListForeach"/>
+        </if>
+    </sql>
+
+    <sql id="tagNameTempTableNew">
+        <if test="searchModel.tempTableName != null and searchModel.tempTableName !=''">
+            WITH tag_list AS (select * from ${searchModel.tempTableName})
+        </if>
+    </sql>
+    <sql id="tagNameJoinConditionPlus">
+        <if test="searchModel.tagNameList != null and searchModel.tagNameList.size() > 0">
+            JOIN tag_list tl ON ${alias}.tag_name = tl.tag_name
+        </if>
+    </sql>
+    <!--    2025年4月8日10:31:18 刘峰 创建 uniqueId临时表-->
+    <sql id="uniqueIdTempTable">
+        <if test="searchModel.uniqueId != null and searchModel.uniqueId != ''">
+            ,unique_id_list AS
+            <foreach collection="searchModel.uniqueId.split(',')" item="item" open="("
+                     separator=" UNION ALL " close=")">
+                SELECT #{item} AS uniqueId
+            </foreach>
+        </if>
+    </sql>
+    <sql id="uniqueIdJoinConditionPlus">
+        <if test="searchModel.uniqueId != null and searchModel.uniqueId != ''">
+            JOIN unique_id_list ul ON ${unique_field} = ul.uniqueId
+        </if>
+    </sql>
+    <!--    2025年4月8日10:43:23 刘峰 增加临时表SQL语句-->
+    <sql id="emailTempTable">
+        <if test="searchModel.emailKeyword != null and searchModel.emailKeyword != '' and searchModel.isHasEmail != 0">
+            ,email_list AS
+            <foreach collection="searchModel.emailKeyword.split(',')" item="item" open="("
+                     separator=" UNION ALL " close=")">
+                SELECT #{item} AS email
+            </foreach>
+        </if>
+    </sql>
+    <sql id="emailJoinConditionPlus">
+        <if test="searchModel.emailKeyword != null and searchModel.emailKeyword != '' and searchModel.isHasEmail != 0">
+            JOIN email_list el ON ${alias}.email = el.email
+        </if>
+    </sql>
+    <sql id="countryJoinCondition">
+        left join store_country stc on
+        ${alias}
+        .
+        country
+        =
+        stc
+        .
+        short_code
+    </sql>
+    <sql id="celebrityPrivateCondition">
+        WITH celebrity_private AS (SELECT a.id,
+                                          a.celebrity_id,
+                                          a.celebrity_counselor_id,
+                                          a.celebrity_counselor_name,
+                                          b.contract_time,
+                                          a.account
+                                   FROM store_celebrity_private a
+                                            LEFT JOIN (SELECT celebrity_private_id, max(contract_time) AS contract_time FROM store_celebrity_private_counselor GROUP BY celebrity_private_id) b
+                                                      ON a.id = b.celebrity_private_id
+                                   WHERE platform_type = ${alias})
+    </sql>
+    <sql id="celebrityPrivateConditionCount">
+        WITH celebrity_private AS (SELECT a.id,a.celebrity_id, a.account
+                                   FROM store_celebrity_private a
+                                   WHERE platform_type = ${alias})
+    </sql>
+    <sql id="celebrityPrivateConditionCountNew">
+        ,celebrity_private AS (SELECT a.id,
+                                          a.account,
+                                          a.celebrity_id,
+                                          a.celebrity_counselor_id,
+                                          a.celebrity_counselor_name
+                                   FROM store_celebrity_private a
+                                   WHERE platform_type = ${alias})
+    </sql>
+    <sql id="celebrityPrivateConditionNew">
+        ,celebrity_private AS (SELECT
+                      a.id,
+                      a.celebrity_id,
+                      a.celebrity_counselor_id,
+                      a.celebrity_counselor_name,
+                      b.contract_time
+                    FROM
+                      store_celebrity_private a
+                      LEFT JOIN ( SELECT celebrity_private_id, max( contract_time ) AS contract_time FROM store_celebrity_private_counselor GROUP BY celebrity_private_id ) b ON a.id = b.celebrity_private_id
+                    WHERE
+                      platform_type =
+        ${alias}
+        GROUP
+        BY
+        a
+        .
+        platform_type,
+        a
+        .
+        celebrity_id
+        )
+    </sql>
+    <sql id="celebrityPrivateJoinCondition">
+<!--        LEFT JOIN celebrity_private AS cp ON cp.celebrity_id = ${alias} OR cp.account = ${account}-->
+        LEFT JOIN celebrity_private AS cp ON cp.account = ${account}
+    </sql>
+    <sql id="celebrityPrivateCountJoinCondition">
+        <if test="searchModel.isPrivateKol != null">
+            LEFT JOIN celebrity_private AS cp ON cp.account = ${account}
+        </if>
+    </sql>
+    <sql id="productCondition">
+        <if test="searchModel.productId != null and searchModel.productId != ''">
+            <if test="searchModel.isContact != null and searchModel.isContact == 0">
+                and kcs.unique_id IS NULL
+            </if>
+        </if>
+    </sql>
+    <sql id="linktreeCondition">
+        <if test="searchModel.linktree != null and searchModel.linktree != ''">
+            AND ${alias} like '%${searchModel.linktree}%'
+        </if>
+    </sql>
+    <sql id="kolContactCondition">
+        <if test="searchModel.isContact != null ">
+            ,kol_contact_summary AS (
+            SELECT
+            unique_id
+            FROM kol_contact AS kc
+            WHERE kc.platform_type = #{searchModel.platformType}
+            <!--AND kc.contact_date>= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)-->
+            <if test="searchModel.productId != null and searchModel.productId != ''">
+                AND kc.product_id = #{searchModel.productId}
+            </if>
+            <if test="searchModel.productId == null or searchModel.productId == ''">
+                <include refid="kol.common.counselorIdCondition">
+                    <property name="alias" value="kc"/>
+                </include>
+            </if>
+            group by unique_id
+            )
+        </if>
+    </sql>
+    <sql id="kolContactJoinCondition">
+        <if test="searchModel.isContact != null ">
+            LEFT JOIN kol_contact_summary kcs ON kcs.unique_id = ${alias}
+        </if>
+    </sql>
+    <sql id="kolContactParamsCondition">
+        <!-- isContact == 1：只查有开发记录的 -->
+        <if test="searchModel.isContact != null and searchModel.isContact == 1">
+            AND kcs.unique_id IS NOT NULL
+        </if>
+        <!-- isContact == 0：只查从未开发过的 -->
+        <if test="searchModel.isContact != null and searchModel.isContact == 0">
+            AND kcs.unique_id IS NULL
+        </if>
+    </sql>
+
+    <sql id="tagsCountTempTable">
+        SELECT t.tag_name,
+               ${platform_type}                                                                       AS platform_type,
+               sum(t.unassignedCount)                                                                 AS unassignedCount,
+               JSON_ARRAYAGG(JSON_OBJECT('country', t.country, 'unassignedCount', t.unassignedCount)) AS country_data_json
+        FROM (SELECT tag_name,
+                     country,
+                     SUM(total_count) AS unassignedCount
+              FROM (SELECT tag_name,
+                           country,
+                           COUNT(1) AS total_count
+                    FROM ${alias}
+                    WHERE is_allot = 0
+                      AND country != ''
+                      AND country IS NOT NULL
+                        ${sql}
+                    GROUP BY tag_name,
+                        country
+                    UNION ALL
+                    SELECT tag_name, country, COUNT (1) AS total_count
+                    FROM ${alias}
+                    WHERE is_allot != 0
+                      AND country != ''
+                      AND country IS NOT NULL
+                      AND allot_time
+                     &lt; DATE_SUB(CURDATE()
+                        , INTERVAL ${allotMaxDays} DAY) ${sql}
+                    GROUP BY tag_name,
+                        country) AS combined_results
+              GROUP BY tag_name,
+                       country) AS t
+        GROUP BY t.tag_name;
+    </sql>
+    <sql id="batchInsertIntoTempTable">
+        INSERT IGNORE INTO ${tableName} (tag_name)
+        VALUES
+        <foreach collection="tagNames" item="item" separator=",">
+            (#{item})
+        </foreach>
+    </sql>
+    <sql id="batchInsertIntoUniqueIdTempTable">
+        INSERT IGNORE INTO ${tableName} (unique_id)
+        VALUES
+        <foreach collection="uniqueIds" item="item" separator=",">
+            (#{item})
+        </foreach>
+    </sql>
+    <sql id="batchInsertUniqueIdTempTable">
+        INSERT IGNORE INTO ${tableName} (unique_id)
+        VALUES
+        <foreach collection="uniqueIds" item="item" separator=",">
+            (#{item})
+        </foreach>
+    </sql>
+    <sql id="dropTempTable">
+        DROP TABLE IF EXISTS ${tableName}
+    </sql>
+    <sql id="createTempUpdateTable">
+        CREATE TABLE IF NOT EXISTS ${tableName}
+        (
+            tag_name VARCHAR(255) NOT NULL,
+            PRIMARY KEY (tag_name)
+        )
+    </sql>
+    <sql id="createUniqueIdTempTable">
+        CREATE TABLE IF NOT EXISTS ${tableName}
+        (
+            unique_id VARCHAR(255) NOT NULL,
+            PRIMARY KEY (unique_id)
+        )
+    </sql>
+    <sql id="tempTableJoinCondition">
+        JOIN
+        ${searchModel.tempTableName}
+        as
+        tags
+        ON
+        ${alias}
+        .
+        tag_name
+        =
+        tags
+        .
+        tag_name
+    </sql>
+    <sql id="emailTotalCondition">
+        <if test="searchModel.total != null">
+            AND ${alias}.email IS NOT NULL
+            AND ${alias}.email != ''
+        </if>
+    </sql>
+    <sql id="totalCountCondition">
+        <if test="searchModel.total != null">
+            LIMIT #{searchModel.total}
+        </if>
+    </sql>
+    <sql id="allotAttributeJoinCondition">
+        ,
+        attribute_tag_name AS (
+        SELECT
+        tar.tag_name
+        FROM
+        kol_tag_attribute_relation tar
+        INNER JOIN kol_tags atr ON tar.tag_id = atr.id
+        WHERE
+        atr.platform_type = ${platform_type}
+        AND atr.is_active = 1
+        AND atr.is_delete = 0
+        AND tar.tag_name != ''
+        <if test="searchModel.productId != null and searchModel.productId != ''">
+            and tar.product_id = #{searchModel.productId}
+        </if>
+        AND tar.attribute_id IN
+        <foreach collection="searchModel.attributeIds.split(',')" item="item" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+        )
+    </sql>
+    <sql id="attributeUniqueIdCondition">
+        <if test="searchModel.attributeIds != null and searchModel.attributeIds != ''">
+            AND EXISTS (
+            SELECT
+            1
+            FROM
+            <if test="searchModel.platformType == 0">
+                ig_celebrity_tags as cel_tags
+                WHERE
+                cel_tags.account = ${uniqueId}
+            </if>
+            <if test="searchModel.platformType == 1">
+                youtube_celebrity_tags as cel_tags
+                WHERE
+                cel_tags.account = ${uniqueId}
+            </if>
+            <if test="searchModel.platformType == 2">
+                tiktok_celebrity_tags as cel_tags
+                WHERE
+                cel_tags.unique_id = ${uniqueId}
+            </if>
+            <if test="searchModel.countryCode  != null and searchModel.countryCode != ''">
+                AND cel_tags.country = #{searchModel.countryCode}
+            </if>
+            AND EXISTS (
+            SELECT
+            1
+            FROM
+            kol_tag_attribute_relation tar
+            INNER JOIN kol_tags atr ON tar.tag_id = atr.id
+            WHERE
+            atr.platform_type = #{searchModel.platformType}
+            AND atr.is_active = 1
+            AND atr.is_delete = 0
+            AND tar.attribute_id in
+            <foreach collection="searchModel.attributeIds.split(',')" item="item" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+            AND tar.tag_name != ''
+            AND cel_tags.tag_name = tar.tag_name
+            )
+            )
+        </if>
+    </sql>
+    <sql id="tagNameCondition">
+        <choose>
+            <when test="searchModel.tempTableName != null and searchModel.tempTableName != ''">
+                <!-- 使用临时表 -->
+                WITH tag_source AS (
+                SELECT tag_name FROM ${searchModel.tempTableName}
+                )
+            </when>
+            <otherwise>
+                <!-- 使用 tagNameList -->
+                <if test="searchModel.tagNameList != null and searchModel.tagNameList.size() > 0">
+                    WITH tag_source AS (
+                    <foreach collection="searchModel.tagNameList" item="item" open="" separator=" UNION ALL " close="">
+                        SELECT #{item} AS tag_name
+                    </foreach>
+                    )
+                </if>
+                <if test="searchModel.tagNameList == null or searchModel.tagNameList.size() == 0">
+                    WITH tag_source AS (SELECT NULL AS tag_name WHERE 1=0)
+                </if>
+            </otherwise>
+        </choose>
+    </sql>
+    <sql id="kolEmailLikeCondition">
+        <if test="searchModel.emailKeyword != null and searchModel.emailKeyword != '' and searchModel.isHasEmail != 0">
+            AND (
+            <foreach collection="searchModel.emailKeyword.split(',')" item="item" separator=" OR ">
+                ${alias}.email LIKE CONCAT('%', TRIM(#{item}), '%')
+            </foreach>
+            )
+        </if>
+    </sql>
+</mapper>

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jeecg.modules.instagram.storecelebrity.mapper.MessageTemplateMapper">
+    <select id="sellerCounselorPage"  resultType="org.jeecg.modules.instagram.storecelebrity.entity.MessageTemplate">
+        SELECT * FROM store_message_template WHERE is_public = 0
+
+        <if test="messageTemplateModel.sellerName !=null">
+            and seller_name like '%${messageTemplateModel.sellerName}%'
+        </if>
+        <if test="messageTemplateModel.templateName !=null">
+            and template_name like'%${messageTemplateModel.templateName}%'
+        </if>
+        <if test="messageTemplateModel.templateTitle !=null">
+            and template_title like'%${messageTemplateModel.templateTitle}%'
+        </if>
+        order by create_time DESC
+    </select>
+</mapper>

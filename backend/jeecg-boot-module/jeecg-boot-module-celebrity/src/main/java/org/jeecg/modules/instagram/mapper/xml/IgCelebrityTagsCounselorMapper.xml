@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jeecg.modules.instagram.mapper.IgCelebrityTagsCounselorMapper">
+    <!-- ******************* 提取公共部分查询条件 ******************** -->
+
+    <!-- 组合列表查询条件 -->
+    <!-- 查询网红标签顾问分配明细查询条件(Where) -->
+    <sql id="AllotListQueryConditions">
+       <!--  <include refid="kol.common.isHighFollowerCountCondition">
+            <property name="alias" value="ic"/>
+        </include> -->
+        <include refid="kol.common.tagListInCondition"/>
+        <include refid="kol.common.uniqueIdCondition">
+            <property name="uniqueId" value="ictc.ig_username"/>
+        </include>
+        <include refid="kol.common.countryCodeCondition">
+            <property name="alias" value="ic"/>
+        </include>
+        <include refid="kol.common.counselorIdCondition">
+            <property name="alias" value="ictc"/>
+        </include>
+        <include refid="kol.common.isHasEmailCondition">
+            <property name="alias" value="ic"/>
+        </include>
+        <include refid="kol.common.emailCondition">
+            <property name="alias" value="ic"/>
+        </include>
+        <include refid="kol.common.videoStandardCountCondition">
+            <property name="alias" value="ic"/>
+        </include>
+        <include refid="kol.common.isPrivateKolConditionNew"/>
+        <include refid="kol.common.followerCountCondition">
+            <property name="followerCount" value="ic.follower_count"/>
+        </include>
+        <include refid="kol.common.allotTimeCondition">
+            <property name="alias" value="ictc"/>
+        </include>
+        <!--        <include refid="kol.common.privatePlatformTypeCondition"><property name="platformType" value="0"/></include>-->
+    </sql>
+
+    <!-- ********************** 以下为业务查询部分 ********************** -->
+
+
+    <!-- 获取Instagram标签网红分配历史明细视图模型数据列表 -->
+    <select id="getIgTagAllottedList" resultType="org.jeecg.modules.kol.model.KolTagAllotModel">
+        <include refid="kol.common.celebrityPrivateCondition">
+            <property name="alias" value="0"/>
+        </include>
+        SELECT ictc.id,
+        ictc.ig_celebrity_tags_id as tag_id,
+        ictc.account,
+        ictc.ig_username AS unique_id,
+        ictc.tag_name,
+        ictc.tag_type,
+        ictc.counselor_id,
+        ictc.counselor_name,
+        ictc.allot_time,
+        ictc.allot_log_detail_id,
+        ic.country,
+        ic.biography AS signature,
+        ic.follower_count AS author_follower_count,
+        ic.video_sample_count,
+        ic.video_standard_count,
+        ic.email,
+        ic.profile_pic_url AS author_avatar_url,
+        cp.id AS celebrity_private_id,
+        0 AS platform_type,
+        kp.product_name
+        FROM ig_celebrity_tags_counselor AS ictc
+        LEFT JOIN ig_celebrity AS ic ON ic.account = ictc.account
+        <include refid="kol.common.celebrityPrivateJoinCondition">
+            <property name="alias" value="ictc.account"/>
+            <property name="account" value="ictc.ig_username"/>
+        </include>
+        LEFT JOIN kol_product kp ON ictc.product_id = kp.id
+        <where>
+            <include refid="AllotListQueryConditions"/>
+            <if test="searchModel.productId != null and searchModel.productId != ''">
+               and ictc.product_id = #{searchModel.productId}
+            </if>
+        </where>
+        order by ictc.allot_time desc
+    </select>
+    <select id="getKolTagAllottedListCount" resultType="int">
+        <include refid="kol.common.celebrityPrivateCondition">
+            <property name="alias" value="0"/>
+        </include>
+        SELECT count(1)
+        FROM ig_celebrity_tags_counselor AS ictc
+        LEFT JOIN ig_celebrity AS ic ON ic.account = ictc.account
+        LEFT JOIN kol_product kp ON ictc.product_id = kp.id
+        <include refid="kol.common.celebrityPrivateJoinCondition">
+            <property name="alias" value="ictc.account"/>
+            <property name="account" value="ictc.ig_username"/>
+        </include>
+        <where>
+            <include refid="AllotListQueryConditions"/>
+            <if test="searchModel.productId != null and searchModel.productId != ''">
+                and ictc.product_id = #{searchModel.productId}
+            </if>
+        </where>
+    </select>
+
+    <select id="getCelebrityTagsList" resultType="org.jeecg.modules.instagram.entity.IgCelebrityTagsCounselor">
+        select ictc.ig_username,
+        ictc.account,
+        ictc.tag_name,
+        ictc.tag_type,
+        ictc.allot_time
+        FROM ig_celebrity_tags_counselor AS ictc
+        join ${tempTableName} t on ictc.account = t.unique_id
+        <where>
+            <if test="searchModel.countryCode != null and searchModel.countryCode != ''">
+                and ictc.country = #{searchModel.countryCode}
+            </if>
+            <if test="searchModel.productId != null and searchModel.productId != ''">
+                and ictc.counselor_id = #{searchModel.counselorId}
+                and ictc.product_id = #{searchModel.productId}
+            </if>
+        </where>
+    </select>
+
+    <select id="getBrandListByCounselorId" resultType="org.jeecg.modules.kol.entity.KolBrand">
+        SELECT kb.id, kb.brand_name
+        FROM ig_celebrity_tags_counselor ictc
+        JOIN kol_product kp ON kp.id = ictc.product_id
+        JOIN kol_brand kb ON kb.id = kp.brand_id
+        WHERE ictc.counselor_id = #{counselorId} AND kb.is_delete = 0
+        GROUP BY ictc.product_id
+    </select>
+</mapper>

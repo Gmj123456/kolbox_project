@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jeecg.modules.merchant.mapper.MerchantInfoMapper">
+
+<select id="pageList" resultType="org.jeecg.modules.merchant.entity.MerchantInfo">
+  SELECT a.*,
+  b.brand_name AS brandName,
+  c.realname AS businessName
+  FROM merchant_info a
+  LEFT JOIN kol_brand b ON a.brand_id = b.id
+  LEFT JOIN sys_user c ON a.business_id = c.id
+  WHERE 1 = 1
+  <if test="merchantInfo.businessId!= null and merchantInfo.businessId!= ''">
+    and a.business_id = #{merchantInfo.businessId}
+  </if>
+  <if test="merchantInfo.brandId!= null and merchantInfo.brandId!= ''">
+    and a.brand_id = #{merchantInfo.brandId}
+  </if>
+  <if test="merchantInfo.customerLevel!= null and merchantInfo.customerLevel!= ''">
+    and a.customer_level = #{merchantInfo.customerLevel}
+  </if>
+  <if test="merchantInfo.customerAcquisitionMethod!= null and merchantInfo.customerAcquisitionMethod!= ''">
+    and a.customer_acquisition_method like CONCAT('%', #{merchantInfo.customerAcquisitionMethod}, '%')
+  </if>
+  <if test="merchantInfo.mainProducts!= null and merchantInfo.mainProducts!= ''">
+    and a.main_products like CONCAT('%', #{merchantInfo.mainProducts}, '%')
+  </if>
+  <if test="merchantInfo.companyName!= null and merchantInfo.companyName!= ''">
+    and a.company_name like CONCAT('%', #{merchantInfo.companyName}, '%')
+  </if>
+  <if test="merchantInfo.address!= null and merchantInfo.address!= ''">
+    and a.address like CONCAT('%', #{merchantInfo.address}, '%')
+  </if>
+  <if test="merchantInfo.brandContactPerson != null and merchantInfo.brandContactPerson != ''">
+    and a.brand_contact_person like CONCAT('%', #{merchantInfo.brandContactPerson}, '%')
+  </if>
+  <if test="merchantInfo.cooperationStatus != null and merchantInfo.cooperationStatus != ''">
+    and a.cooperation_status = #{merchantInfo.cooperationStatus}
+  </if>
+  <if test="merchantInfo.keyword != null and merchantInfo.keyword != ''">
+    and (a.phone like CONCAT('%', #{merchantInfo.keyword}, '%') or
+    a.wechat_id like CONCAT('%', #{merchantInfo.keyword}, '%') or
+    a.feishu_id like CONCAT('%', #{merchantInfo.keyword},'%') or
+    a.email like CONCAT('%', #{merchantInfo.keyword}, '%') or
+    a.business_wechat like CONCAT('%', #{merchantInfo.keyword}, '%') or
+    a.business_feishu like CONCAT('%', #{merchantInfo.keyword}, '%') or
+    a.business_phone like CONCAT('%', #{merchantInfo.keyword}, '%')
+    )
+  </if>
+</select></mapper>

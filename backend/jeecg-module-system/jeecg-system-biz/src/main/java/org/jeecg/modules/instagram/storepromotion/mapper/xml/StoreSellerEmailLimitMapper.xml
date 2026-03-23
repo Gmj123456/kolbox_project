@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jeecg.modules.instagram.storepromotion.mapper.StoreSellerEmailLimitMapper">
+    <select id="getLimitList" resultType="org.jeecg.modules.instagram.storepromotion.model.SellerEmaillimitModel">
+        SELECT
+        *
+        FROM
+        (
+        SELECT
+        seller_name,
+        seller_email_count AS email_count,
+        '' AS inviter_name,
+        '' AS invitee_name,
+        0 AS seller_type,
+        source,
+        email_account_count,
+        create_time
+        FROM
+        store_seller_email_limit
+        WHERE
+        source=0
+        <if test="storeSellerEmailLimit.sellerId !=null">
+            and seller_id = #{storeSellerEmailLimit.sellerId}
+        </if>
+        UNION
+
+        SELECT
+        seller_name,
+        seller_email_count,
+        seller_name,
+        invitation_user_name,
+        1,
+        source,
+        0,
+        create_time
+        FROM
+        store_seller_email_limit
+        WHERE
+        source=1
+        <if test="storeSellerEmailLimit.sellerId !=null">
+            and seller_id = #{storeSellerEmailLimit.sellerId}
+        </if>
+        UNION
+
+        SELECT
+
+        invitation_user_name,
+        invitation_email_count,
+        seller_name AS inviter_name,
+        invitation_user_name,
+        2,
+        source,
+        '',
+        create_time
+        FROM
+        store_seller_email_limit
+        WHERE
+        source=1
+        <if test="storeSellerEmailLimit.sellerId !=null">
+            and invitation_user_id = #{storeSellerEmailLimit.sellerId}
+        </if>
+        ) AS limits
+        WHERE 1=1
+        <if test="storeSellerEmailLimit.source !=null">
+            and seller_type = #{storeSellerEmailLimit.source}
+        </if>
+
+    </select>
+</mapper>

@@ -1,0 +1,302 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jeecg.modules.email.mapper.EmailPushDetailMapper">
+    <select id="listByMainId" resultType="org.jeecg.modules.email.entity.EmailPushDetail">
+        SELECT a.*,
+        CASE
+        WHEN b.reply_count >= 2 THEN 1
+        ELSE 0
+        END AS not_reply,
+        CASE
+        WHEN c.id IS NOT NULL THEN 1
+        ELSE 0
+        END AS is_private,
+        CASE a.platform_type
+        WHEN 0 THEN ig.profile_pic_url
+        WHEN 1 THEN yt.avatar_url
+        WHEN 2 THEN tt.author_avatar_url
+        ELSE NULL
+        END AS avatar_url
+        FROM email_push_detail a
+        LEFT JOIN (SELECT push_detail_id,
+        COUNT(*) AS reply_count
+        FROM email_reply
+        GROUP BY push_detail_id) b ON a.id = b.push_detail_id
+        LEFT JOIN store_celebrity_private c on a.username = c.account and a.platform_type = c.platform_type
+        LEFT JOIN ig_celebrity ig ON a.celebrity_id = ig.id AND a.platform_type = 0
+        LEFT JOIN youtube_celebrity yt ON a.celebrity_id = yt.id AND a.platform_type = 1
+        LEFT JOIN tiktok_celebrity tt ON a.celebrity_id = tt.id AND a.platform_type = 2
+        <where>
+            <if test="emailPushDetail.mainId != null and emailPushDetail.mainId != ''">
+                AND a.main_id = #{emailPushDetail.mainId}
+            </if>
+            <if test="emailPushDetail.username != null and emailPushDetail.username != ''">
+                AND a.username = #{emailPushDetail.username}
+            </if>
+            <if test="emailPushDetail.account != null and emailPushDetail.account != ''">
+                AND a.account = #{emailPushDetail.account}
+            </if>
+            <if test="emailPushDetail.platformType != null and emailPushDetail.platformType != ''">
+                AND a.platform_type = #{emailPushDetail.platformType}
+            </if>
+            <if test="emailPushDetail.nickname != null and emailPushDetail.nickname != ''">
+                AND a.nickname = #{emailPushDetail.nickname}
+            </if>
+            <if test="emailPushDetail.isSend != null">
+                AND a.is_send = #{emailPushDetail.isSend}
+            </if>
+            <if test="emailPushDetail.isOpened != null">
+                AND a.is_opened = #{emailPushDetail.isOpened}
+            </if>
+            <if test="emailPushDetail.isReply != null">
+                AND a.is_reply = #{emailPushDetail.isReply}
+            </if>
+            <if test="emailPushDetail.email != null and emailPushDetail.email != ''">
+                AND a.email LIKE CONCAT('%', #{emailPushDetail.email}, '%')
+            </if>
+        </where>
+    </select>
+    <!-- 1. 汇总统计 -->
+    <select id="getMonthSummary" resultType="map">
+        SELECT
+        COALESCE(COUNT(*), 0) AS totalSentCount,
+        COALESCE(SUM(CASE WHEN is_send = 1 THEN 1 ELSE 0 END), 0) AS actualSentCount,
+        COALESCE(ROUND(SUM(is_send = 1) * 100.0 / NULLIF(COUNT(*), 0), 1), 0.0) AS sendSuccessRate,
+        COALESCE(SUM(CASE WHEN is_send = -1 THEN 1 ELSE 0 END), 0) AS bounceCount,
+        COALESCE(ROUND(SUM(is_send = -1) * 100.0 / NULLIF(COUNT(*), 0), 1), 0.0) AS bounceRate,
+        COALESCE(SUM(CASE WHEN is_opened = 1 THEN 1 ELSE 0 END), 0) AS openCount,
+        COALESCE(ROUND(SUM(CASE WHEN is_opened = 1 THEN 1 ELSE 0 END) * 100.0 / NULLIF(SUM(is_send = 1), 0), 1), 0.0) AS openRate,
+        COALESCE(SUM(CASE WHEN is_reply = 1 THEN 1 ELSE 0 END), 0) AS replyCount,
+        COALESCE(ROUND(SUM(CASE WHEN is_reply = 1 THEN 1 ELSE 0 END) * 100.0 / NULLIF(SUM(is_send = 1), 0), 1), 0.0) AS replyRate
+        FROM email_push_detail
+        WHERE is_send IN (1,-1)
+        <if test="query.month != null and query.month != ''">
+            AND DATE_FORMAT(send_time, '%Y-%m') = #{query.month}
+        </if>
+        <if test="query.startDate != null ">
+            AND send_time &gt;= #{query.startDate}
+        </if>
+        <if test="query.endDate != null">
+            AND send_time &lt;= #{query.endDate}
+        </if>
+        <if test="query.counselorId != null and query.counselorId != ''">
+            AND counselor_id = #{query.counselorId}
+        </if>
+    </select>
+
+    <!-- 2. 网红顾问统计 -->
+    <select id="getCounselorTop" resultType="map">
+        SELECT
+        COALESCE(t.counselor_name, su.username) AS counselorName,
+        COALESCE(COUNT(t.id), 0) AS totalSentCount,
+        COALESCE(SUM(CASE WHEN t.is_send = 1 THEN 1 ELSE 0 END), 0) AS actualSentCount,
+        COALESCE(ROUND(SUM(CASE WHEN t.is_send = 1 THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(t.id), 0), 1), 0.0) AS sendSuccessRate,
+        COALESCE(SUM(CASE WHEN t.is_send = -1 THEN 1 ELSE 0 END), 0) AS bounceCount,
+        COALESCE(ROUND(SUM(CASE WHEN t.is_send = -1 THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(t.id), 0), 1), 0.0) AS bounceRate,
+        COALESCE(SUM(CASE WHEN t.is_opened = 1 THEN 1 ELSE 0 END), 0) AS openCount,
+        COALESCE(ROUND(SUM(CASE WHEN t.is_opened = 1 THEN 1 ELSE 0 END) * 100.0 / NULLIF(SUM(CASE WHEN t.is_send = 1 THEN 1 ELSE 0 END), 0), 1), 0.0) AS openRate,
+        COALESCE(SUM(CASE WHEN t.is_reply = 1 THEN 1 ELSE 0 END), 0) AS replyCount,
+        COALESCE(ROUND(SUM(CASE WHEN t.is_reply = 1 THEN 1 ELSE 0 END) * 100.0 / NULLIF(SUM(CASE WHEN t.is_send = 1 THEN 1 ELSE 0 END), 0), 1), 0.0) AS replyRate
+        FROM sys_user su
+        LEFT JOIN email_push_detail t
+        ON t.counselor_id = su.id
+        AND t.is_send IN (1,-1)
+        <if test="query.month != null and query.month != ''">
+            AND DATE_FORMAT(t.send_time, '%Y-%m') = #{query.month}
+        </if>
+        <if test="query.startDate != null ">
+            AND t.send_time &gt;= #{query.startDate}
+        </if>
+        <if test="query.endDate != null">
+            AND t.send_time &lt;= #{query.endDate}
+        </if>
+        WHERE su.user_type = 4
+        AND su.is_leave = 0
+        AND su.status = 1
+        AND su.del_flag= 0
+        GROUP BY su.id
+        ORDER BY COALESCE(COUNT(*), 0) DESC;
+    </select>
+
+    <!-- 3. 每日趋势（日期格式化） -->
+    <select id="getDailyTrend" resultType="map">
+        <if test="query.startDate != null and query.endDate != null">
+            WITH RECURSIVE date_series AS (
+            SELECT DATE(#{query.startDate}) AS stat_date
+            UNION ALL
+            SELECT stat_date + INTERVAL 1 DAY
+            FROM date_series
+            WHERE stat_date + INTERVAL 1 DAY &lt;= DATE(#{query.endDate})
+            )
+        </if>
+        <if test="query.startDate == null">
+            WITH RECURSIVE
+            date_bounds AS (
+            SELECT
+            DATE(MIN(send_time)) AS min_date,
+            DATE(MAX(send_time)) AS max_date
+            FROM email_push_detail
+            WHERE is_send IN (1,-1)
+            ),
+            date_series AS (
+            SELECT min_date AS stat_date
+            FROM date_bounds
+            UNION ALL
+            SELECT stat_date + INTERVAL 1 DAY
+            FROM date_series
+            WHERE stat_date &lt;(SELECT max_date FROM date_bounds)
+            )
+        </if>
+        SELECT
+        ds.stat_date AS `date`,
+        COALESCE(COUNT(t.id), 0) AS totalSentCount,
+        COALESCE(SUM(CASE WHEN t.is_send = 1 THEN 1 ELSE 0 END), 0) AS actualSentCount,
+        COALESCE(ROUND(SUM(t.is_send = 1) * 100.0 / NULLIF(COUNT(t.id), 0), 1), 0.0) AS sendSuccessRate,
+        COALESCE(SUM(CASE WHEN t.is_send = -1 THEN 1 ELSE 0 END), 0) AS bounceCount,
+        COALESCE(ROUND(SUM(t.is_send = -1) * 100.0 / NULLIF(COUNT(t.id), 0), 1), 0.0) AS bounceRate,
+        COALESCE(SUM(CASE WHEN t.is_opened = 1 THEN 1 ELSE 0 END), 0) AS openCount,
+        COALESCE(ROUND(SUM(t.is_opened = 1) * 100.0 / NULLIF(SUM(t.is_send = 1), 0), 1), 0.0) AS openRate,
+        COALESCE(SUM(CASE WHEN t.is_reply = 1 THEN 1 ELSE 0 END), 0) AS replyCount,
+        COALESCE(ROUND(SUM(t.is_reply = 1) * 100.0 / NULLIF(SUM(t.is_send = 1), 0), 1), 0.0) AS replyRate
+        FROM date_series ds
+        LEFT JOIN email_push_detail t
+        ON t.send_time &gt;= ds.stat_date
+        AND t.send_time &lt; ds.stat_date + INTERVAL 1 DAY
+        AND t.is_send IN (1,-1)
+        <if test="query.month != null and query.month != ''">
+            AND DATE_FORMAT(t.send_time, '%Y-%m') = #{query.month}
+        </if>
+        <if test="query.counselorId != null and query.counselorId != ''">
+            AND t.counselor_id = #{query.counselorId}
+        </if>
+        GROUP BY ds.stat_date
+        ORDER BY ds.stat_date;
+    </select>
+
+    <!-- 商务发信统计 - 1. 商务发信月度汇总 -->
+    <select id="getBusinessMonthSummary" resultType="map">
+        SELECT
+        COALESCE(COUNT(*), 0) AS totalSentCount,
+        COALESCE(SUM(CASE WHEN d.is_send = 1 THEN 1 ELSE 0 END), 0) AS actualSentCount,
+        COALESCE(ROUND(SUM(CASE WHEN d.is_send = 1 THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1), 0.0) AS sendSuccessRate,
+        COALESCE(SUM(CASE WHEN d.is_send = -1 THEN 1 ELSE 0 END), 0) AS bounceCount,
+        COALESCE(ROUND(SUM(CASE WHEN d.is_send = -1 THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1), 0.0) AS bounceRate,
+        COALESCE(SUM(CASE WHEN d.is_opened = 1 THEN 1 ELSE 0 END), 0) AS openCount,
+        COALESCE(ROUND(SUM(CASE WHEN d.is_opened = 1 THEN 1 ELSE 0 END) * 100.0 / NULLIF(SUM(CASE WHEN d.is_send = 1 THEN 1 ELSE 0 END), 0), 1), 0.0) AS openRate,
+        COALESCE(SUM(CASE WHEN d.is_reply = 1 THEN 1 ELSE 0 END), 0) AS replyCount,
+        COALESCE(ROUND(SUM(CASE WHEN d.is_reply = 1 THEN 1 ELSE 0 END) * 100.0 / NULLIF(SUM(CASE WHEN d.is_send = 1 THEN 1 ELSE 0 END), 0), 1), 0.0) AS replyRate
+        FROM email_push_detail d
+        INNER JOIN email_push_main m ON d.main_id = m.id AND m.business_type = 1
+        WHERE d.is_send IN (1,-1)
+        <if test="query.month != null and query.month != ''">
+            AND DATE_FORMAT(d.send_time, '%Y-%m') = #{query.month}
+        </if>
+        <if test="query.startDate != null ">
+            AND d.send_time &gt;= #{query.startDate}
+        </if>
+        <if test="query.endDate != null">
+            AND d.send_time &lt;= #{query.endDate}
+        </if>
+        <if test="query.counselorId != null and query.counselorId != ''">
+            AND d.counselor_id = #{query.counselorId}
+        </if>
+    </select>
+
+    <!-- 商务发信统计 - 2. 商务发信顾问排行榜 -->
+    <select id="getBusinessCounselorTop" resultType="map">
+        SELECT
+        COALESCE(t.counselor_name, su.username) AS counselorName,
+        COALESCE(COUNT(t.id), 0) AS totalSentCount,
+        COALESCE(SUM(CASE WHEN t.is_send = 1 THEN 1 ELSE 0 END), 0) AS actualSentCount,
+        COALESCE(ROUND(SUM(CASE WHEN t.is_send = 1 THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(t.id), 0), 1), 0.0) AS sendSuccessRate,
+        COALESCE(SUM(CASE WHEN t.is_send = -1 THEN 1 ELSE 0 END), 0) AS bounceCount,
+        COALESCE(ROUND(SUM(CASE WHEN t.is_send = -1 THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(t.id), 0), 1), 0.0) AS bounceRate,
+        COALESCE(SUM(CASE WHEN t.is_opened = 1 THEN 1 ELSE 0 END), 0) AS openCount,
+        COALESCE(ROUND(SUM(CASE WHEN t.is_opened = 1 THEN 1 ELSE 0 END) * 100.0 / NULLIF(SUM(CASE WHEN t.is_send = 1 THEN 1 ELSE 0 END), 0), 1), 0.0) AS openRate,
+        COALESCE(SUM(CASE WHEN t.is_reply = 1 THEN 1 ELSE 0 END), 0) AS replyCount,
+        COALESCE(ROUND(SUM(CASE WHEN t.is_reply = 1 THEN 1 ELSE 0 END) * 100.0 / NULLIF(SUM(CASE WHEN t.is_send = 1 THEN 1 ELSE 0 END), 0), 1), 0.0) AS replyRate
+        FROM sys_user su
+        LEFT JOIN email_push_detail t
+        ON t.counselor_id = su.id
+        AND t.is_send IN (1,-1)
+        AND EXISTS (
+            SELECT 1 FROM email_push_main m
+            WHERE m.id = t.main_id AND m.business_type = 1
+        )
+        <if test="query.month != null and query.month != ''">
+            AND DATE_FORMAT(t.send_time, '%Y-%m') = #{query.month}
+        </if>
+        <if test="query.startDate != null ">
+            AND t.send_time &gt;= #{query.startDate}
+        </if>
+        <if test="query.endDate != null">
+            AND t.send_time &lt;= #{query.endDate}
+        </if>
+        WHERE su.user_type = 10
+        AND su.is_leave = 0
+        AND su.status = 1
+        AND su.del_flag= 0
+        GROUP BY su.id
+        ORDER BY COALESCE(COUNT(*), 0) DESC;
+    </select>
+
+    <!-- 商务发信统计 - 3. 商务发信每日趋势 -->
+    <select id="getBusinessDailyTrend" resultType="map">
+        <if test="query.startDate != null and query.endDate != null">
+            WITH RECURSIVE date_series AS (
+            SELECT DATE(#{query.startDate}) AS stat_date
+            UNION ALL
+            SELECT stat_date + INTERVAL 1 DAY
+            FROM date_series
+            WHERE stat_date + INTERVAL 1 DAY &lt;= DATE(#{query.endDate})
+            )
+        </if>
+        <if test="query.startDate == null">
+            WITH RECURSIVE
+            date_bounds AS (
+            SELECT
+            DATE(MIN(t.send_time)) AS min_date,
+            DATE(MAX(t.send_time)) AS max_date
+            FROM email_push_detail t
+            INNER JOIN email_push_main m ON t.main_id = m.id AND m.business_type = 1
+            WHERE t.is_send IN (1,-1)
+            ),
+            date_series AS (
+            SELECT min_date AS stat_date
+            FROM date_bounds
+            UNION ALL
+            SELECT stat_date + INTERVAL 1 DAY
+            FROM date_series
+            WHERE stat_date &lt;(SELECT max_date FROM date_bounds)
+            )
+        </if>
+        SELECT
+        ds.stat_date AS `date`,
+        COALESCE(COUNT(t.id), 0) AS totalSentCount,
+        COALESCE(SUM(CASE WHEN t.is_send = 1 THEN 1 ELSE 0 END), 0) AS actualSentCount,
+        COALESCE(ROUND(SUM(CASE WHEN t.is_send = 1 THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(t.id), 0), 1), 0.0) AS sendSuccessRate,
+        COALESCE(SUM(CASE WHEN t.is_send = -1 THEN 1 ELSE 0 END), 0) AS bounceCount,
+        COALESCE(ROUND(SUM(CASE WHEN t.is_send = -1 THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(t.id), 0), 1), 0.0) AS bounceRate,
+        COALESCE(SUM(CASE WHEN t.is_opened = 1 THEN 1 ELSE 0 END), 0) AS openCount,
+        COALESCE(ROUND(SUM(CASE WHEN t.is_opened = 1 THEN 1 ELSE 0 END) * 100.0 / NULLIF(SUM(CASE WHEN t.is_send = 1 THEN 1 ELSE 0 END), 0), 1), 0.0) AS openRate,
+        COALESCE(SUM(CASE WHEN t.is_reply = 1 THEN 1 ELSE 0 END), 0) AS replyCount,
+        COALESCE(ROUND(SUM(CASE WHEN t.is_reply = 1 THEN 1 ELSE 0 END) * 100.0 / NULLIF(SUM(CASE WHEN t.is_send = 1 THEN 1 ELSE 0 END), 0), 1), 0.0) AS replyRate
+        FROM date_series ds
+        LEFT JOIN email_push_detail t
+        ON t.send_time &gt;= ds.stat_date
+        AND t.send_time &lt; ds.stat_date + INTERVAL 1 DAY
+        AND t.is_send IN (1,-1)
+        AND EXISTS (
+            SELECT 1 FROM email_push_main m
+            WHERE m.id = t.main_id AND m.business_type = 1
+        )
+        <if test="query.month != null and query.month != ''">
+            AND DATE_FORMAT(t.send_time, '%Y-%m') = #{query.month}
+        </if>
+        <if test="query.counselorId != null and query.counselorId != ''">
+            AND t.counselor_id = #{query.counselorId}
+        </if>
+        GROUP BY ds.stat_date
+        ORDER BY ds.stat_date;
+    </select>
+</mapper>

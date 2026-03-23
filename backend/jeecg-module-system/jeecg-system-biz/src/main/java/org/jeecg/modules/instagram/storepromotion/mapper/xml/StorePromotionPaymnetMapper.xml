@@ -1,0 +1,982 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jeecg.modules.instagram.storepromotion.mapper.StorePromotionPaymentMapper">
+    <select id="pageList"
+            resultType="org.jeecg.modules.instagram.storepromotion.model.StorePromotionPaymentModel">
+        SELECT
+        *
+        FROM
+        (
+        SELECT
+        spp.id,
+        spp.pay_rmb_amount,
+        spp.consume_date,
+        spp.pay_way,
+        spp.pay_type,
+        spp.is_offline,
+        spp.pay_amount,
+        sep.prom_title AS promTitle,
+        sep.extension_code,
+        sep.seller_name,
+        sep.total_amount AS totalAmount,
+        sep.payment_amount AS paymentAmount,
+        sep.prom_start_time AS promStartTime,
+        sep.prom_end_time AS promEndTime,
+        sep.exchange_rate AS exchangeRate,
+        sep.intention_amount AS intentionAmount,
+        sep.prom_status AS promStatus,
+        sep.pay_status AS payStatus,
+        sep.create_time AS promCreateTime,
+        sep.refund_amount AS refundAmount,
+        spp.currency_symbol AS symbol,
+        sep.celebrity_user_name AS celebrityUserName,
+        qn.nickname AS nickname,
+        qn.counselor_user_name AS counselorUserName,
+        spp.remark AS remark,
+        "" as celebrity_account,
+        sep.celebrity_user_id
+        FROM
+        store_promotion_payment spp
+        LEFT JOIN store_seller_promotion sep ON sep.id = spp.prom_id
+        LEFT JOIN (
+        SELECT
+        ssu.id,
+        su.id sid,
+        su.qr_code,
+        su.nickname,
+        su.counselor_user_id,
+        su.counselor_user_name
+        FROM
+        sys_user AS su
+        LEFT JOIN sys_user AS ssu ON su.id = ssu.seller_counselor_id
+        WHERE
+        su.user_type = 3
+        AND su.nickname != ''
+        AND ssu.username != ''
+        ) qn ON spp.seller_id = qn.id
+        <where>
+            <if test="storePromotionPayment.sellerId !=null and storePromotionPayment.sellerId !=''">
+                and spp.seller_id = #{storePromotionPayment.sellerId}
+            </if>
+            <if test="storePromotionPayment.extensionCode !=null and storePromotionPayment.extensionCode !=''">
+                and spp.extension_code like '%${storePromotionPayment.extensionCode}%'
+            </if>
+            <if test="storePromotionPayment.promId !=null and storePromotionPayment.promId !=''">
+                and spp.prom_id = #{storePromotionPayment.promId}
+            </if>
+            <if test="storePromotionPayment.payType !=null ">
+                and spp.pay_type = #{storePromotionPayment.payType}
+            </if>
+            <if test="storePromotionPayment.payWay !=null ">
+                and spp.pay_way = #{storePromotionPayment.payWay}
+            </if>
+            <if test="storePromotionPayment.sellerName !=null and storePromotionPayment.sellerName !=''">
+                and spp.seller_name like '%${storePromotionPayment.sellerName}%'
+            </if>
+            <if test="storePromotionPayment.startPayDate !=null">
+                and spp.pay_time &gt;= #{storePromotionPayment.startPayDate}
+            </if>
+            <if test="storePromotionPayment.endPayDate !=null">
+                and spp.pay_time &lt;= #{storePromotionPayment.endPayDate}
+            </if>
+            <if test="storePromotionPayment.sid !=null and storePromotionPayment.sid !='' ">
+                AND qn.sid = #{storePromotionPayment.sid}
+            </if>
+            <if test="storePromotionPayment.counselorUserId !=null">
+                AND qn.counselor_user_id = #{storePromotionPayment.counselorUserId}
+            </if>
+            <if test="storePromotionPayment.promStatus !=null">
+                and sep.prom_status = #{storePromotionPayment.promStatus}
+            </if>
+            <if test="storePromotionPayment.payStatus !=null">
+                and sep.pay_status = #{storePromotionPayment.payStatus}
+            </if>
+            <if test="storePromotionPayment.promTitle !=null and storePromotionPayment.promTitle !=''">
+                and sep.prom_title like '%${storePromotionPayment.promTitle}%'
+            </if>
+            <if test="storePromotionPayment.celebrityUserId !=null ">
+                and sep.celebrity_user_id = #{storePromotionPayment.celebrityUserId}
+            </if>
+        </where>
+        UNION
+        SELECT
+        api.id,
+        api.tax_fee,
+        api.invoice_create_time,
+        api.pay_way,
+        '5' AS pay_type,
+        api.is_offline,
+        api.tax_fee,
+        sep.prom_title AS promTitle,
+        sep.extension_code,
+        sep.seller_name,
+        sep.total_amount AS totalAmount,
+        sep.payment_amount AS paymentAmount,
+        sep.prom_start_time AS promStartTime,
+        sep.prom_end_time AS promEndTime,
+        sep.exchange_rate AS exchangeRate,
+        sep.intention_amount AS intentionAmount,
+        sep.prom_status AS promStatus,
+        sep.pay_status AS payStatus,
+        sep.create_time AS promCreateTime,
+        sep.refund_amount AS refundAmount,
+        "¥" AS symbol,
+        sep.celebrity_user_name AS celebrityUserName,
+        qn.nickname AS nickname,
+        qn.counselor_user_name AS counselorUserName,
+        '' AS remark,
+        "" as celebrity_account,
+        sep.celebrity_user_id
+        FROM
+        store_promotion_invoice AS api
+        LEFT JOIN store_seller_promotion sep ON sep.id = api.prom_id
+        LEFT JOIN (
+        SELECT
+        ssu.id,
+        su.id sid,
+        su.qr_code,
+        su.nickname,
+        su.counselor_user_id,
+        su.counselor_user_name
+        FROM
+        sys_user AS su
+        LEFT JOIN sys_user AS ssu ON su.id = ssu.seller_counselor_id
+        WHERE
+        su.user_type = 3
+        AND su.nickname != ''
+        AND ssu.username != ''
+        ) qn ON sep.seller_id = qn.id
+        <where>
+            <if test="storePromotionPayment.sellerId !=null and storePromotionPayment.sellerId !=''">
+                and api.seller_id = #{storePromotionPayment.sellerId}
+            </if>
+            <if test="storePromotionPayment.extensionCode !=null and storePromotionPayment.extensionCode !=''">
+                and api.extension_code like '%${storePromotionPayment.extensionCode}%'
+            </if>
+            <if test="storePromotionPayment.promId !=null and storePromotionPayment.promId !=''">
+                and api.prom_id = #{storePromotionPayment.promId}
+            </if>
+            <if test="storePromotionPayment.payType !=null ">
+                and api.pay_type = #{storePromotionPayment.payType}
+            </if>
+            <if test="storePromotionPayment.payWay !=null ">
+                and api.pay_way = #{storePromotionPayment.payWay}
+            </if>
+            <if test="storePromotionPayment.sellerName !=null and storePromotionPayment.sellerName !=''">
+                and api.seller_name like '%${storePromotionPayment.sellerName}%'
+            </if>
+            <if test="storePromotionPayment.startPayDate !=null">
+                and api.create_time &gt;= #{storePromotionPayment.startPayDate}
+            </if>
+            <if test="storePromotionPayment.endPayDate !=null">
+                and api.create_time &lt;= #{storePromotionPayment.endPayDate}
+            </if>
+            <if test="storePromotionPayment.sid !=null and storePromotionPayment.sid !='' ">
+                AND qn.sid = #{storePromotionPayment.sid}
+            </if>
+            <if test="storePromotionPayment.counselorUserId !=null">
+                AND qn.counselor_user_id = #{storePromotionPayment.counselorUserId}
+            </if>
+            <if test="storePromotionPayment.promStatus !=null">
+                and sep.prom_status = #{storePromotionPayment.promStatus}
+            </if>
+            <if test="storePromotionPayment.payStatus !=null">
+                and sep.pay_status = #{storePromotionPayment.payStatus}
+            </if>
+            <if test="storePromotionPayment.promTitle !=null and storePromotionPayment.promTitle !=''">
+                and sep.prom_title like '%${storePromotionPayment.promTitle}%'
+            </if>
+            <if test="storePromotionPayment.celebrityUserId !=null ">
+                and sep.celebrity_user_id = #{storePromotionPayment.celebrityUserId}
+            </if>
+            AND api.pay_status = 1
+        </where>
+        union
+        SELECT
+        spcp.id,
+        (-1*spcp.pay_rmb_amount) as pay_rmb_amount,
+        spcp.pay_time AS consume_date,
+        spcp.pay_way,
+        spcp.pay_type,
+        spcp.is_offline,
+        (-1*spcp.pay_amount) as pay_amount,
+        sep.prom_title AS promTitle,
+        sep.extension_code,
+        sep.seller_name,
+        sep.total_amount AS totalAmount,
+        sep.payment_amount AS paymentAmount,
+        sep.prom_start_time AS promStartTime,
+        sep.prom_end_time AS promEndTime,
+        spcp.exchange_rate AS exchangeRate,
+        sep.intention_amount AS intentionAmount,
+        sep.prom_status AS promStatus,
+        sep.pay_status AS payStatus,
+        sep.create_time AS promCreateTime,
+        sep.refund_amount AS refundAmount,
+        spcp.currency_symbol AS symbol,
+        sep.celebrity_user_name AS celebrityUserName,
+        qn.nickname AS nickname,
+        qn.counselor_user_name AS counselorUserName,
+        spcp.remark AS remark,
+        spcp.celebrity_account,
+        sep.celebrity_user_id
+        FROM
+        store_promotion_celebrity_payment AS spcp
+        LEFT JOIN store_seller_promotion sep ON sep.id = spcp.prom_id
+        LEFT JOIN (
+        SELECT
+        ssu.id,
+        su.id sid,
+        su.qr_code,
+        su.nickname,
+        su.counselor_user_id,
+        su.counselor_user_name
+        FROM
+        sys_user AS su
+        LEFT JOIN sys_user AS ssu ON su.id = ssu.seller_counselor_id
+        WHERE
+        su.user_type = 3
+        AND su.nickname != ''
+        AND ssu.username != ''
+        ) qn ON spcp.seller_id = qn.id
+        <where>
+            <if test="storePromotionPayment.startPayDate !=null">
+                and pay_time &gt;= #{storePromotionPayment.startPayDate}
+            </if>
+            <if test="storePromotionPayment.endPayDate !=null">
+                and pay_time &lt;= #{storePromotionPayment.endPayDate}
+            </if>
+            <if test="storePromotionPayment.sellerId !=null and storePromotionPayment.sellerId !=''">
+                and sep.seller_id = #{storePromotionPayment.sellerId}
+            </if>
+            <if test="storePromotionPayment.extensionCode !=null and storePromotionPayment.extensionCode !=''">
+                and sep.extension_code like '%${storePromotionPayment.extensionCode}%'
+            </if>
+            <if test="storePromotionPayment.sellerName !=null and storePromotionPayment.sellerName !=''">
+                and sep.seller_name like '%${storePromotionPayment.sellerName}%'
+            </if>
+            <if test="storePromotionPayment.sid !=null and storePromotionPayment.sid !='' ">
+                AND qn.sid = #{storePromotionPayment.sid}
+            </if>
+            <if test="storePromotionPayment.counselorUserId !=null">
+                AND qn.counselor_user_id = #{storePromotionPayment.counselorUserId}
+            </if>
+            <if test="storePromotionPayment.promStatus !=null">
+                and sep.prom_status = #{storePromotionPayment.promStatus}
+            </if>
+            <if test="storePromotionPayment.celebrityUserId !=null ">
+                and sep.celebrity_user_id like '%${storePromotionPayment.celebrityUserId}%'
+            </if>
+        </where>
+        ) AS su
+        ORDER BY
+        consume_date DESC
+    </select>
+    <select id="pagePromList"
+            resultType="org.jeecg.modules.instagram.storepromotion.model.StorePromotionPaymentModel">
+        SELECT
+        *
+        FROM
+        (
+        SELECT
+        spp.id,
+        spp.pay_rmb_amount,
+        spp.consume_date,
+        spp.pay_way,
+        spp.pay_type,
+        spp.is_offline,
+        spp.pay_amount,
+        sep.prom_title AS promTitle,
+        sep.extension_code,
+        sep.seller_name,
+        sep.total_amount AS totalAmount,
+        sep.payment_amount AS paymentAmount,
+        sep.prom_start_time AS promStartTime,
+        sep.prom_end_time AS promEndTime,
+        sep.exchange_rate AS exchangeRate,
+        sep.intention_amount AS intentionAmount,
+        sep.prom_status AS promStatus,
+        sep.pay_status AS payStatus,
+        spp.create_time AS promCreateTime,
+        sep.refund_amount AS refundAmount,
+        spp.currency_symbol AS symbol,
+        sep.celebrity_user_name AS celebrityUserName,
+        sep.counselor_user_name AS counselorUserName,
+        spp.remark AS remark,
+        "" AS celebrity_account,
+        sep.celebrity_user_id
+        FROM
+        store_promotion_payment spp
+        LEFT JOIN store_seller_promotion sep ON sep.id = spp.prom_id
+        <where>
+            <if test="storePromotionPayment.sellerId !=null and storePromotionPayment.sellerId !=''">
+                and spp.seller_id = #{storePromotionPayment.sellerId}
+            </if>
+            <if test="storePromotionPayment.extensionCode !=null and storePromotionPayment.extensionCode !=''">
+                and spp.extension_code like '%${storePromotionPayment.extensionCode}%'
+            </if>
+            <if test="storePromotionPayment.promId !=null and storePromotionPayment.promId !=''">
+                and spp.prom_id = #{storePromotionPayment.promId}
+            </if>
+            <if test="storePromotionPayment.payType !=null ">
+                and spp.pay_type = #{storePromotionPayment.payType}
+            </if>
+            <if test="storePromotionPayment.payWay !=null ">
+                and spp.pay_way = #{storePromotionPayment.payWay}
+            </if>
+            <if test="storePromotionPayment.sellerName !=null and storePromotionPayment.sellerName !=''">
+                and spp.seller_name like '%${storePromotionPayment.sellerName}%'
+            </if>
+            <if test="storePromotionPayment.startPayDate !=null">
+                and spp.pay_time &gt;= #{storePromotionPayment.startPayDate}
+            </if>
+            <if test="storePromotionPayment.endPayDate !=null">
+                and spp.pay_time &lt;= #{storePromotionPayment.endPayDate}
+            </if>
+            <if test="storePromotionPayment.counselorUserId !=null">
+                AND sep.counselor_user_id = #{storePromotionPayment.counselorUserId}
+            </if>
+            <if test="storePromotionPayment.promStatus !=null">
+                and sep.prom_status = #{storePromotionPayment.promStatus}
+            </if>
+            <if test="storePromotionPayment.payStatus !=null">
+                and sep.pay_status = #{storePromotionPayment.payStatus}
+            </if>
+            <if test="storePromotionPayment.promTitle !=null and storePromotionPayment.promTitle !=''">
+                and sep.prom_title like '%${storePromotionPayment.promTitle}%'
+            </if>
+            <if test="storePromotionPayment.celebrityUserId !=null ">
+                and sep.celebrity_user_id = #{storePromotionPayment.celebrityUserId}
+            </if>
+        </where>
+        UNION
+        SELECT
+        api.id,
+        api.tax_fee,
+        api.invoice_create_time,
+        api.pay_way,
+        '5' AS pay_type,
+        api.is_offline,
+        api.tax_fee,
+        sep.prom_title AS promTitle,
+        sep.extension_code,
+        sep.seller_name,
+        sep.total_amount AS totalAmount,
+        sep.payment_amount AS paymentAmount,
+        sep.prom_start_time AS promStartTime,
+        sep.prom_end_time AS promEndTime,
+        sep.exchange_rate AS exchangeRate,
+        sep.intention_amount AS intentionAmount,
+        sep.prom_status AS promStatus,
+        sep.pay_status AS payStatus,
+        sep.create_time AS promCreateTime,
+        sep.refund_amount AS refundAmount,
+        "¥" AS symbol,
+        sep.celebrity_user_name AS celebrityUserName,
+        sep.counselor_user_name AS counselorUserName,
+        '' AS remark,
+        "" AS celebrity_account,
+        sep.celebrity_user_id
+        FROM
+        store_promotion_invoice AS api
+        LEFT JOIN store_seller_promotion sep ON sep.id = api.prom_id
+        <where>
+            <if test="storePromotionPayment.sellerId !=null and storePromotionPayment.sellerId !=''">
+                and api.seller_id = #{storePromotionPayment.sellerId}
+            </if>
+            <if test="storePromotionPayment.extensionCode !=null and storePromotionPayment.extensionCode !=''">
+                and api.extension_code like '%${storePromotionPayment.extensionCode}%'
+            </if>
+            <if test="storePromotionPayment.promId !=null and storePromotionPayment.promId !=''">
+                and api.prom_id = #{storePromotionPayment.promId}
+            </if>
+            <if test="storePromotionPayment.payType !=null ">
+                and api.pay_type = #{storePromotionPayment.payType}
+            </if>
+            <if test="storePromotionPayment.payWay !=null ">
+                and api.pay_way = #{storePromotionPayment.payWay}
+            </if>
+            <if test="storePromotionPayment.sellerName !=null and storePromotionPayment.sellerName !=''">
+                and api.seller_name like '%${storePromotionPayment.sellerName}%'
+            </if>
+            <if test="storePromotionPayment.startPayDate !=null">
+                and api.create_time &gt;= #{storePromotionPayment.startPayDate}
+            </if>
+            <if test="storePromotionPayment.endPayDate !=null">
+                and api.create_time &lt;= #{storePromotionPayment.endPayDate}
+            </if>
+            <if test="storePromotionPayment.counselorUserId !=null">
+                AND sep.counselor_user_id = #{storePromotionPayment.counselorUserId}
+            </if>
+            <if test="storePromotionPayment.promStatus !=null">
+                and sep.prom_status = #{storePromotionPayment.promStatus}
+            </if>
+            <if test="storePromotionPayment.payStatus !=null">
+                and sep.pay_status = #{storePromotionPayment.payStatus}
+            </if>
+            <if test="storePromotionPayment.promTitle !=null and storePromotionPayment.promTitle !=''">
+                and sep.prom_title like '%${storePromotionPayment.promTitle}%'
+            </if>
+            <if test="storePromotionPayment.celebrityUserId !=null ">
+                and sep.celebrity_user_id = #{storePromotionPayment.celebrityUserId}
+            </if>
+            AND api.pay_status = 1
+        </where>
+        ) AS su
+        ORDER BY
+        consume_date DESC,
+        promCreateTime DESC
+    </select>
+
+    <select id="listAll"
+            resultType="org.jeecg.modules.instagram.storepromotion.model.StorePromotionPaymentModel">
+        <!--SELECT
+        spp.*,
+        sep.prom_title as promTitle,
+        sep.total_amount as totalAmount,
+        sep.payment_amount as paymentAmount,
+        sep.prom_start_time as promStartTime,
+        sep.prom_end_time as promEndTime,
+        sep.exchange_rate as exchangeRate,
+        sep.intention_amount as intentionAmount,
+        sep.prom_status as promStatus,
+        sep.pay_status as payStatus,
+        sep.create_time as promCreateTime,
+        sep.refund_amount as refundAmount,
+        sep.currency_symbol as symbol,
+        sep.celebrity_user_name as celebrityUserName,
+        qn.nickname as nickname,
+        qn.counselor_user_name as counselorUserName
+        FROM
+        store_promotion_payment spp
+        left join store_seller_promotion sep on sep.id = spp.prom_id
+        LEFT JOIN (
+        SELECT
+        ssu.id,
+        su.id sid,
+        su.qr_code,
+        su.nickname,
+        su.username,
+        su.counselor_user_id,
+        su.counselor_user_name
+        FROM
+        sys_user as su
+        LEFT JOIN sys_user as ssu ON su.id = ssu.seller_counselor_id
+        WHERE
+        su.user_type = 3
+        AND su.nickname != ''
+        AND ssu.username != ''
+        ) qn ON spp.seller_id = qn.id
+        <where>
+            <if test="storePromotionPayment.sellerId !=null and storePromotionPayment.sellerId !=''">
+                and spp.seller_id = #{storePromotionPayment.sellerId}
+            </if>
+            <if test="storePromotionPayment.extensionCode !=null and storePromotionPayment.extensionCode !=''">
+                and spp.extension_code like '%${storePromotionPayment.extensionCode}%'
+            </if>
+            <if test="storePromotionPayment.promId !=null and storePromotionPayment.promId !=''">
+                and spp.prom_id like '%${storePromotionPayment.promId}%'
+            </if>
+            <if test="storePromotionPayment.payType !=null ">
+                and spp.pay_type = #{storePromotionPayment.payType}
+            </if>
+            <if test="storePromotionPayment.payWay !=null ">
+                and spp.pay_way = #{storePromotionPayment.payWay}
+            </if>
+            <if test="storePromotionPayment.sellerName !=null and storePromotionPayment.sellerName !=''">
+                and spp.seller_name like '%${storePromotionPayment.sellerName}%'
+            </if>
+            <if test="storePromotionPayment.startPayDate !=null">
+                and spp.pay_time &gt; #{storePromotionPayment.startPayDate}
+            </if>
+            <if test="storePromotionPayment.endPayDate !=null">
+                and spp.pay_time &lt; #{storePromotionPayment.endPayDate}
+            </if>
+            <if test="storePromotionPayment.sid !=null and storePromotionPayment.sid !='' ">
+                AND qn.sid = #{storePromotionPayment.sid}
+            </if>
+            <if test="storePromotionPayment.counselorUserId !=null">
+                AND qn.counselor_user_id = #{storePromotionPayment.counselorUserId}
+            </if>
+            <if test="storePromotionPayment.promStatus !=null">
+                and sep.prom_status = #{storePromotionPayment.promStatus}
+            </if>
+            <if test="storePromotionPayment.payStatus !=null">
+                and sep.pay_status = #{storePromotionPayment.payStatus}
+            </if>
+            <if test="storePromotionPayment.promTitle !=null and storePromotionPayment.promTitle !=''">
+                and sep.prom_title like '%${storePromotionPayment.promTitle}%'
+            </if>
+            <if test="storePromotionPayment.celebrityUserId !=null">
+                and sep.celebrity_user_id like '%${storePromotionPayment.celebrityUserId}%'
+            </if>
+
+        </where>
+        order by spp.pay_time desc-->
+        SELECT
+        *
+        FROM
+        (
+        SELECT
+        spp.*,
+        sep.prom_title AS promTitle,
+        sep.total_amount AS totalAmount,
+        sep.payment_amount AS paymentAmount,
+        sep.prom_start_time AS promStartTime,
+        sep.prom_end_time AS promEndTime,
+        sep.exchange_rate AS exchangeRate,
+        sep.intention_amount AS intentionAmount,
+        sep.prom_status AS promStatus,
+        sep.pay_status AS payStatus,
+        sep.create_time AS promCreateTime,
+        sep.refund_amount AS refundAmount,
+        sep.currency_symbol AS symbol,
+        sep.celebrity_user_name AS celebrityUserName,
+        qn.nickname AS nickname,
+        qn.counselor_user_name AS counselorUserName,
+        '' celebrity_private_id,
+        '' celebrity_account
+        FROM
+        store_promotion_payment spp
+        LEFT JOIN store_seller_promotion sep ON sep.id = spp.prom_id
+        LEFT JOIN (
+        SELECT
+        ssu.id,
+        su.id sid,
+        su.qr_code,
+        su.nickname,
+        su.username,
+        su.counselor_user_id,
+        su.counselor_user_name
+        FROM
+        sys_user AS su
+        LEFT JOIN sys_user AS ssu ON su.id = ssu.seller_counselor_id
+        WHERE
+        su.user_type = 3
+        AND su.nickname != ''
+        AND ssu.username != ''
+        ) qn ON spp.seller_id = qn.id UNION ALL
+        SELECT
+        spcp.id,
+        spcp.seller_id,
+        spcp.seller_name,
+        spcp.extension_code,
+        spcp.prom_id,
+        spcp.pay_amount,
+        (-1*spcp.pay_rmb_amount) as pay_rmb_amount,
+        spcp.currency_symbol,
+        spcp.pay_time,
+        spcp.remark,
+        spcp.create_by,
+        spcp.create_time,
+        spcp.update_by,
+        spcp.update_time,
+        spcp.pay_type,
+        spcp.pay_way,
+        spcp.pay_time AS consume_date,
+        spcp.pay_trade_code,
+        spcp.is_offline,
+        spcp.exchange_rate,
+        sep.prom_title AS promTitle,
+        sep.total_amount AS totalAmount,
+        sep.payment_amount AS paymentAmount,
+        sep.prom_start_time AS promStartTime,
+        sep.prom_end_time AS promEndTime,
+        spcp.exchange_rate AS exchangeRate,
+        sep.intention_amount AS intentionAmount,
+        sep.prom_status AS promStatus,
+        sep.pay_status AS payStatus,
+        sep.create_time AS promCreateTime,
+        sep.refund_amount AS refundAmount,
+        sep.currency_symbol AS symbol,
+        sep.celebrity_user_name AS celebrityUserName,
+        qn.nickname AS nickname,
+        qn.counselor_user_name AS counselorUserName,
+        spcp.celebrity_private_id,
+        spcp.celebrity_account
+        FROM
+        store_promotion_celebrity_payment AS spcp
+        LEFT JOIN store_seller_promotion sep ON sep.id = spcp.prom_id
+        LEFT JOIN (
+        SELECT
+        ssu.id,
+        su.id sid,
+        su.qr_code,
+        su.nickname,
+        su.username,
+        su.counselor_user_id,
+        su.counselor_user_name
+        FROM
+        sys_user AS su
+        LEFT JOIN sys_user AS ssu ON su.id = ssu.seller_counselor_id
+        WHERE
+        su.user_type = 3
+        AND su.nickname != ''
+        AND ssu.username != ''
+        ) qn ON spcp.seller_id = qn.id
+        ) all_data
+        <where>
+            <if test="storePromotionPayment.sellerId !=null and storePromotionPayment.sellerId !=''">
+                and seller_id = #{storePromotionPayment.sellerId}
+            </if>
+            <if test="storePromotionPayment.extensionCode !=null and storePromotionPayment.extensionCode !=''">
+                and extension_code like '%${storePromotionPayment.extensionCode}%'
+            </if>
+            <if test="storePromotionPayment.promId !=null and storePromotionPayment.promId !=''">
+                and prom_id like '%${storePromotionPayment.promId}%'
+            </if>
+            <if test="storePromotionPayment.celebrityAccount !=null and storePromotionPayment.celebrityAccount !=''">
+                and celebrity_account like '%${storePromotionPayment.celebrityAccount}%'
+            </if>
+            <if test="storePromotionPayment.payType !=null ">
+                and pay_type = #{storePromotionPayment.payType}
+            </if>
+            <if test="storePromotionPayment.payWay !=null ">
+                and pay_way = #{storePromotionPayment.payWay}
+            </if>
+            <if test="storePromotionPayment.sellerName !=null and storePromotionPayment.sellerName !=''">
+                and seller_name like '%${storePromotionPayment.sellerName}%'
+            </if>
+            <if test="storePromotionPayment.startPayDate !=null">
+                and pay_time &gt; #{storePromotionPayment.startPayDate}
+            </if>
+            <if test="storePromotionPayment.endPayDate !=null">
+                and pay_time &lt; #{storePromotionPayment.endPayDate}
+            </if>
+            <if test="storePromotionPayment.sid !=null and storePromotionPayment.sid !='' ">
+                AND sid = #{storePromotionPayment.sid}
+            </if>
+            <if test="storePromotionPayment.counselorUserId !=null">
+                AND counselor_user_id = #{storePromotionPayment.counselorUserId}
+            </if>
+            <if test="storePromotionPayment.promStatus !=null">
+                and prom_status = #{storePromotionPayment.promStatus}
+            </if>
+            <if test="storePromotionPayment.payStatus !=null">
+                and pay_status = #{storePromotionPayment.payStatus}
+            </if>
+            <if test="storePromotionPayment.promTitle !=null and storePromotionPayment.promTitle !=''">
+                and prom_title like '%${storePromotionPayment.promTitle}%'
+            </if>
+            <if test="storePromotionPayment.celebrityUserId !=null">
+                and celebrity_user_id like '%${storePromotionPayment.celebrityUserId}%'
+            </if>
+        </where>
+        ORDER BY
+        all_data.pay_time DESC
+    </select>
+
+    <select id="selectlist"
+            resultType="org.jeecg.modules.instagram.storepromotion.model.StorePromotionPaymentModel">
+        SELECT
+        spp.*,
+        sep.prom_title as promTitle,
+        sep.total_amount as totalAmount,
+        IFNULL(sep.payment_amount, 0) + IFNULL(sep.intention_amount, 0)as paymentAmount,
+        sep.prom_start_time as promStartTime,
+        sep.prom_end_time as promEndTime,
+        sep.exchange_rate as exchangeRate,
+        sep.refund_amount as refundAmount,
+        sep.intention_amount as intentionAmount,
+        sep.prom_status as promStatus,
+        sep.pay_status as payStatus,
+        sep.total_rmb_amount as totalRmbAmount,
+        sep.create_time as promCreateTime,
+        qn.nickname as nickname,
+        sep.celebrity_user_name as celebrityUserName,
+        qn.counselor_user_name as counselorUserName
+        FROM
+        store_promotion_payment spp
+        left join store_seller_promotion sep on sep.id = spp.prom_id
+        LEFT JOIN (
+        SELECT
+        ssu.id,
+        su.id sid,
+        su.qr_code,
+        su.nickname,
+        su.username,
+        su.counselor_user_id,
+        su.counselor_user_name
+        FROM
+        sys_user as su
+        LEFT JOIN sys_user as ssu ON su.id = ssu.seller_counselor_id
+        WHERE
+        su.user_type = 3
+        AND su.nickname != ''
+        AND ssu.username != ''
+        ) qn ON spp.seller_id = qn.id
+        <where>
+            <if test="storePromotionPayment.counselorUserId !=null">
+                AND su.counselor_user_id = #{storePromotionPayment.counselorUserId}
+            </if>
+            <if test="storePromotionPayment.sellerId !=null and storePromotionPayment.sellerId !=''">
+                and spp.seller_id = #{storePromotionPayment.sellerId}
+            </if>
+            <if test="storePromotionPayment.extensionCode !=null and storePromotionPayment.extensionCode !=''">
+                and spp.extension_code like '%${storePromotionPayment.extensionCode}%'
+            </if>
+            <if test="storePromotionPayment.promId !=null and storePromotionPayment.promId !=''">
+                and spp.prom_id like '%${storePromotionPayment.promId}%'
+            </if>
+            <if test="storePromotionPayment.payType !=null ">
+                and spp.pay_type = #{storePromotionPayment.payType}
+            </if>
+            <if test="storePromotionPayment.payWay !=null ">
+                and spp.pay_way = #{storePromotionPayment.payWay}
+            </if>
+            <if test="storePromotionPayment.sellerName !=null and storePromotionPayment.sellerName !=''">
+                and spp.seller_name like '%${storePromotionPayment.sellerName}%'
+            </if>
+            <if test="storePromotionPayment.startPayDate !=null">
+                and spp.pay_time &gt; #{storePromotionPayment.startPayDate}
+            </if>
+            <if test="storePromotionPayment.endPayDate !=null">
+                and spp.pay_time &lt; #{storePromotionPayment.endPayDate}
+            </if>
+            <if test="storePromotionPayment.sid !=null and storePromotionPayment.sid !='' ">
+                AND qn.sid = #{storePromotionPayment.sid}
+            </if>
+            <if test="storePromotionPayment.promStatus !=null">
+                and sep.prom_status = #{storePromotionPayment.promStatus}
+            </if>
+            <if test="storePromotionPayment.payStatus !=null">
+                and sep.pay_status = #{storePromotionPayment.payStatus}
+            </if>
+            <if test="storePromotionPayment.promTitle !=null and storePromotionPayment.promTitle !=''">
+                and sep.prom_title like '%${storePromotionPayment.promTitle}%'
+            </if>
+        </where>
+        order by spp.pay_time desc
+    </select>
+
+    <select id="queryStorePromotionPaymentListByPromId"
+            resultType="org.jeecg.modules.instagram.storepromotion.entity.StorePromotionPayment">
+        select
+        *
+        from
+        store_promotion_payment s
+        <where>
+            <if test="promId !=null and promId !=''">
+                s.prom_id = #{promId}
+            </if>
+        </where>
+    </select>
+
+
+    <select id="paymentStatistics"
+            resultType="org.jeecg.modules.instagram.storepromotion.model.StorePromotionPaymentModel">
+        SELECT DISTINCT
+        su.counselor_user_id AS id,
+        su.counselor_user_id AS counselorUserId,
+        su.counselor_user_name AS counselorUserName,
+        IFNULL( ss.intentionCount, 0 ) AS intentionCount,
+        IFNULL( ss.intentionAndFullCount, 0 ) AS intentionAndFullCount,
+        IFNULL( ss.paidInFullCount, 0 ) AS paidInFullCount,
+        IFNULL( ss.intentionCount, 0 ) + IFNULL( ss.intentionAndFullCount, 0 ) + IFNULL( ss.paidInFullCount, 0 ) AS
+        totalCount,
+        IFNULL( ss.refundCount, 0 ) AS refundCount,
+        IFNULL( spp_consume.exceedTimeCount, 0 ) AS exceedTimeCount
+        FROM
+        sys_user su
+        LEFT JOIN (
+        SELECT
+        sur.counselor_user_id,
+        sur.counselor_user_name,
+        -- 意向金
+        SUM(
+        IF
+        ( spp.pay_type = 1 AND ssp.pay_status &lt; 20, 1, 0 )) AS intentionCount,
+        -- 意向金加全款
+        SUM(
+        IF
+        ( ssp.intention_amount is not null and ssp.intention_amount &gt; 0 AND ssp.pay_status = 20, 1, 0 )) AS
+        intentionAndFullCount,
+        -- 仅全款
+        SUM(
+        IF
+        ( (ssp.intention_amount is null or ssp.intention_amount = 0) AND ssp.pay_status = 20, 1, 0 )) AS
+        paidInFullCount,
+        -- 含退款
+        SUM(
+        IF
+        ( spp.pay_type = 2, 1, 0 )) AS refundCount
+        FROM
+        (
+        SELECT
+        e1.prom_id,
+        e1.pay_type,
+        e1.consume_date
+        FROM
+        store_promotion_payment e1
+        LEFT JOIN store_promotion_payment e2 ON e1.prom_id = e2.prom_id
+        AND ((
+        e1.consume_date &lt; e2.consume_date
+        )
+        OR ( e1.consume_date = e2.consume_date AND e1.create_time &lt; e2.create_time ))
+        <where>
+            e1.consume_date is not null
+            <if test="storePromotionPayment.startPayDate != null  ">
+                and e1.consume_date &gt; #{storePromotionPayment.startPayDate}
+            </if>
+            <if test="storePromotionPayment.endPayDate != null  ">
+                and e1.consume_date &lt; #{storePromotionPayment.endPayDate}
+            </if>
+        </where>
+        GROUP BY
+        e1.id
+        HAVING
+        count( DISTINCT e2.consume_date ) &lt; 1
+        ) spp
+        LEFT JOIN store_seller_promotion ssp ON ssp.id = spp.prom_id
+        LEFT JOIN sys_user AS su ON ssp.seller_id = su.id
+        LEFT JOIN sys_user AS sur ON sur.id = su.seller_counselor_id
+        GROUP BY
+        sur.counselor_user_id,
+        sur.counselor_user_name
+        ) ss ON ss.counselor_user_id = su.counselor_user_id
+        LEFT JOIN (
+        SELECT
+        sur.counselor_user_id,
+        sur.counselor_user_name,
+        SUM(
+        IF
+        ( ssp1.pay_status &lt; 20 AND ssp2.consume_date IS NOT NULL AND TIMESTAMPDIFF( DAY, ssp2.consume_date, now()) >
+        25, 1, 0 )) AS exceedTimeCount
+        from
+        store_seller_promotion ssp1
+        LEFT JOIN sys_user AS su ON ssp1.seller_id = su.id
+        LEFT JOIN sys_user AS sur ON sur.id = su.seller_counselor_id
+        LEFT JOIN (
+        SELECT
+        prom_id,
+        MIN( consume_date ) AS consume_date
+        FROM
+        store_promotion_payment AS spp
+        LEFT JOIN store_seller_promotion ssp ON ssp.id = spp.prom_id
+        WHERE
+        ssp.pay_status &lt; 20
+        AND consume_date IS NOT NULL
+        GROUP BY
+        prom_id
+        ) ssp2 ON ssp1.id = ssp2.prom_id
+        GROUP BY sur.counselor_user_id
+        ) spp_consume ON su.counselor_user_id = spp_consume.counselor_user_id
+        <where>
+            su.user_type = 3
+            AND su.counselor_user_id IS NOT NULL
+            AND su.counselor_user_id != ''
+            <if test="storePromotionPayment.counselorUserId != null ">
+                and su.counselor_user_id = #{storePromotionPayment.counselorUserId}
+            </if>
+        </where>
+    </select>
+
+    <!-- 统计list -->
+    <select id="paymentStatisticsList"
+            resultType="org.jeecg.modules.instagram.storepromotion.model.StorePromotionPaymentModel">
+        SELECT DISTINCT
+        su.counselor_user_id AS id,
+        su.counselor_user_id AS counselorUserId,
+        su.counselor_user_name AS counselorUserName,
+        IFNULL( ss.intentionCount, 0 ) AS intentionCount,
+        IFNULL( ss.intentionAndFullCount, 0 ) AS intentionAndFullCount,
+        IFNULL( ss.paidInFullCount, 0 ) AS paidInFullCount,
+        IFNULL( ss.intentionCount, 0 ) + IFNULL( ss.intentionAndFullCount, 0 ) + IFNULL( ss.paidInFullCount, 0 ) AS
+        totalCount,
+        IFNULL( ss.refundCount, 0 ) AS refundCount,
+        IFNULL( spp_consume.exceedTimeCount, 0 ) AS exceedTimeCount
+        FROM
+        sys_user su
+        LEFT JOIN (
+        SELECT
+        sur.counselor_user_id,
+        sur.counselor_user_name,
+        -- 意向金
+        SUM(
+        IF
+        ( spp.pay_type = 1 AND ssp.pay_status &lt; 20, 1, 0 )) AS intentionCount,
+        -- 意向金加全款
+        SUM(
+        IF
+        ( ssp.intention_amount is not null and ssp.intention_amount &gt; 0 AND ssp.pay_status = 20, 1, 0 )) AS
+        intentionAndFullCount,
+        -- 仅全款
+        SUM(
+        IF
+        ( (ssp.intention_amount is null or ssp.intention_amount = 0) AND ssp.pay_status = 20, 1, 0 )) AS
+        paidInFullCount,
+        -- 含退款
+        SUM(
+        IF
+        ( spp.pay_type = 2, 1, 0 )) AS refundCount
+        FROM
+        (
+        SELECT
+        e1.prom_id,
+        e1.pay_type,
+        e1.consume_date
+        FROM
+        store_promotion_payment e1
+        LEFT JOIN store_promotion_payment e2 ON e1.prom_id = e2.prom_id
+        AND ((
+        e1.consume_date &lt; e2.consume_date
+        )
+        OR ( e1.consume_date = e2.consume_date AND e1.create_time &lt; e2.create_time ))
+        <where>
+            e1.consume_date is not null
+            <if test="storePromotionPayment.startPayDate != null  ">
+                and e1.consume_date &gt; #{storePromotionPayment.startPayDate}
+            </if>
+            <if test="storePromotionPayment.endPayDate != null  ">
+                and e1.consume_date &lt; #{storePromotionPayment.endPayDate}
+            </if>
+        </where>
+        GROUP BY
+        e1.id
+        HAVING
+        count( DISTINCT e2.consume_date ) &lt; 1
+        ) spp
+        LEFT JOIN store_seller_promotion ssp ON ssp.id = spp.prom_id
+        LEFT JOIN sys_user AS su ON ssp.seller_id = su.id
+        LEFT JOIN sys_user AS sur ON sur.id = su.seller_counselor_id
+        GROUP BY
+        sur.counselor_user_id,
+        sur.counselor_user_name
+        ) ss ON ss.counselor_user_id = su.counselor_user_id
+        LEFT JOIN (
+        SELECT
+        sur.counselor_user_id,
+        sur.counselor_user_name,
+        SUM(
+        IF
+        ( ssp1.pay_status &lt; 20 AND ssp2.consume_date IS NOT NULL AND TIMESTAMPDIFF( DAY, ssp2.consume_date, now()) >
+        25, 1, 0 )) AS exceedTimeCount
+        from
+        store_seller_promotion ssp1
+        LEFT JOIN sys_user AS su ON ssp1.seller_id = su.id
+        LEFT JOIN sys_user AS sur ON sur.id = su.seller_counselor_id
+        LEFT JOIN (
+        SELECT
+        prom_id,
+        MIN( consume_date ) AS consume_date
+        FROM
+        store_promotion_payment AS spp
+        LEFT JOIN store_seller_promotion ssp ON ssp.id = spp.prom_id
+        WHERE
+        ssp.pay_status &lt; 20
+        AND consume_date IS NOT NULL
+        GROUP BY
+        prom_id
+        ) ssp2 ON ssp1.id = ssp2.prom_id
+        GROUP BY sur.counselor_user_id
+        ) spp_consume ON su.counselor_user_id = spp_consume.counselor_user_id
+        <where>
+            su.user_type = 3
+            AND su.counselor_user_id IS NOT NULL
+            AND su.counselor_user_id != ''
+            <if test="storePromotionPayment.counselorUserId != null ">
+                and su.counselor_user_id = #{storePromotionPayment.counselorUserId}
+            </if>
+        </where>
+    </select>
+</mapper>

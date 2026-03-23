@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jeecg.modules.instagram.storepromotion.mapper.StorePromotionProjectMapper">
+    <select id="pageList"
+            resultType="org.jeecg.modules.instagram.storepromotion.model.StorePromotionProjectModel">
+        SELECT
+        stpp.*
+        FROM
+        store_promotion_project stpp
+        LEFT JOIN store_promotion_project_detail sppd ON stpp.id = sppd.project_id
+        WHERE
+        1=1
+        <if test="storePromotionProjectModel.name!=null and storePromotionProjectModel.name!=''">
+            AND stpp.name LIKE CONCAT('%', #{storePromotionProjectModel.name}, '%')
+        </if>
+        <if test="storePromotionProjectModel.promId!=null and storePromotionProjectModel.promId!=''">
+            AND stpp.prom_id = #{storePromotionProjectModel.promId}
+        </if>
+        <if test="storePromotionProjectModel.account!=null and storePromotionProjectModel.account!=''">
+            AND sppd.account = #{storePromotionProjectModel.account}
+        </if>
+        <if test="storePromotionProjectModel.platformType!=null">
+            AND sppd.platform_type = #{storePromotionProjectModel.platformType}
+        </if>
+        GROUP BY
+        stpp.id
+    </select>
+</mapper>

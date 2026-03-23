@@ -1,0 +1,548 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jeecg.modules.instagram.mapper.IgCelebrityMapper">
+    <!-- ******************* 提取公共部分查询条件 ******************** -->
+
+    <!-- 组合列表JOIN条件 -->
+    <!-- 查询IG网红列表关联条件(Join) -->
+    <sql id="IgListJoinConditions">
+        <include refid="ig.common.tagListJoinCondition"/>
+        <include refid="kol.common.brandJoinCondition">
+            <property name="uniqueId" value="ic.ig_username"/>
+        </include>
+        <!-- <include refid="ig.common.usernameJoinCondition"/> -->
+        <include refid="kol.common.emailJoinCondition">
+            <property name="alias" value="ic"/>
+        </include>
+        <include refid="kol.common.countryJoinCondition">
+            <property name="alias" value="ic"/>
+        </include>
+    </sql>
+    <!-- 查询已分配的网红列表关联条件(Join) -->
+    <sql id="AllotListJoinConditions">
+        <include refid="ig.common.tagNameOrCounselorIdJoinCondition"/>
+        <!--        <include refid="kol.common.brandJoinCondition">
+                   <property name="uniqueId" value="ic.ig_username"/>
+               </include> -->
+        <include refid="kol.common.kolContactJoinCondition">
+            <property name="alias" value="ic.ig_username"/>
+        </include>
+        <include refid="ig.common.usernameJoinCondition"/>
+        <include refid="kol.common.emailJoinCondition">
+            <property name="alias" value="ic"/>
+        </include>
+    </sql>
+    <sql id="AllottedJoinConditions">
+        <include refid="ig.common.counselorIdJoinCondition"/>
+        <include refid="kol.common.kolContactJoinCondition">
+            <property name="alias" value="ic.ig_username"/>
+        </include>
+        <include refid="ig.common.usernameJoinCondition"/>
+     <!--    <include refid="kol.common.emailJoinCondition">
+            <property name="alias" value="ic"/>
+        </include> -->
+    </sql>
+
+    <!-- 组合列表查询条件 -->
+    <!-- 查询IG网红列表查询条件(Where) -->
+    <sql id="IgListQueryConditions">
+        <!-- <include refid="kol.common.isHighFollowerCountCondition"><property name="alias" value="ic"/></include> -->
+        <include refid="ig.common.signatureCondition"/>
+        <include refid="kol.common.videoStandardCountCondition">
+            <property name="alias" value="ic"/>
+        </include>
+        <include refid="kol.common.isHasEmailCondition">
+            <property name="alias" value="ic"/>
+        </include>
+        <include refid="kol.common.countryCodeCondition">
+            <property name="alias" value="ic"/>
+        </include>
+        <include refid="kol.common.followerCountCondition">
+            <property name="followerCount" value="ic.follower_count"/>
+        </include>
+        <include refid="kol.common.isPrivateKolConditionNew"/>
+        <include refid="kol.common.brandContactJoinCondition">
+            <property name="uniqueId" value="ic.ig_username"/>
+        </include>
+        <include refid="kol.common.uniqueIdCondition">
+            <property name="uniqueId" value="ic.ig_username"/>
+        </include>
+        <include refid="kol.common.playAvgNumCountCondition">
+            <property name="playAvgNumCount" value="ic.video_data"/>
+        </include>
+    </sql>
+    <sql id="IgListQueryConditionsNew">
+        <!-- <include refid="kol.common.isHighFollowerCountCondition"><property name="alias" value="ic"/></include> -->
+        <include refid="ig.common.signatureCondition"/>
+        <include refid="kol.common.videoStandardCountCondition">
+            <property name="alias" value="ic"/>
+        </include>
+        <include refid="kol.common.isHasEmailCondition">
+            <property name="alias" value="ic"/>
+        </include>
+        <include refid="kol.common.countryCodeCondition">
+            <property name="alias" value="ic"/>
+        </include>
+        <include refid="kol.common.followerCountCondition">
+            <property name="followerCount" value="ic.follower_count"/>
+        </include>
+        <include refid="kol.common.isPrivateKolConditionNew"/>
+        <include refid="kol.common.brandContactJoinCondition">
+            <property name="uniqueId" value="ic.ig_username"/>
+        </include>
+        <include refid="kol.common.playAvgNumCountCondition">
+            <property name="playAvgNumCount" value="ic.video_data"/>
+        </include>
+    </sql>
+    <sql id="igCelebrityCondition">
+        WITH ic_celebrity AS ( SELECT id,ig_username FROM ig_celebrity ic
+        <where>
+            <include refid="IgListQueryConditions"/>
+            <include refid="kol.common.linktreeCondition">
+                <property name="alias" value="ic.linktree"/>
+            </include>
+        </where>
+<!--        ORDER BY update_time DESC-->
+        <!--   <if test="searchModel.total != null">
+              LIMIT #{searchModel.total}
+          </if> -->
+        )
+    </sql>
+    <!-- ********************** 以下为业务查询部分 ********************** -->
+
+    <!-- 获取Instagram网红视图模型记录数 -->
+    <select id="getIgCelebrityCount" resultType="java.lang.Long">
+        <include refid="kol.common.celebrityPrivateCondition">
+            <property name="alias" value="0"/>
+        </include>
+        SELECT count(*) FROM ig_celebrity AS ic
+        <include refid="kol.common.celebrityPrivateJoinCondition">
+            <property name="alias" value="ic.account"/>
+            <property name="account" value="ic.ig_username"/>
+        </include>
+        <include refid="IgListJoinConditions"/>
+        <where>
+            <include refid="IgListQueryConditions"/>
+        </where>
+    </select>
+    <!-- 获取Instagram网红视图模型数据列表 -->
+    <select id="getIgCelebrityModelList" resultType="org.jeecg.modules.instagram.model.IgCelebrityModel">
+        <include refid="kol.common.celebrityPrivateCondition">
+            <property name="alias" value="0"/>
+        </include>
+        SELECT ic.id ,
+        ic.account ,
+        ic.ig_username ,
+        ic.profile_pic_url as authorAvatarUrl ,
+        ic.full_name ,
+        ic.media_count ,
+        ic.follower_count ,
+        ic.biography ,
+        ic.email ,
+        ic.phone ,
+        ic.country ,
+        ic.avg_play_count ,
+        ic.avg_comment_count ,
+        ic.video_sample_count ,
+        ic.video_standard_count ,
+        ic.video_create_time_last,
+        ic.gender ,
+        ic.website ,
+        ic.tiktok_account ,
+        ic.youtube_account ,
+        ic.linktree ,
+        ic.is_high_follower ,
+        ic.is_delete ,
+        ic.remark ,
+        ic.create_by ,
+        ic.create_time ,
+        ic.update_by ,
+        ic.update_time ,
+        ic.video_data ,
+        cp.id AS celebrity_private_id
+        FROM ig_celebrity AS ic
+        <include refid="kol.common.celebrityPrivateJoinCondition">
+            <property name="alias" value="ic.account"/>
+            <property name="account" value="ic.ig_username"/>
+        </include>
+        <include refid="IgListJoinConditions"/>
+        <where>
+            <include refid="IgListQueryConditions"/>
+            <!--            <include refid="kol.common.privatePlatformTypeCondition"><property name="platformType" value="0"/></include>-->
+        </where>
+    </select>
+
+    <!-- 获取Instagram网红顾问已分配列表记录数 -->
+    <select id="getIgAllottedKolCount" resultType="java.lang.Integer">
+        <include refid="kol.common.celebrityPrivateCondition">
+            <property name="alias" value="0"/>
+        </include>
+        <include refid="kol.common.kolContactCondition"/>
+        SELECT count(*) FROM ig_celebrity AS ic
+        <include refid="kol.common.celebrityPrivateJoinCondition">
+            <property name="alias" value="ic.account"/>
+            <property name="account" value="ic.ig_username"/>
+        </include>
+        <include refid="kol.common.blacklistKolJoinCondition">
+            <property name="uniqueId" value="ic.account"/>
+            <property name="platformType" value="0"/>
+        </include>
+        <include refid="AllotListJoinConditions"/>
+        <where>
+            <include refid="IgListQueryConditions"/>
+            <include refid="kol.common.blacklistKolCondition"/>
+            <!--            <include refid="kol.common.productCondition"/>-->
+            <include refid="kol.common.linktreeCondition">
+                <property name="alias" value="ic.linktree"/>
+            </include>
+            <include refid="kol.common.kolContactParamsCondition"/>
+        </where>
+    </select>
+    <!-- 获取Instagram网红顾问已分配列表 -->
+    <select id="getIgAllottedKolList" resultType="org.jeecg.modules.instagram.model.IgCelebrityModel">
+        <include refid="kol.common.celebrityPrivateCondition">
+            <property name="alias" value="0"/>
+        </include>
+        SELECT ic.*,
+        cp.id AS celebrity_private_id
+        FROM ig_celebrity AS ic
+        <include refid="kol.common.celebrityPrivateJoinCondition">
+            <property name="alias" value="ic.account"/>
+            <property name="account" value="ic.ig_username"/>
+        </include>
+        <include refid="AllotListJoinConditions"/>
+        <where>
+            <include refid="IgListQueryConditions"/>
+            <!--            <include refid="kol.common.privatePlatformTypeCondition"><property name="platformType" value="0"/></include>-->
+        </where>
+    </select>
+    <!-- 获取Instagram网红顾问已分配列表 -->
+    <select id="getAllottedKolList" resultType="org.jeecg.modules.kol.model.KolBaseModel">
+        <include refid="kol.common.celebrityPrivateConditionCount">
+            <property name="alias" value="0"/>
+        </include>
+        <if test="searchModel.attributeIds != null and searchModel.attributeIds != ''">
+            <include refid="kol.common.allotAttributeJoinCondition">
+                <property name="platform_type" value="0"/>
+            </include>
+        </if>
+        <include refid="kol.common.kolContactCondition"/>
+        SELECT ic.id,
+        ic.account,
+        ic.ig_username AS unique_id,
+        ic.full_name AS nickname,
+        ic.profile_pic_url AS author_avatar_url,
+        ic.country,
+        ic.biography AS signature,
+        ic.follower_count AS author_follower_count,
+        ic.video_sample_count,
+        ic.video_standard_count,
+        ic.video_create_time_last,
+        ic.email,
+        ic.website AS bio_link,
+        ic.linktree,
+        ic.remark,
+        ic.create_by,
+        ic.create_time,
+        ic.update_by,
+        ic.update_time,
+        ic.phone,
+        ic.video_data,
+        0 AS platform_type,
+        cp.id AS celebrity_private_id,
+        ictc.allot_time
+        FROM ig_celebrity AS ic
+        <include refid="AllottedJoinConditions"/>
+        <include refid="kol.common.celebrityPrivateJoinCondition">
+            <property name="alias" value="ic.account"/>
+            <property name="account" value="ic.ig_username"/>
+        </include>
+        <!--<include refid="kol.common.blacklistKolJoinCondition">
+            <property name="uniqueId" value="ic.account"/>
+            <property name="platformType" value="0"/>
+        </include>-->
+        <include refid="kol.common.shieldsKolJoinCondition">
+            <property name="uniqueId" value="ic.account"/>
+            <property name="platformType" value="0"/>
+        </include>
+        <where>
+            <include refid="IgListQueryConditionsNew"/>
+            <!-- <include refid="kol.common.blacklistKolCondition"/>-->
+            <!-- <include refid="kol.common.productCondition"/> -->
+            <include refid="kol.common.shieldsKolCondition"/>
+            <include refid="kol.common.linktreeCondition">
+                <property name="alias" value="ic.linktree"/>
+            </include>
+            <include refid="kol.common.kolContactParamsCondition"/>
+            <include refid="kol.common.kolEmailLikeCondition">
+                <property name="alias" value="ic"/>
+            </include>
+        </where>
+        order by ictc.allot_time desc
+    </select>
+    <select id="getAllottedKolCount" resultType="java.lang.Integer">
+        <include refid="kol.common.celebrityPrivateConditionCount">
+            <property name="alias" value="0"/>
+        </include>
+        <if test="searchModel.attributeIds != null and searchModel.attributeIds != ''">
+            <include refid="kol.common.allotAttributeJoinCondition">
+                <property name="platform_type" value="0"/>
+            </include>
+        </if>
+        <include refid="kol.common.kolContactCondition"/>
+        SELECT count(*)
+        FROM ig_celebrity AS ic
+        <include refid="AllottedJoinConditions"/>
+        <include refid="kol.common.celebrityPrivateCountJoinCondition">
+            <property name="alias" value="ic.account"/>
+            <property name="account" value="ic.ig_username"/>
+        </include>
+        <!--<include refid="kol.common.blacklistKolJoinCondition">
+            <property name="uniqueId" value="ic.account"/>
+            <property name="platformType" value="0"/>
+        </include>-->
+        <include refid="kol.common.shieldsKolJoinCondition">
+            <property name="uniqueId" value="ic.account"/>
+            <property name="platformType" value="0"/>
+        </include>
+        <where>
+            <include refid="IgListQueryConditionsNew"/>
+            <!-- <include refid="kol.common.blacklistKolCondition"/>-->
+            <!-- <include refid="kol.common.productCondition"/> -->
+            <include refid="kol.common.shieldsKolCondition"/>
+            <include refid="kol.common.linktreeCondition">
+                <property name="alias" value="ic.linktree"/>
+            </include>
+            <include refid="kol.common.kolContactParamsCondition"/>
+            <include refid="kol.common.kolEmailLikeCondition">
+                <property name="alias" value="ic"/>
+            </include>
+        </where>
+    </select>
+    <select id="getCelebrityCount" resultType="java.lang.Integer">
+        <include refid="kol.common.celebrityPrivateCondition">
+            <property name="alias" value="0"/>
+        </include>
+        SELECT count(*) FROM ig_celebrity AS ic
+        <include refid="kol.common.celebrityPrivateJoinCondition">
+            <property name="alias" value="ic.account"/>
+            <property name="account" value="ic.ig_username"/>
+        </include>
+        <include refid="IgListJoinConditions"/>
+        <where>
+            <include refid="IgListQueryConditions"/>
+        </where>
+    </select>
+
+    <select id="getCelebrityScreeningList" resultType="org.jeecg.modules.kol.model.KolCelebrityModel">
+        SELECT
+        ic.id AS id,
+        ic.account AS account,
+        ic.ig_username AS username,
+        ic.profile_pic_url AS avatarUrl,
+        ic.full_name AS fullName,
+        ic.email AS email,
+        ic.biography AS description,
+        ic.follower_count AS followerCount,
+        ic.media_count AS postCount,
+        ic.avg_play_count AS avgPlayCount,
+        ic.avg_comment_count AS avgCommentCount,
+        stc.country,
+        ic.gender AS gender,
+        ic.website AS website,
+        ic.linktree AS linktree,
+        ic.video_sample_count AS videoSampleCount,
+        ic.video_standard_count AS videoStandardCount,
+        ic.video_create_time_last AS lastVideoCreateTime,
+        ic.video_data AS videoData,
+        ic.is_high_follower AS isHighFollower,
+        ic.is_delete AS isDeleted,
+        ic.remark AS remark,
+        ic.create_by AS createdBy,
+        ic.create_time AS createTime,
+        ic.update_by AS updatedBy,
+        ic.update_time AS updateTime,
+        ic.video_data,
+        0 as platform_type
+        <if test="searchModel.isPrivateKol != null">
+            ,cp.id AS celebrity_private_id
+        </if>
+        FROM ig_celebrity AS ic
+        <if test="searchModel.isPrivateKol == 1">
+            INNER JOIN store_celebrity_private cp ON cp.account = ic.ig_username AND cp.platform_type = 0
+        </if>
+        <if test="searchModel.isPrivateKol == 0">
+            LEFT JOIN store_celebrity_private cp ON cp.account = ic.ig_username AND cp.platform_type = 0
+        </if>
+        <if test="searchModel.tagNameList != null and searchModel.tagNameList.size() > 0">
+            JOIN
+            (
+            SELECT ic.ig_username FROM ig_celebrity_tags ic
+            JOIN
+            <if test="searchModel.tempTableName == null or searchModel.tempTableName == ''">
+                (
+                <include refid="kol.common.tagNameListForeach"/>
+                ) AS tags ON ic.tag_name = tags.tag_name
+            </if>
+            <if test="searchModel.tempTableName != null and searchModel.tempTableName != ''">
+                ${searchModel.tempTableName} AS tags ON ic.tag_name = tags.tag_name
+            </if>
+            join ig_celebrity ic_c ON ic_c.ig_username = ic.ig_username
+            <if test="searchModel.productId != null and searchModel.productId != ''">
+                left join kol_tag_product ktp on ic.tag_name = ktp.tag_name and ktp.platform_type = 0
+            </if>
+            <where>
+                <include refid="kol.common.countryCodeCondition">
+                    <property name="alias" value="ic"/>
+                </include>
+                <include refid="kol.common.tagTypeCondition">
+                    <property name="alias" value="ic"/>
+                </include>
+                <if test="searchModel.productId != null and searchModel.productId != ''">
+                    <include refid="kol.common.productIdCondition">
+                        <property name="alias" value="ktp"/>
+                    </include>
+                    <include refid="kol.common.brandIdCondition">
+                        <property name="alias" value="ktp"/>
+                    </include>
+                </if>
+            </where>
+            group by ic.ig_username
+            )
+            ict_tag ON ict_tag.ig_username = ic.ig_username
+        </if>
+        <include refid="kol.common.brandJoinCondition">
+            <property name="uniqueId" value="ic.ig_username"/>
+        </include>
+        <!-- <include refid="ig.common.usernameJoinCondition"/> -->
+        <include refid="kol.common.emailJoinCondition">
+            <property name="alias" value="ic"/>
+        </include>
+        <include refid="kol.common.countryJoinCondition">
+            <property name="alias" value="ic"/>
+        </include>
+        <where>
+            <include refid="IgListQueryConditions"/>
+            <include refid="ig.common.signatureCondition"/>
+            <include refid="kol.common.videoStandardCountCondition">
+                <property name="alias" value="ic"/>
+            </include>
+            <include refid="kol.common.isHasEmailCondition">
+                <property name="alias" value="ic"/>
+            </include>
+            <include refid="kol.common.countryCodeCondition">
+                <property name="alias" value="ic"/>
+            </include>
+            <include refid="kol.common.followerCountCondition">
+                <property name="followerCount" value="ic.follower_count"/>
+            </include>
+            <include refid="kol.common.brandContactJoinCondition">
+                <property name="uniqueId" value="ic.ig_username"/>
+            </include>
+         <!--   <include refid="kol.common.uniqueIdCondition">
+                <property name="uniqueId" value="ic.ig_username"/>
+            </include>-->
+            <include refid="kol.common.playAvgNumCountCondition">
+                <property name="playAvgNumCount" value="ic.video_data"/>
+            </include>
+            <include refid="kol.common.linktreeCondition">
+                <property name="alias" value="ic.linktree"/>
+            </include>
+            <!-- <include refid="kol.common.isPrivateKolConditionNew"/>-->
+            <if test="searchModel.isPrivateKol == 0">
+                AND cp.id IS NULL
+            </if>
+        </where>
+    </select>
+
+    <select id="getCelebrityScreeningCount" resultType="java.lang.Integer">
+        SELECT
+        count(*)
+        FROM ig_celebrity AS ic
+        <if test="searchModel.tagNameList != null and searchModel.tagNameList.size() > 0">
+            JOIN
+            (
+            SELECT ic.ig_username FROM ig_celebrity_tags ic
+            JOIN
+            <if test="searchModel.tempTableName == null or searchModel.tempTableName == ''">
+                (
+                <include refid="kol.common.tagNameListForeach"/>
+                ) AS tags ON ic.tag_name = tags.tag_name
+            </if>
+            <if test="searchModel.tempTableName != null and searchModel.tempTableName != ''">
+                ${searchModel.tempTableName} AS tags ON ic.tag_name = tags.tag_name
+            </if>
+            join ig_celebrity ic_c ON ic_c.ig_username = ic.ig_username
+            <if test="searchModel.productId != null and searchModel.productId != ''">
+                left join kol_tag_product ktp on ic.tag_name = ktp.tag_name and ktp.platform_type = 0
+            </if>
+            <where>
+                <include refid="kol.common.countryCodeCondition">
+                    <property name="alias" value="ic"/>
+                </include>
+                <include refid="kol.common.tagTypeCondition">
+                    <property name="alias" value="ic"/>
+                </include>
+                <if test="searchModel.productId != null and searchModel.productId != ''">
+                    <include refid="kol.common.productIdCondition">
+                        <property name="alias" value="ktp"/>
+                    </include>
+                    <include refid="kol.common.brandIdCondition">
+                        <property name="alias" value="ktp"/>
+                    </include>
+                </if>
+            </where>
+            group by ic.ig_username
+            )
+            ict_tag ON ict_tag.ig_username = ic.ig_username
+        </if>
+        <include refid="kol.common.brandJoinCondition">
+            <property name="uniqueId" value="ic.ig_username"/>
+        </include>
+        <!-- <include refid="ig.common.usernameJoinCondition"/> -->
+        <include refid="kol.common.emailJoinCondition">
+            <property name="alias" value="ic"/>
+        </include>
+        <include refid="kol.common.countryJoinCondition">
+            <property name="alias" value="ic"/>
+        </include>
+        <if test="searchModel.isPrivateKol == 1">
+            INNER JOIN store_celebrity_private cp ON cp.account = ic.ig_username AND cp.platform_type = 0
+        </if>
+        <if test="searchModel.isPrivateKol == 0">
+            LEFT JOIN store_celebrity_private cp ON cp.account = ic.ig_username AND cp.platform_type = 0
+        </if>
+
+        <where>
+            <if test="searchModel.isPrivateKol == 0">
+                AND cp.id IS NULL
+            </if>
+            <include refid="IgListQueryConditions"/>
+            <include refid="ig.common.signatureCondition"/>
+            <include refid="kol.common.videoStandardCountCondition">
+                <property name="alias" value="ic"/>
+            </include>
+            <include refid="kol.common.isHasEmailCondition">
+                <property name="alias" value="ic"/>
+            </include>
+            <include refid="kol.common.countryCodeCondition">
+                <property name="alias" value="ic"/>
+            </include>
+            <include refid="kol.common.followerCountCondition">
+                <property name="followerCount" value="ic.follower_count"/>
+            </include>
+            <include refid="kol.common.brandContactJoinCondition">
+                <property name="uniqueId" value="ic.ig_username"/>
+            </include>
+            <include refid="kol.common.uniqueIdCondition">
+                <property name="uniqueId" value="ic.ig_username"/>
+            </include>
+            <include refid="kol.common.playAvgNumCountCondition">
+                <property name="playAvgNumCount" value="ic.video_data"/>
+            </include>
+            <include refid="kol.common.linktreeCondition">
+                <property name="alias" value="ic.linktree"/>
+            </include>
+        </where>
+    </select>
+</mapper>

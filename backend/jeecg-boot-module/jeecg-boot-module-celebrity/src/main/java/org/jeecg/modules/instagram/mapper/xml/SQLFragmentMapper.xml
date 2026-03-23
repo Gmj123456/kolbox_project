@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ig.common">
+    <!-- 标签关联查询条件 -->
+    <sql id="tagListJoinCondition">
+        <if test="searchModel.tagNameList != null and searchModel.tagNameList.size() > 0">
+            JOIN
+            (
+            SELECT ic.ig_username FROM ig_celebrity_tags ic
+            JOIN
+            <if test="searchModel.tempTableName == null or searchModel.tempTableName == ''">
+                (
+                <include refid="kol.common.tagNameListForeach"/>
+                ) AS tags ON ic.tag_name = tags.tag_name
+            </if>
+            <if test="searchModel.tempTableName != null and searchModel.tempTableName != ''">
+                ${searchModel.tempTableName} AS tags ON ic.tag_name = tags.tag_name
+            </if>
+            join ic_celebrity ic_c ON ic_c.ig_username = ic.ig_username
+            <if test="searchModel.productId != null and searchModel.productId != ''">
+                left join kol_tag_product ktp on ic.tag_name = ktp.tag_name and ktp.platform_type = 0
+            </if>
+            <where>
+                <include refid="kol.common.countryCodeCondition">
+                    <property name="alias" value="ic"/>
+                </include>
+                <include refid="kol.common.tagTypeCondition">
+                    <property name="alias" value="ic"/>
+                </include>
+                <if test="searchModel.productId != null and searchModel.productId != ''">
+                    <include refid="kol.common.productIdCondition">
+                        <property name="alias" value="ktp"/>
+                    </include>
+                    <include refid="kol.common.brandIdCondition">
+                        <property name="alias" value="ktp"/>
+                    </include>
+                </if>
+            </where>
+            group by ic.ig_username
+            )
+            ict_tag ON ict_tag.ig_username = ic.ig_username
+        </if>
+    </sql>
+    <sql id="tagListInCondition">
+        JOIN
+        (
+        <include refid="kol.common.tagNameListForeach"/>
+        ) AS tags ON ict.tag_name = tags.tag_name
+    </sql>
+    <!-- 标签网红顾问关联查询条件 -->
+    <sql id="tagCounselorJoinCondition">
+        <if test="searchModel.tagCounselorId != null and searchModel.tagCounselorId != ''">
+            JOIN (
+            SELECT DISTINCT ig_username
+            FROM ig_celebrity_tags_counselor
+            <where>
+                AND counselor_id = #{searchModel.tagCounselorId}
+            </where>
+            )
+            ict_user ON ict_user.ig_username = ict.ig_username
+        </if>
+    </sql>
+    <!-- 标签网红顾问左连接关联查询条件 -->
+    <sql id="tagCounselorLeftJoinCondition">
+        <if test="searchModel.tagCounselorId != null and searchModel.tagCounselorId != ''">
+            LEFT JOIN ig_celebrity_tags_counselor ictc
+            on ict.id = ictc.ig_celebrity_tags_id
+        </if>
+    </sql>
+    <!-- 标签名称或网红顾问ID关联查询条件 -->
+    <sql id="tagNameOrCounselorIdJoinCondition">
+        JOIN (
+        SELECT DISTINCT account,kp.brand_id,kp.brand_name,product_id,kp.product_name FROM ig_celebrity_tags_counselor AS ic
+        <if test="searchModel.tempTableName == null or searchModel.tempTableName == ''">
+            <if test="searchModel.isContact == null">
+                <if test="searchModel.tagNameList != null and searchModel.tagNameList.size() > 0 and (searchModel.productId== null or searchModel.productId== '')">
+                    JOIN
+                    (
+                    <include refid="kol.common.tagNameListForeach"/>
+                    ) AS tags ON ic.tag_name = tags.tag_name
+                </if>
+            </if>
+        </if>
+        <if test="searchModel.tempTableName != null and searchModel.tempTableName != ''">
+            JOIN ${searchModel.tempTableName} AS tags ON ic.tag_name = tags.tag_name
+        </if>
+        LEFT JOIN kol_product kp ON ic.product_id = kp.id
+        <where>
+            <include refid="kol.common.counselorIdCondition">
+                <property name="alias" value="ic"/>
+            </include>
+            <include refid="kol.common.countryCodeCondition">
+                <property name="alias" value="ic"/>
+            </include>
+            <if test="searchModel.productId != null and searchModel.productId != ''">
+                <include refid="kol.common.productIdCondition">
+                    <property name="alias" value="ic"/>
+                </include>
+            </if>
+        </where>
+        )
+        ictc ON ictc.account = ic.account
+    </sql>
+    <sql id="counselorIdJoinCondition">
+        JOIN (
+        SELECT account,max(allot_time) as allot_time FROM ig_celebrity_tags_counselor AS ic
+        <if test="searchModel.attributeIds != null and searchModel.attributeIds != ''">
+            JOIN attribute_tag_name atn ON ic.tag_name = atn.tag_name
+        </if>
+        <if test="searchModel.tempTableName != null and searchModel.tempTableName != ''">
+            JOIN ${searchModel.tempTableName} AS tags ON ic.tag_name = tags.tag_name
+        </if>
+        <if test="searchModel.productId != null and searchModel.productId != ''">
+            LEFT JOIN kol_product kp ON ic.product_id = kp.id
+        </if>
+        <where>
+            <include refid="kol.common.counselorIdCondition">
+                <property name="alias" value="ic"/>
+            </include>
+            <include refid="kol.common.countryCodeCondition">
+                <property name="alias" value="ic"/>
+            </include>
+            <include refid="kol.common.tagTypeCondition">
+                <property name="alias" value="ic"/>
+            </include>
+            <if test="searchModel.productId != null and searchModel.productId != '' and (searchModel.isContact == null or searchModel.isContact == 0)">
+                <include refid="kol.common.productIdCondition">
+                    <property name="alias" value="ic"/>
+                </include>
+            </if>
+            <include refid="kol.common.allotTimeCondition">
+                <property name="alias" value="ic"/>
+            </include>
+     <!--        <include refid="kol.common.attributeUniqueIdCondition">
+                <property name="account" value="ic.account"/>
+            </include> -->
+        </where>
+        GROUP BY
+        account
+        <if test="searchModel.allotTime != null">
+            HAVING DATE(MAX(allot_time)) = DATE(#{searchModel.allotTime})
+        </if>
+        )
+        ictc ON ictc.account = ic.account
+    </sql>
+    <!-- 网红账号关联查询条件 -->
+    <sql id="usernameJoinCondition">
+        <if test="searchModel.uniqueId != null and searchModel.uniqueId != ''">
+            JOIN
+            <foreach collection="searchModel.uniqueId.split(',')" item="item" open="("
+                     separator=" UNION ALL " close=")">
+                SELECT #{item} AS uniqueId
+            </foreach>
+            AS ic_user ON ic.ig_username = ic_user.uniqueId
+        </if>
+    </sql>
+    <!-- 网红标签表关联条件 -->
+    <sql id="kolTagsJoinCondition">
+        LEFT JOIN ig_celebrity_tags AS ict
+        ON ic.ig_username = ict.ig_username
+    </sql>
+    <!-- 个人签名查询条件 -->
+    <sql id="signatureCondition">
+        <if test="searchModel.signatureKeyword != null and searchModel.signatureKeyword != ''">
+            AND ic.biography like '%${searchModel.signatureKeyword}%'
+        </if>
+    </sql>
+    <!-- 网红账号关联查询条件 -->
+    <sql id="uniqueIdJoinCondition">
+        <if test="searchModel.uniqueId != null and searchModel.uniqueId != ''">
+            JOIN
+            <foreach collection="searchModel.uniqueId.split(',')" item="item" open="("
+                     separator=" UNION ALL " close=")">
+                SELECT #{item} AS uniqueId
+            </foreach>
+            AS ic_uniqueId ON ic.ig_username = ic_uniqueId.uniqueId
+        </if>
+    </sql>
+</mapper>

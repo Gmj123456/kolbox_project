@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jeecg.modules.instagram.storecelebrity.mapper.StoreCelebrityPrivateAttributeRelationMapper">
+
+    <resultMap id="typeDataResultMap" type="org.jeecg.modules.kol.model.TypeData">
+        <id column="celebrity_private_id" property="celebrityPrivateId"/>
+        <id column="type_id" property="typeId"/>
+        <collection property="list" ofType="org.jeecg.modules.kol.model.TypeData$CategoryItem">
+            <result column="level" property="level"/>
+            <result column="is_sel" property="isSel"/>
+            <result column="attribute_id" property="attributeId"/>
+            <result column="attribute_name" property="attributeName"/>
+            <result column="attribute_en_name" property="attributeEnName"/>
+            <result column="category_id" property="categoryId"/>
+            <result column="category_name" property="categoryName"/>
+            <result column="category_en_name" property="categoryEnName"/>
+        </collection>
+    </resultMap>
+
+    <select id="selectAttributeStructureBatch" resultType="java.util.Map">
+        SELECT
+        celebrity_private_id,
+        COALESCE (
+        JSON_ARRAYAGG(
+        JSON_OBJECT(
+        'typeId',
+        type_data.attribute_type_id,
+        'list',
+        COALESCE (
+        (
+        SELECT
+        JSON_ARRAYAGG( JSON_OBJECT( 'attributeId', cc.attribute_id, 'attributeName', cc.attribute_name, 'attributeEnName', sub_c.attribute_en_name ) )
+        FROM
+        store_celebrity_private_attribute_relation cc
+        LEFT JOIN kol_attribute sub_c ON cc.attribute_id = sub_c.id
+        WHERE
+        cc.celebrity_private_id = type_data.celebrity_private_id
+        AND cc.attribute_type_id = type_data.attribute_type_id
+        ORDER BY
+        cc.rank
+        ),
+        JSON_ARRAY()
+        )
+        )
+        ),
+        JSON_ARRAY()
+        ) AS dataJsonStr
+        FROM
+        ( SELECT celebrity_private_id, attribute_type_id, MIN( id ) AS min_id FROM store_celebrity_private_attribute_relation GROUP BY celebrity_private_id, attribute_type_id ) type_data
+        WHERE
+        type_data.celebrity_private_id IN
+        <foreach item="id" collection="celebrityPrivateIds" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        GROUP BY
+        type_data.celebrity_private_id
+    </select>
+    <select id="getBatchCelebrityTypeData" parameterType="java.util.List" resultMap="typeDataResultMap">
+        SELECT
+        cpar.celebrity_private_id,
+        cpar.attribute_type_id AS type_id,
+        cpar.attribute_id,
+        cpar.attribute_name,
+        CASE WHEN cpar.`rank` IS NULL THEN 1 ELSE cpar.`rank` END AS `rank`,
+        ka.attribute_en_name,
+        1 as is_sel
+        FROM
+        store_celebrity_private_attribute_relation cpar
+        LEFT JOIN kol_attribute ka ON cpar.attribute_id = ka.id
+        LEFT JOIN store_celebrity_private scp ON cpar.celebrity_private_id = scp.id
+        WHERE
+        cpar.celebrity_private_id IN
+        <foreach item="id" collection="celebrityPrivateIds" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        AND (
+        scp.is_attribute_confirmed = 2
+        OR (cpar.`rank` &lt; 4 OR cpar.`rank` IS NULL)
+        )
+        ORDER BY
+        cpar.celebrity_private_id,
+        cpar.attribute_type_id,
+        cpar.rank
+    </select>
+</mapper>

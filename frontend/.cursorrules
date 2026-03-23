@@ -1,0 +1,2147 @@
+# JeecgBoot Vue3 项目开发规范
+
+## 项目技术栈
+- Vue 3 Composition API (使用 `<script setup>` 语法)
+- Ant Design Vue 组件库
+- TypeScript/JavaScript
+- SurelyVue 表格组件库：`s-table` 组件（官方文档：https://www.surelyvue.com/doc/api）
+- 自定义组件库：JDictSelect 等
+
+## 代码结构规范
+
+### 1. 列表页面结构
+列表页面应遵循以下目录结构：
+```
+moduleName/
+├── moduleNameList.vue        # 列表主页面
+└── modules/                  # 子组件文件夹
+    ├── moduleNameModal.vue   # 新增/编辑弹窗
+    └── OtherComponent.vue    # 其他业务组件
+```
+
+### 2. 列表页面模板结构
+```vue
+<template>
+  <a-card :bordered="false">
+    <!-- 搜索区域 -->
+    <div class="table-page-search-wrapper">
+      <a-form class="searchForm" @keyup.enter="searchQuery">
+        <a-row :gutter="24">
+          <!-- 搜索表单项 -->
+        </a-row>
+      </a-form>
+    </div>
+
+    <!-- 表格区域 -->
+    <s-table
+      :rangeSelection="false"
+      ref="tableRef"
+      :scroll="{ y: sTableHeight, x: '100%' }"
+      size="small"
+      rowKey="id"
+      :columns="columns"
+      :data-source="dataSource"
+      :pagination="pagination"
+      :loading="loading"
+      @change="pageChange"
+    >
+      <template #bodyCell="{ column, record, text, index }">
+        <!-- 自定义单元格渲染 -->
+      </template>
+    </s-table>
+
+    <!-- 弹窗组件 -->
+    <ModuleNameModal ref="modalRef" @ok="modalFormOk" />
+  </a-card>
+</template>
+```
+
+### 3. 列表页面脚本结构
+```vue
+<script setup>
+import { onMounted, ref, h } from 'vue';
+import { SearchOutlined, ReloadOutlined, PlusOutlined } from '@ant-design/icons-vue';
+import { defHttp } from '/@/utils/http/axios';
+import { useMessage } from '/@/hooks/web/useMessage';
+import { useTable } from '/@/components/useSTable/useSTable';
+
+const { createMessage } = useMessage();
+const modalRef = ref(null);
+const tableRef = ref(null);
+
+// API 端点定义
+const url = {
+  list: '/api/module/list',
+  delete: '/api/module/delete',
+};
+
+// 表格数据获取函数
+const fetchTableApi = async (params) => {
+  const res = await defHttp.get({ url: url.list, params });
+  return res || [];
+};
+
+// 使用 useTable 组合式函数
+const {
+  loading,
+  dataSource,
+  pagination,
+  queryParam,
+  sTableHeight,
+  fetchTable,
+  pageChange,
+} = useTable(fetchTableApi);
+
+// 初始化查询参数
+queryParam.value = {
+  fieldName: undefined,
+};
+
+// 列配置
+const columns = [
+  {
+    title: '列名',
+    dataIndex: 'fieldName',
+    align: 'left',
+  },
+  {
+    title: '操作',
+    key: 'action',
+    align: 'center',
+    width: 120,
+  },
+];
+
+// CRUD 操作函数
+const searchQuery = () => {
+  fetchTable(1);
+};
+
+const searchReset = () => {
+  queryParam.value = {
+    fieldName: undefined,
+  };
+  fetchTable(1);
+};
+
+const handleAdd = () => {
+  modalRef.value?.open();
+};
+
+const handleEdit = (record) => {
+  modalRef.value?.open(record);
+};
+
+const handleDelete = async (id) => {
+  try {
+    await defHttp.delete({ url: url.delete, data: { id } }, { joinParamsToUrl: true });
+    fetchTable();
+  } catch (error) {
+    console.error('handleDelete error:', error);
+    createMessage.error('删除失败');
+  }
+};
+
+const modalFormOk = () => {
+  fetchTable();
+};
+
+onMounted(() => {
+  fetchTable();
+});
+</script>
+```
+
+## 编码规范
+
+### 1. 组件导入顺序
+1. Vue 核心导入
+2. 图标导入
+3. 工具函数和 hooks
+4. 自定义组件
+5. 样式文件
+
+### 2. 响应式引用命名
+- 使用 `ref()` 创建响应式变量
+- 组件引用命名：`xxxRef`（如 `modalRef`、`tableRef`）
+- 数据相关：`dataSource`、`loading`、`pagination`
+- 查询参数：`queryParam`
+
+### 3. 函数命名规范
+- 搜索：`searchQuery`、`searchReset`
+- CRUD：`handleAdd`、`handleEdit`、`handleDelete`
+- API调用：`fetchTable`、`fetchTableApi`
+- 弹窗回调：`modalFormOk`
+- 页面改变：`pageChange`
+
+### 4. 图标使用规范
+- 使用 `h()` 函数渲染图标组件
+- 从 `@ant-design/icons-vue` 导入图标
+- 常用图标：`SearchOutlined`、`ReloadOutlined`、`PlusOutlined`
+```vue
+<a-button type="primary" :icon="h(SearchOutlined)" @click="searchQuery">查询</a-button>
+```
+
+### 5. API 调用规范
+使用 `defHttp` 进行 HTTP 请求：
+```javascript
+// GET 请求
+const res = await defHttp.get({ url: url.list, params });
+
+// POST 请求
+const res = await defHttp.post({ url: url.add, data: formData });
+
+// PUT 请求
+const res = await defHttp.put({ url: url.edit, data: formData });
+
+// DELETE 请求
+const res = await defHttp.delete({ 
+  url: url.delete, 
+  data: { id } 
+}, { joinParamsToUrl: true });
+```
+
+### 6. 表格列配置规范
+```javascript
+const columns = [
+  {
+    title: '序号',        // 列标题
+    key: 'index',        // 唯一键（用于 v-for）
+    dataIndex: 'id',     // 数据字段
+    width: 60,           // 列宽度
+    align: 'center',     // 对齐方式：left、center、right
+    fixed: 'right',      // 固定列：left、right
+  },
+];
+```
+
+### 7. 搜索表单布局
+使用响应式栅格布局：
+```vue
+<a-row :gutter="24">
+  <a-col :xl="4" :lg="7" :md="8" :sm="24">
+    <a-form-item>
+      <a-input v-model:value="queryParam.fieldName" placeholder="名称" />
+    </a-form-item>
+  </a-col>
+</a-row>
+```
+
+### 8. 树形数据处理
+将空的 children 数组转为 null（Ant Design Vue 要求）：
+```javascript
+const setEmptyChildrenToNull = (nodes) => {
+  if (!Array.isArray(nodes)) return nodes;
+  return nodes.map(node => {
+    if (Array.isArray(node.children)) {
+      node.children = setEmptyChildrenToNull(node.children);
+      if (node.children.length === 0) {
+        node.children = null;
+      }
+    }
+    return node;
+  });
+};
+```
+
+### 9. 操作列模板
+```vue
+<template v-if="column.key === 'action'">
+  <a-tooltip placement="top" title="编辑">
+    <a @click="handleEdit(record)">
+      <a-icon type="form" style="font-size: 15px" />
+    </a>
+  </a-tooltip>
+  <a-divider type="vertical" />
+  <a-popconfirm 
+    title="确定删除吗?" 
+    @confirm="() => handleDelete(record.id)"
+  >
+    <a>
+      <span class="icon iconfont icon-shanchu"></span>
+    </a>
+  </a-popconfirm>
+</template>
+```
+
+### 10. 错误处理规范
+```javascript
+try {
+  const res = await apiFunction();
+  // 处理成功逻辑
+} catch (error) {
+  console.error('functionName error:', error);
+  createMessage.error('操作失败');
+}
+```
+
+### 11. 弹窗组件调用规范
+```javascript
+// 新增
+modalRef.value?.open();
+
+// 编辑
+modalRef.value?.open(record);
+
+// 添加子项
+modalRef.value?.addSubordinates(record);
+```
+
+### 12. queryParam 管理规范
+- 使用 `undefined` 而不是 `null` 作为初始值
+- 搜索前将查询参数与分页参数合并
+- 重置时将所有字段设为 `undefined`
+
+### 13. 文本溢出处理
+使用 `EllipsisTooltip` 组件处理长文本：
+```vue
+<template v-if="['description', 'remark'].includes(column.dataIndex)">
+  <EllipsisTooltip :text="text" />
+</template>
+```
+
+### 14. useTable 使用规范
+```javascript
+const {
+  loading,           // 加载状态
+  dataSource,        // 数据源
+  pagination,        // 分页配置
+  queryParam,        // 查询参数
+  sTableHeight,      // 表格高度
+  fetchTable,        // 获取数据函数
+  pageChange,        // 分页改变处理
+  searchQuery,       // 搜索函数
+  searchReset,       // 重置函数
+} = useTable(fetchTableApi, pageOffset);
+
+// 第二个参数 pageOffset 是表格高度偏移量（可选，默认0）
+```
+
+### 15. 标签页面规范
+使用 `a-tabs` 组件时：
+```vue
+<a-tabs v-model:activeKey="activeTabKey" @change="handleTabChange">
+  <a-tab-pane v-for="item in tabList" :key="item.id" :tab="item.name" />
+</a-tabs>
+```
+
+## 样式规范
+
+### 1. 使用 scoped 样式
+```vue
+<style scoped lang="less">
+.table-page-search-wrapper {
+  margin-bottom: 16px;
+}
+
+.table-page-search-submitButtons {
+  display: inline-flex;
+  align-items: center;
+}
+</style>
+```
+
+### 2. 深度选择器
+```less
+:deep(.ant-table-tbody tr td) {
+  padding: 10px 2px !important;
+}
+```
+
+## 注意事项
+
+1. **必须使用 `<script setup>` 语法**
+2. **所有 ref 访问必须使用 `.value`**
+3. **图标必须使用 `h()` 函数包裹**
+4. **删除操作必须使用 `a-popconfirm` 确认**
+5. **API 调用必须包含错误处理**
+6. **分页参数变化后必须调用 `fetchTable`**
+7. **模态框组件必须放在 `modules` 文件夹**
+8. **使用 `@keyup.enter` 处理搜索框回车事件**
+9. **表格必须设置 `rowKey` 属性**
+10. **使用 `createMessage` 显示操作反馈**
+
+## 组件通信规范
+
+### 父组件调用子组件
+```javascript
+// 使用可选链和方法调用
+modalRef.value?.open(record);
+```
+
+### 子组件向父组件传值
+```javascript
+// 子组件
+const emit = defineEmits(['ok', 'update']);
+emit('ok');
+
+// 父组件
+<ModalComponent @ok="handleOk" />
+```
+
+## TypeScript 类型定义建议
+
+```typescript
+interface QueryParam {
+  fieldName?: string;
+  pageNo?: number;
+  pageSize?: number;
+}
+
+interface ApiResponse<T> {
+  records: T[];
+  total: number;
+}
+```
+
+## 常用工具函数
+
+### 1. 过滤选项
+```javascript
+const filterOption = (input, option) => {
+  return option.value.toLowerCase().indexOf(input.toLowerCase()) >= 0;
+};
+```
+
+### 2. 树节点过滤
+```javascript
+// a-tree-select
+tree-node-filter-prop="categoryName"
+```
+
+## 最佳实践
+
+1. **组件拆分**：将复杂的单元格渲染拆分为独立组件
+2. **代码复用**：使用 `useTable` 等组合式函数复用逻辑
+3. **性能优化**：大数据量使用虚拟滚动
+4. **加载状态**：所有异步操作显示 loading 状态
+5. **用户反馈**：操作成功/失败都要有明确的消息提示
+6. **数据验证**：删除前检查数据依赖关系
+7. **响应式设计**：使用栅格系统适配不同屏幕
+8. **代码注释**：复杂逻辑添加必要注释
+
+## 代码生成提示
+
+当需要创建新的列表页面时，请按照以下步骤：
+
+1. 创建目录结构（xxxList.vue + modules 文件夹）
+2. 复制标准模板代码
+3. 修改 API 端点
+4. 配置表格列
+5. 设置查询参数
+6. 实现 CRUD 函数
+7. 创建对应的 Modal 组件
+8. 添加必要的样式
+
+遵循这些规范可以确保代码的一致性、可维护性和可读性。
+
+## useSTable 组合式函数详细规范
+
+### 概述
+`useSTable` 是项目中用于管理表格状态和操作的核心组合式函数，封装了分页、加载、数据获取、排序、多选、展开行等常用功能。
+
+### 函数签名
+```typescript
+function useTable(
+  apiFn: (params: any) => Promise<any>,  // 必填：API 调用函数
+  pageOffset?: number,                    // 可选：表格高度偏移量，默认 0
+  options?: {
+    beforeFetch?: (params: any) => any,   // 可选：请求前参数处理
+    afterFetch?: (params: any, res: any) => void | Promise<void>,  // 可选：请求后回调
+    expandApiFn?: (record: any) => Promise<any>  // 可选：展开行数据加载函数
+  }
+): UseTableReturn
+```
+
+### 返回值详解
+
+#### 1. 响应式状态
+```javascript
+loading.value           // boolean - 表格数据加载状态
+dataSource.value        // Array - 表格数据数组
+queryParam.value        // Object - 查询表单参数对象
+sTableHeight.value      // number - 自动计算的表格滚动高度
+selectedRowKeys.value   // Array - 选中行的 id 数组
+expandedRowKeys.value   // Array - 展开行的 id 数组
+
+// 分页配置对象
+pagination.value = {
+  defaultPageSize: 20,        // 默认每页条数
+  showQuickJumper: true,      // 显示快速跳转
+  showSizeChanger: true,      // 显示页码切换器
+  pageSizeOptions: ['20', '30', '50'],  // 页码选项
+  current: 1,                 // 当前页码
+  total: 0,                   // 总条数
+  pageSize: 20,               // 每页条数
+  showTotal: (total, range) => `${range[0]}-${range[1]} 共${total}条`
+}
+
+// 排序参数
+isorter.value = {
+  column: 'createTime',  // 排序字段
+  order: 'desc'          // 排序方式：asc/desc
+}
+
+// 多选配置对象
+rowSelection = {
+  onChange: handleRowSelectionChange  // 内部处理函数
+}
+```
+
+#### 2. 核心方法
+
+##### `fetchTable(pageNo?, extraParams?)`
+**作用**：获取表格数据的核心方法
+**参数**：
+- `pageNo` (可选): 页码，传 1 表示重置到第一页，不传表示刷新当前页
+- `extraParams` (可选): 额外的查询参数对象
+
+**用法**：
+```javascript
+// 正常刷新当前页（CRUD 操作后）
+await fetchTable();
+
+// 重置到第一页（搜索、筛选时）
+await fetchTable(1);
+
+// 带额外参数查询
+await fetchTable(1, { status: 'active' });
+
+// 不重置页码但带额外参数
+await fetchTable(undefined, { categoryId: 123 });
+```
+
+**注意事项**：
+- 删除/更新操作后调用 `fetchTable()` 保持当前页
+- 搜索/筛选操作调用 `fetchTable(1)` 重置到第一页
+- 内部会自动合并 `queryParam`、`pagination`、`isorter` 和 `extraParams`
+
+##### `pageChange(page, pageSize)`
+**作用**：处理分页变化事件
+**用法**：
+```vue
+<s-table @change="pageChange" ... />
+```
+**注意事项**：
+- 自动更新 `pagination.value.current` 和 `pagination.value.pageSize`
+- 自动调用 `fetchTable()` 刷新数据
+- 不要手动调用此方法
+
+##### `searchQuery()`
+**作用**：执行搜索，重置到第一页
+**用法**：
+```javascript
+// 在搜索按钮点击事件中使用
+const handleSearch = () => {
+  searchQuery();  // 等同于 fetchTable(1)
+};
+```
+
+##### `searchReset()`
+**作用**：重置查询条件并刷新
+**用法**：
+```javascript
+// 在重置按钮点击事件中使用
+const handleReset = () => {
+  searchReset();  // 清空 queryParam 并重新加载第一页
+};
+```
+
+##### `resetTable()`
+**作用**：完全重置表格状态（分页 + 查询参数）
+**用法**：
+```javascript
+// 需要完全重置表格时使用
+resetTable();
+```
+
+##### `updatePagination(config)`
+**作用**：动态更新分页配置
+**参数**：要更新的分页配置项对象
+**用法**：
+```javascript
+// 修改分页配置
+updatePagination({
+  pageSize: 30,
+  current: 1
+});
+```
+
+##### `handleExpand(expanded, record)`
+**作用**：处理行展开/收起事件
+**参数**：
+- `expanded`: boolean - 是否展开
+- `record`: Object - 当前行数据
+**用法**：
+```vue
+<s-table 
+  :expanded-row-keys="expandedRowKeys"
+  @expand="handleExpand" 
+  ... 
+/>
+```
+
+##### `fetchExpandedData()`
+**作用**：刷新所有已展开行的子数据
+**用法**：
+```javascript
+// 更新子数据后刷新已展开的行
+await fetchExpandedData();
+```
+
+##### `awaitFetchParamFn(extraParams)`
+**作用**：获取完整的请求参数（用于自定义场景）
+**返回**：合并后的完整请求参数对象
+**用法**：
+```javascript
+// 获取当前的完整请求参数
+const params = awaitFetchParamFn({ customField: 'value' });
+// 返回: { pageNo, pageSize, column, order, ...queryParam, ...extraParams }
+```
+
+##### `filterOption(input, option)`
+**作用**：下拉框过滤函数（通用工具）
+**用法**：
+```vue
+<a-select 
+  show-search
+  :filter-option="filterOption" 
+  ... 
+/>
+```
+
+#### 3. 内部工具
+```javascript
+unref        // Vue 的 unref 函数
+filterObj    // 过滤对象中的空值（undefined）
+```
+
+### 基本使用模式
+
+#### 模式 1：标准列表页面（最常用）
+```vue
+<script setup>
+import { onMounted } from 'vue';
+import { defHttp } from '/@/utils/http/axios';
+import { useTable } from '/@/components/useSTable/useSTable';
+
+// 1. 定义 API 端点
+const url = {
+  list: '/api/data/list',
+};
+
+// 2. 定义数据获取函数
+const fetchTableApi = async (params) => {
+  const res = await defHttp.get({ url: url.list, params });
+  return res || [];  // 必须返回响应对象
+};
+
+// 3. 使用 useTable
+const {
+  loading,
+  dataSource,
+  pagination,
+  queryParam,
+  sTableHeight,
+  fetchTable,
+  pageChange,
+  searchQuery,
+  searchReset,
+} = useTable(fetchTableApi);
+
+// 4. 初始化查询参数
+queryParam.value = {
+  name: undefined,
+  status: undefined,
+};
+
+// 5. 页面加载时获取数据
+onMounted(() => {
+  fetchTable();
+});
+</script>
+
+<template>
+  <s-table
+    ref="tableRef"
+    rowKey="id"
+    :columns="columns"
+    :data-source="dataSource"
+    :pagination="pagination"
+    :loading="loading"
+    :scroll="{ y: sTableHeight, x: '100%' }"
+    @change="pageChange"
+  />
+</template>
+```
+
+#### 模式 2：带高度偏移的表格
+```javascript
+// 当页面有额外固定元素（标签页、固定按钮栏等）时
+// 使用 pageOffset 调整高度计算
+const {
+  loading,
+  dataSource,
+  pagination,
+  queryParam,
+  sTableHeight,
+  fetchTable,
+  pageChange,
+} = useTable(fetchTableApi, 100);  // 100 是额外元素的高度（px）
+```
+
+#### 模式 3：带自定义参数处理
+```javascript
+const {
+  loading,
+  dataSource,
+  pagination,
+  queryParam,
+  fetchTable,
+  pageChange,
+} = useTable(fetchTableApi, 0, {
+  // 请求前处理参数
+  beforeFetch: (params) => {
+    // 转换日期格式
+    if (params.dateRange && params.dateRange.length === 2) {
+      params.startDate = params.dateRange[0];
+      params.endDate = params.dateRange[1];
+      delete params.dateRange;
+    }
+    // 过滤空字符串
+    return Object.fromEntries(
+      Object.entries(params).filter(([_, v]) => v !== undefined && v !== '')
+    );
+  },
+  
+  // 请求后处理
+  afterFetch: async (params, res) => {
+    console.log('数据加载完成，共', res.total, '条');
+    // 可以在这里进行额外的数据处理或统计
+  }
+});
+```
+
+#### 模式 4：带展开行功能
+```javascript
+// 定义子数据加载函数
+const loadChildData = async (record) => {
+  const res = await defHttp.get({ 
+    url: '/api/children/list', 
+    params: { parentId: record.id } 
+  });
+  return res.records || [];
+};
+
+const {
+  loading,
+  dataSource,
+  pagination,
+  queryParam,
+  sTableHeight,
+  fetchTable,
+  pageChange,
+  expandedRowKeys,
+  handleExpand,
+  fetchExpandedData,
+} = useTable(fetchTableApi, 0, {
+  expandApiFn: loadChildData,  // 配置展开数据加载函数
+});
+```
+
+```vue
+<template>
+  <s-table
+    :expanded-row-keys="expandedRowKeys"
+    @expand="handleExpand"
+    ...
+  />
+</template>
+```
+
+#### 模式 5：带多选功能
+```javascript
+const {
+  loading,
+  dataSource,
+  pagination,
+  queryParam,
+  fetchTable,
+  pageChange,
+  selectedRowKeys,
+  rowSelection,
+} = useTable(fetchTableApi);
+
+// 批量操作
+const batchDelete = async () => {
+  if (selectedRowKeys.value.length === 0) {
+    createMessage.warning('请选择要删除的数据');
+    return;
+  }
+  
+  try {
+    await defHttp.delete({ 
+      url: url.batchDelete, 
+      data: { ids: selectedRowKeys.value } 
+    });
+    createMessage.success('删除成功');
+    fetchTable();  // 刷新当前页
+  } catch (error) {
+    console.error('batchDelete error:', error);
+    createMessage.error('批量删除失败');
+  }
+};
+```
+
+```vue
+<template>
+  <s-table
+    :row-selection="rowSelection"
+    ...
+  />
+</template>
+```
+
+### CRUD 操作最佳实践
+
+#### 搜索操作
+```javascript
+// ✅ 推荐：使用 useTable 提供的 searchQuery
+const handleSearch = () => {
+  searchQuery();  // 自动重置到第一页
+};
+
+// ✅ 推荐：直接调用 fetchTable(1)
+const handleSearch = () => {
+  fetchTable(1);
+};
+
+// ❌ 不推荐：手动修改 pagination
+const handleSearch = () => {
+  pagination.value.current = 1;
+  fetchTable();
+};
+```
+
+#### 重置操作
+```javascript
+// ✅ 推荐：使用 useTable 提供的 searchReset
+const handleReset = () => {
+  searchReset();  // 自动清空 queryParam 并重置到第一页
+};
+
+// ✅ 推荐：手动重置特定字段
+const handleReset = () => {
+  queryParam.value = {
+    name: undefined,
+    status: undefined,
+  };
+  fetchTable(1);
+};
+```
+
+#### 新增操作
+```javascript
+const handleAdd = () => {
+  modalRef.value?.open();
+};
+
+// 模态框确认后的回调
+const modalFormOk = () => {
+  fetchTable(1);  // 新增后跳转到第一页查看新数据
+};
+```
+
+#### 编辑操作
+```javascript
+const handleEdit = (record) => {
+  modalRef.value?.open(record);
+};
+
+// 模态框确认后的回调
+const modalFormOk = () => {
+  fetchTable();  // 编辑后刷新当前页
+};
+```
+
+#### 删除操作
+```javascript
+const handleDelete = async (id) => {
+  try {
+    await defHttp.delete({ 
+      url: url.delete, 
+      data: { id } 
+    }, { joinParamsToUrl: true });
+    
+    createMessage.success('删除成功');
+    fetchTable();  // 删除后刷新当前页
+  } catch (error) {
+    console.error('handleDelete error:', error);
+    createMessage.error('删除失败');
+  }
+};
+```
+
+### API 响应格式要求
+
+#### 标准响应格式
+```javascript
+// 格式 1（推荐）
+{
+  records: [...],   // 数据数组
+  total: 100        // 总条数
+}
+
+// 格式 2
+{
+  result: [...],    // 数据数组
+  total: 100        // 总条数
+}
+```
+
+#### 内部处理逻辑
+```javascript
+// useSTable 内部会自动处理这两种格式
+dataSource.value = res.records || res.result
+pagination.value.total = res.total
+```
+
+### queryParam 管理规范
+
+#### 初始化规范
+```javascript
+// ✅ 推荐：使用 undefined
+queryParam.value = {
+  name: undefined,
+  status: undefined,
+  dateRange: undefined,
+};
+
+// ❌ 不推荐：使用 null 或空字符串
+queryParam.value = {
+  name: null,
+  status: '',
+  dateRange: null,
+};
+```
+
+**原因**：`useTable` 内部使用 `filterObj` 过滤 `undefined` 值，`undefined` 的字段不会发送到后端。
+
+#### 动态查询参数
+```javascript
+// ✅ 推荐：根据条件动态添加
+const handleSearch = () => {
+  const params = { ...queryParam.value };
+  
+  // 根据业务逻辑添加额外参数
+  if (activeTab.value) {
+    params.tabId = activeTab.value;
+  }
+  
+  fetchTable(1, params);
+};
+```
+
+### 表格高度计算说明
+
+#### 自动计算逻辑
+```javascript
+// useSTable 内部的计算公式
+tableHeight = document.body.clientHeight 
+  - 39              // 页面顶部
+  - formHeight      // 搜索表单高度
+  - pageOffset      // 自定义偏移量
+  - tablepagination // 分页器高度
+  - 其他固定值
+```
+
+#### pageOffset 使用场景
+```javascript
+// 场景 1：页面有标签页（高度约 50px）
+const { ... } = useTable(fetchTableApi, 50);
+
+// 场景 2：页面有固定按钮栏（高度约 60px）
+const { ... } = useTable(fetchTableApi, 60);
+
+// 场景 3：页面有多个固定元素
+const { ... } = useTable(fetchTableApi, 110);  // 50 + 60
+
+// 场景 4：标准页面（无额外固定元素）
+const { ... } = useTable(fetchTableApi);  // 或 useTable(fetchTableApi, 0)
+```
+
+### 排序功能使用
+
+#### 内置排序参数
+```javascript
+const { isorter } = useTable(fetchTableApi);
+
+// isorter 默认值
+isorter.value = {
+  column: 'createTime',  // 默认按创建时间排序
+  order: 'desc'          // 降序
+};
+
+// 如需修改默认排序
+isorter.value = {
+  column: 'updateTime',
+  order: 'asc'
+};
+```
+
+#### 排序参数会自动合并到请求中
+```javascript
+// 最终请求参数会包含
+{
+  pageNo: 1,
+  pageSize: 20,
+  column: 'createTime',
+  order: 'desc',
+  ...queryParam
+}
+```
+
+### 性能优化建议
+
+#### 1. 避免频繁调用
+```javascript
+// ❌ 不推荐：短时间内多次调用
+const handleMultipleUpdate = async () => {
+  await updateItem1();
+  fetchTable();  // 第一次调用
+  await updateItem2();
+  fetchTable();  // 第二次调用
+};
+
+// ✅ 推荐：合并操作后统一刷新
+const handleMultipleUpdate = async () => {
+  await Promise.all([
+    updateItem1(),
+    updateItem2()
+  ]);
+  fetchTable();  // 只调用一次
+};
+```
+
+#### 2. 搜索防抖处理
+```javascript
+import { useDebounceFn } from '@vueuse/core';
+
+// 创建防抖搜索函数
+const debouncedSearch = useDebounceFn(() => {
+  fetchTable(1);
+}, 300);
+
+// 在输入框中使用
+<a-input 
+  v-model:value="queryParam.keyword" 
+  @input="debouncedSearch"
+/>
+```
+
+#### 3. 合理设置 pageSize
+```javascript
+// 根据数据复杂度和渲染性能选择合适的 pageSize
+pagination.value = {
+  ...pagination.value,
+  pageSizeOptions: ['10', '20', '50'],  // 数据复杂时减小选项
+  defaultPageSize: 20,
+};
+```
+
+#### 4. 虚拟滚动（大数据量）
+```vue
+<!-- 对于超大数据量（1000+ 条），考虑使用虚拟滚动 -->
+<s-table
+  :virtual="true"
+  :scroll="{ y: sTableHeight, x: '100%' }"
+  ...
+/>
+```
+
+### 错误处理规范
+
+```javascript
+// ✅ 推荐：完整的错误处理
+const handleOperation = async () => {
+  try {
+    await fetchTable(1);
+  } catch (error) {
+    console.error('fetchTable error:', error);
+    createMessage.error('加载数据失败，请稍后重试');
+  }
+};
+
+// ✅ 推荐：在 CRUD 操作中处理错误
+const handleDelete = async (id) => {
+  try {
+    await defHttp.delete({ url: url.delete, data: { id } }, { joinParamsToUrl: true });
+    createMessage.success('删除成功');
+    fetchTable();
+  } catch (error) {
+    console.error('handleDelete error:', error);
+    createMessage.error('删除失败：' + (error.message || '未知错误'));
+  }
+};
+```
+
+### 常见问题和解决方案
+
+#### 问题 1：表格数据不刷新
+```javascript
+// 原因：忘记调用 fetchTable
+// ✅ 解决：在数据变更后调用
+const handleUpdate = async () => {
+  await updateData();
+  fetchTable();  // 必须调用
+};
+```
+
+#### 问题 2：分页后返回第一页
+```javascript
+// 原因：错误地调用了 fetchTable(1)
+// ❌ 错误：更新/删除后跳转到第一页
+const handleUpdate = async () => {
+  await updateData();
+  fetchTable(1);  // 错误：会跳到第一页
+};
+
+// ✅ 正确：更新/删除后保持当前页
+const handleUpdate = async () => {
+  await updateData();
+  fetchTable();  // 正确：保持当前页
+};
+```
+
+#### 问题 3：查询参数不生效
+```javascript
+// 原因：queryParam 赋值错误
+// ❌ 错误：直接赋值给新对象
+queryParam = { name: 'test' };
+
+// ✅ 正确：赋值给 queryParam.value
+queryParam.value = { name: 'test' };
+
+// ✅ 正确：修改 queryParam.value 的属性
+queryParam.value.name = 'test';
+```
+
+#### 问题 4：表格高度不正确
+```javascript
+// 原因：页面有额外固定元素但未设置 pageOffset
+// ✅ 解决：计算并设置正确的 pageOffset
+const { sTableHeight, ... } = useTable(fetchTableApi, 60);
+```
+
+#### 问题 5：多选不生效
+```javascript
+// 原因：忘记绑定 rowSelection
+// ✅ 解决：必须绑定 rowSelection 到 s-table
+<s-table
+  :row-selection="rowSelection"
+  ...
+/>
+```
+
+### 与 s-table 组件配合规范
+
+```vue
+<s-table
+  ref="tableRef"
+  rowKey="id"                          // 必须：唯一标识字段
+  :columns="columns"                   // 必须：列配置
+  :data-source="dataSource"            // 必须：绑定数据源
+  :pagination="pagination"             // 必须：绑定分页配置
+  :loading="loading"                   // 必须：绑定加载状态
+  :scroll="{ y: sTableHeight, x: '100%' }"  // 推荐：绑定滚动配置
+  size="small"                         // 可选：表格尺寸
+  :row-selection="rowSelection"        // 可选：多选功能
+  :expanded-row-keys="expandedRowKeys" // 可选：展开行功能
+  @change="pageChange"                 // 必须：分页变化事件
+  @expand="handleExpand"               // 可选：展开事件
+>
+  <template #bodyCell="{ column, record, text, index }">
+    <!-- 自定义单元格渲染 -->
+  </template>
+</s-table>
+```
+
+### 完整示例：带所有功能的列表页面
+
+```vue
+<template>
+  <a-card :bordered="false">
+    <!-- 搜索区域 -->
+    <div class="table-page-search-wrapper">
+      <a-form class="searchForm" @keyup.enter="searchQuery">
+        <a-row :gutter="24">
+          <a-col :xl="6" :lg="8" :md="12" :sm="24">
+            <a-form-item label="名称">
+              <a-input 
+                v-model:value="queryParam.name" 
+                placeholder="请输入名称"
+                allow-clear
+              />
+            </a-form-item>
+          </a-col>
+          <a-col :xl="6" :lg="8" :md="12" :sm="24">
+            <a-form-item label="状态">
+              <a-select
+                v-model:value="queryParam.status"
+                placeholder="请选择状态"
+                allow-clear
+                :filter-option="filterOption"
+              >
+                <a-select-option value="1">启用</a-select-option>
+                <a-select-option value="0">禁用</a-select-option>
+              </a-select>
+            </a-form-item>
+          </a-col>
+          <a-col :xl="6" :lg="8" :md="12" :sm="24">
+            <a-form-item>
+              <a-button type="primary" :icon="h(SearchOutlined)" @click="searchQuery">
+                查询
+              </a-button>
+              <a-button style="margin-left: 8px" :icon="h(ReloadOutlined)" @click="searchReset">
+                重置
+              </a-button>
+            </a-form-item>
+          </a-col>
+        </a-row>
+      </a-form>
+    </div>
+
+    <!-- 操作按钮 -->
+    <div style="margin-bottom: 16px">
+      <a-button type="primary" :icon="h(PlusOutlined)" @click="handleAdd">
+        新增
+      </a-button>
+      <a-button 
+        danger 
+        :disabled="selectedRowKeys.length === 0"
+        @click="handleBatchDelete"
+        style="margin-left: 8px"
+      >
+        批量删除
+      </a-button>
+    </div>
+
+    <!-- 表格区域 -->
+    <s-table
+      ref="tableRef"
+      :scroll="{ y: sTableHeight, x: '100%' }"
+      size="small"
+      rowKey="id"
+      :columns="columns"
+      :data-source="dataSource"
+      :pagination="pagination"
+      :loading="loading"
+      :row-selection="rowSelection"
+      @change="pageChange"
+    >
+      <template #bodyCell="{ column, record, text }">
+        <template v-if="column.dataIndex === 'status'">
+          <a-tag :color="record.status === 1 ? 'green' : 'red'">
+            {{ record.status === 1 ? '启用' : '禁用' }}
+          </a-tag>
+        </template>
+        
+        <template v-if="column.key === 'action'">
+          <a @click="handleEdit(record)">编辑</a>
+          <a-divider type="vertical" />
+          <a-popconfirm 
+            title="确定删除吗?" 
+            @confirm="() => handleDelete(record.id)"
+          >
+            <a style="color: red">删除</a>
+          </a-popconfirm>
+        </template>
+      </template>
+    </s-table>
+
+    <!-- 弹窗组件 -->
+    <DataModal ref="modalRef" @ok="modalFormOk" />
+  </a-card>
+</template>
+
+<script setup>
+import { onMounted, ref, h } from 'vue';
+import { SearchOutlined, ReloadOutlined, PlusOutlined } from '@ant-design/icons-vue';
+import { defHttp } from '/@/utils/http/axios';
+import { useMessage } from '/@/hooks/web/useMessage';
+import { useTable } from '/@/components/useSTable/useSTable';
+import DataModal from './modules/DataModal.vue';
+
+const { createMessage } = useMessage();
+const modalRef = ref(null);
+const tableRef = ref(null);
+
+// API 端点
+const url = {
+  list: '/api/data/list',
+  delete: '/api/data/delete',
+  batchDelete: '/api/data/batchDelete',
+};
+
+// 数据获取函数
+const fetchTableApi = async (params) => {
+  const res = await defHttp.get({ url: url.list, params });
+  return res || [];
+};
+
+// 使用 useTable
+const {
+  loading,
+  dataSource,
+  pagination,
+  queryParam,
+  sTableHeight,
+  fetchTable,
+  pageChange,
+  searchQuery,
+  searchReset,
+  selectedRowKeys,
+  rowSelection,
+  filterOption,
+} = useTable(fetchTableApi, 0, {
+  afterFetch: async (params, res) => {
+    console.log('数据加载完成，共', res.total, '条');
+  }
+});
+
+// 初始化查询参数
+queryParam.value = {
+  name: undefined,
+  status: undefined,
+};
+
+// 列配置
+const columns = [
+  {
+    title: '序号',
+    key: 'index',
+    width: 60,
+    align: 'center',
+    customRender: ({ index }) => index + 1,
+  },
+  {
+    title: '名称',
+    dataIndex: 'name',
+    align: 'left',
+  },
+  {
+    title: '状态',
+    dataIndex: 'status',
+    align: 'center',
+    width: 100,
+  },
+  {
+    title: '创建时间',
+    dataIndex: 'createTime',
+    align: 'center',
+    width: 180,
+  },
+  {
+    title: '操作',
+    key: 'action',
+    align: 'center',
+    width: 150,
+    fixed: 'right',
+  },
+];
+
+// CRUD 操作
+const handleAdd = () => {
+  modalRef.value?.open();
+};
+
+const handleEdit = (record) => {
+  modalRef.value?.open(record);
+};
+
+const handleDelete = async (id) => {
+  try {
+    await defHttp.delete({ 
+      url: url.delete, 
+      data: { id } 
+    }, { joinParamsToUrl: true });
+    
+    createMessage.success('删除成功');
+    fetchTable();
+  } catch (error) {
+    console.error('handleDelete error:', error);
+    createMessage.error('删除失败');
+  }
+};
+
+const handleBatchDelete = async () => {
+  if (selectedRowKeys.value.length === 0) {
+    createMessage.warning('请选择要删除的数据');
+    return;
+  }
+  
+  try {
+    await defHttp.delete({ 
+      url: url.batchDelete, 
+      data: { ids: selectedRowKeys.value } 
+    });
+    
+    createMessage.success('批量删除成功');
+    fetchTable();
+  } catch (error) {
+    console.error('handleBatchDelete error:', error);
+    createMessage.error('批量删除失败');
+  }
+};
+
+const modalFormOk = () => {
+  fetchTable();
+};
+
+onMounted(() => {
+  fetchTable();
+});
+</script>
+
+<style scoped lang="less">
+.table-page-search-wrapper {
+  margin-bottom: 16px;
+}
+</style>
+```
+
+### 注意事项总结
+
+1. **必须在 onMounted 中初始调用 `fetchTable()`**
+2. **所有响应式状态访问必须使用 `.value`**
+3. **搜索/筛选操作使用 `fetchTable(1)` 重置页码**
+4. **更新/删除操作使用 `fetchTable()` 保持当前页**
+5. **queryParam 初始化使用 `undefined` 而不是 `null`**
+6. **必须绑定 `@change="pageChange"` 到 s-table**
+7. **多选功能必须绑定 `:row-selection="rowSelection"`**
+8. **API 响应必须包含 `records/result` 和 `total` 字段**
+9. **有额外固定元素时设置正确的 `pageOffset`**
+10. **展开行功能需要配置 `expandApiFn` 选项**
+
+## SurelyVue s-table 组件使用规范
+
+### 组件概述
+项目使用 [SurelyVue](https://www.surelyvue.com/doc/guide) 提供的 `s-table` 组件作为数据表格解决方案。SurelyVue 是一个基于 Vue 3 的高性能表格组件库，支持虚拟滚动、大数据量渲染等功能。
+
+### 基本用法
+
+#### 标准表格配置
+```vue
+<template>
+  <s-table
+    ref="tableRef"
+    rowKey="id"
+    :columns="columns"
+    :data-source="dataSource"
+    :pagination="pagination"
+    :loading="loading"
+    :scroll="{ y: sTableHeight, x: '100%' }"
+    size="small"
+    :rangeSelection="false"
+    @change="pageChange"
+  >
+    <template #bodyCell="{ column, record, text, index }">
+      <!-- 自定义单元格内容 -->
+    </template>
+  </s-table>
+</template>
+```
+
+### 核心属性说明
+
+#### 必需属性
+```javascript
+rowKey="id"                    // 数据行的唯一标识字段，必须设置
+:columns="columns"              // 表格列配置数组
+:data-source="dataSource"       // 表格数据源
+:pagination="pagination"        // 分页配置对象
+:loading="loading"              // 加载状态
+```
+
+#### 推荐属性
+```javascript
+:scroll="{ y: sTableHeight, x: '100%' }"  // 滚动配置，y 为垂直滚动高度，x 为水平滚动
+size="small"                               // 表格尺寸：default、middle、small
+:rangeSelection="false"                    // 是否启用区域选择功能
+```
+
+#### 可选属性
+```javascript
+:row-selection="rowSelection"              // 行选择配置（多选功能）
+:expanded-row-keys="expandedRowKeys"       // 展开的行 keys 数组
+:bordered="true"                           // 是否显示边框
+:showHeader="true"                         // 是否显示表头
+:stripe="false"                            // 是否显示斑马纹
+:virtual="true"                            // 是否开启虚拟滚动（大数据量推荐）
+```
+
+### 事件说明
+
+#### 常用事件
+```javascript
+@change="pageChange"           // 分页、排序、筛选变化时触发（必须绑定）
+@expand="handleExpand"         // 展开行变化时触发
+@select="handleSelect"         // 手动选择/取消选择某行时触发
+@select-all="handleSelectAll"  // 手动选择/取消选择所有行时触发
+```
+
+### 列配置详解
+
+#### 基础列配置
+```javascript
+const columns = [
+  {
+    title: '列标题',           // 列头显示文字
+    dataIndex: 'fieldName',   // 数据字段名
+    key: 'uniqueKey',         // 列的唯一标识（可选，默认使用 dataIndex）
+    width: 120,               // 列宽度（数字或字符串）
+    align: 'center',          // 对齐方式：left、center、right
+    fixed: 'left',            // 固定列：left、right
+    ellipsis: true,           // 超出宽度时显示省略号
+    sorter: true,             // 是否支持排序
+    resizable: true,          // 是否可调整列宽
+  },
+];
+```
+
+#### 自定义渲染列
+```javascript
+const columns = [
+  {
+    title: '状态',
+    dataIndex: 'status',
+    align: 'center',
+    width: 100,
+    // 不需要在列配置中使用 customRender
+    // 使用 template #bodyCell 插槽实现自定义渲染
+  },
+  {
+    title: '操作',
+    key: 'action',
+    align: 'center',
+    width: 150,
+    fixed: 'right',
+  },
+];
+```
+
+#### 序号列配置
+```javascript
+// 方式 1：使用 customRender（适用于简单场景）
+{
+  title: '序号',
+  key: 'index',
+  width: 60,
+  align: 'center',
+  customRender: ({ index }) => index + 1,
+}
+
+// 方式 2：使用 bodyCell 插槽（更灵活）
+{
+  title: '序号',
+  key: 'index',
+  width: 60,
+  align: 'center',
+}
+// 在模板中
+<template #bodyCell="{ column, index }">
+  <template v-if="column.key === 'index'">
+    {{ (pagination.current - 1) * pagination.pageSize + index + 1 }}
+  </template>
+</template>
+```
+
+### 插槽使用
+
+#### bodyCell 插槽（最常用）
+```vue
+<s-table ...>
+  <template #bodyCell="{ column, record, text, index }">
+    <!-- 条件渲染不同列的内容 -->
+    <template v-if="column.dataIndex === 'status'">
+      <a-tag :color="record.status === 1 ? 'green' : 'red'">
+        {{ record.status === 1 ? '启用' : '禁用' }}
+      </a-tag>
+    </template>
+    
+    <template v-if="column.key === 'action'">
+      <a @click="handleEdit(record)">编辑</a>
+      <a-divider type="vertical" />
+      <a-popconfirm 
+        title="确定删除吗?" 
+        @confirm="() => handleDelete(record.id)"
+      >
+        <a style="color: red">删除</a>
+      </a-popconfirm>
+    </template>
+    
+    <!-- 处理长文本溢出 -->
+    <template v-if="['description', 'remark'].includes(column.dataIndex)">
+      <EllipsisTooltip :text="text" />
+    </template>
+  </template>
+</s-table>
+```
+
+#### headerCell 插槽（自定义表头）
+```vue
+<s-table ...>
+  <template #headerCell="{ column }">
+    <template v-if="column.dataIndex === 'customHeader'">
+      <a-tooltip title="提示信息">
+        <span>{{ column.title }}</span>
+        <QuestionCircleOutlined style="margin-left: 4px" />
+      </a-tooltip>
+    </template>
+  </template>
+</s-table>
+```
+
+#### expandedRowRender 插槽（展开行内容）
+```vue
+<s-table 
+  :expanded-row-keys="expandedRowKeys"
+  @expand="handleExpand"
+>
+  <template #expandedRowRender="{ record }">
+    <div style="padding: 16px">
+      <p>详细信息：{{ record.detail }}</p>
+      <!-- 可以嵌套子表格或其他组件 -->
+    </div>
+  </template>
+</s-table>
+```
+
+### 多选功能配置
+
+#### 基础多选
+```javascript
+// 在 useTable 中获取 rowSelection
+const {
+  selectedRowKeys,    // 选中的行 keys 数组
+  rowSelection,       // 多选配置对象
+} = useTable(fetchTableApi);
+
+// 在模板中绑定
+<s-table :row-selection="rowSelection" ... />
+
+// 使用选中的数据
+console.log(selectedRowKeys.value);  // [1, 2, 3, ...]
+```
+
+#### 自定义多选配置
+```javascript
+const rowSelection = {
+  selectedRowKeys: selectedRowKeys.value,
+  onChange: (keys, selectedRows) => {
+    selectedRowKeys.value = keys;
+    console.log('选中的行:', selectedRows);
+  },
+  getCheckboxProps: (record) => ({
+    disabled: record.status === 0,  // 禁用某些行的选择
+    name: record.name,
+  }),
+  // 固定选择列
+  fixed: true,
+  // 选择列宽度
+  columnWidth: 60,
+};
+```
+
+### 展开行功能
+
+#### 基础展开行
+```vue
+<script setup>
+const {
+  expandedRowKeys,
+  handleExpand,
+} = useTable(fetchTableApi, 0, {
+  expandApiFn: async (record) => {
+    // 加载子数据
+    const res = await defHttp.get({ 
+      url: '/api/children/list', 
+      params: { parentId: record.id } 
+    });
+    return res.records || [];
+  }
+});
+</script>
+
+<template>
+  <s-table
+    :expanded-row-keys="expandedRowKeys"
+    @expand="handleExpand"
+  >
+    <template #expandedRowRender="{ record }">
+      <!-- 展开行内容 -->
+      <div v-if="record.children && record.children.length">
+        <s-table
+          :data-source="record.children"
+          :columns="childColumns"
+          :pagination="false"
+          size="small"
+        />
+      </div>
+    </template>
+  </s-table>
+</template>
+```
+
+### 虚拟滚动（大数据量优化）
+
+#### 启用虚拟滚动
+```vue
+<s-table
+  :virtual="true"
+  :scroll="{ y: sTableHeight, x: '100%' }"
+  :data-source="dataSource"
+  ...
+/>
+```
+
+**注意事项**：
+- 虚拟滚动适用于数据量 > 1000 条的场景
+- 启用虚拟滚动时，所有列必须设置固定宽度
+- 虚拟滚动不支持树形数据和展开行功能
+- 建议配合后端分页使用，避免一次性加载过多数据
+
+### 滚动配置详解
+
+#### 固定表头和滚动
+```javascript
+// 基础滚动
+:scroll="{ y: 500, x: '100%' }"
+
+// 使用 useSTable 自动计算的高度
+:scroll="{ y: sTableHeight, x: '100%' }"
+
+// 水平滚动（列宽总和超过容器宽度时自动出现）
+:scroll="{ x: 1500 }"  // 数字表示最小宽度
+
+// 同时固定表头和列
+:scroll="{ y: 500, x: 1500 }"
+```
+
+#### 固定列
+```javascript
+const columns = [
+  {
+    title: '姓名',
+    dataIndex: 'name',
+    width: 100,
+    fixed: 'left',  // 固定在左侧
+  },
+  {
+    title: '地址',
+    dataIndex: 'address',
+    width: 200,
+  },
+  {
+    title: '操作',
+    key: 'action',
+    width: 150,
+    fixed: 'right',  // 固定在右侧
+  },
+];
+```
+
+**注意事项**：
+- 固定列必须设置 `width` 属性
+- 使用固定列时，必须设置 `scroll.x` 属性
+- 固定列在 `left` 和 `right` 的数量不宜过多
+
+### 性能优化建议
+
+#### 1. 合理使用虚拟滚动
+```javascript
+// 数据量较大时启用虚拟滚动
+const needVirtual = dataSource.value.length > 1000;
+
+<s-table :virtual="needVirtual" ... />
+```
+
+#### 2. 避免频繁更新数据
+```javascript
+// ❌ 不推荐：频繁更新
+setInterval(() => {
+  fetchTable();
+}, 1000);
+
+// ✅ 推荐：按需更新或使用合理的轮询间隔
+const autoRefresh = () => {
+  setTimeout(() => {
+    fetchTable();
+    autoRefresh();
+  }, 30000);  // 30秒更新一次
+};
+```
+
+#### 3. 使用 rowKey 优化渲染
+```javascript
+// ✅ 推荐：使用稳定的唯一标识
+<s-table rowKey="id" ... />
+
+// ❌ 不推荐：使用索引作为 key
+<s-table rowKey={(record, index) => index} ... />
+```
+
+#### 4. 列宽优化
+```javascript
+// ✅ 推荐：为所有列设置合理的宽度
+const columns = [
+  { title: '序号', width: 60, ... },
+  { title: '名称', width: 150, ... },
+  { title: '描述', width: 300, ... },
+];
+
+// ❌ 不推荐：不设置列宽（会导致表格布局抖动）
+const columns = [
+  { title: '序号', ... },  // 缺少 width
+];
+```
+
+### 常见问题解决
+
+#### 问题 1：表格高度不正确
+```javascript
+// 原因：搜索表单高度变化或页面布局调整
+// 解决：使用 useSTable 的 pageOffset 参数调整
+
+// 如果页面有固定标签栏（高度 50px）
+const { sTableHeight, ... } = useTable(fetchTableApi, 50);
+
+// 如果高度仍不正确，检查是否有其他固定元素
+const { sTableHeight, ... } = useTable(fetchTableApi, 50 + 60);
+```
+
+#### 问题 2：固定列不生效
+```javascript
+// 原因：未设置 scroll.x 或列宽
+// 解决：
+// 1. 确保固定的列设置了 width
+// 2. 设置 scroll.x
+
+const columns = [
+  { title: '姓名', dataIndex: 'name', width: 100, fixed: 'left' },
+  // ...其他列
+  { title: '操作', key: 'action', width: 150, fixed: 'right' },
+];
+
+<s-table :scroll="{ y: sTableHeight, x: 1500 }" ... />
+```
+
+#### 问题 3：分页不生效
+```javascript
+// 原因：未绑定 @change 事件
+// 解决：必须绑定 pageChange 方法
+
+<s-table @change="pageChange" ... />
+```
+
+#### 问题 4：多选功能异常
+```javascript
+// 原因：rowSelection 配置不正确
+// 解决：使用 useSTable 提供的 rowSelection
+
+const { rowSelection, selectedRowKeys } = useTable(fetchTableApi);
+
+<s-table :row-selection="rowSelection" ... />
+```
+
+#### 问题 5：自定义渲染不显示
+```javascript
+// 原因：bodyCell 插槽条件判断错误
+// 解决：检查 column.dataIndex 或 column.key
+
+<template #bodyCell="{ column, record }">
+  <!-- 使用 dataIndex 判断 -->
+  <template v-if="column.dataIndex === 'status'">
+    {{ record.status }}
+  </template>
+  
+  <!-- 使用 key 判断（操作列通常使用 key） -->
+  <template v-if="column.key === 'action'">
+    <a @click="handleEdit(record)">编辑</a>
+  </template>
+</template>
+```
+
+### 与 Ant Design Vue 表格的区别
+
+#### 主要差异
+1. **性能优势**：SurelyVue s-table 使用虚拟滚动，性能更好
+2. **API 相似**：大部分 API 与 Ant Design Vue Table 保持一致
+3. **插槽差异**：bodyCell 插槽的参数结构略有不同
+
+#### 迁移注意事项
+```javascript
+// Ant Design Vue Table
+<a-table>
+  <template #bodyCell="{ column, record, text }">
+    <!-- 内容 -->
+  </template>
+</a-table>
+
+// SurelyVue s-table（几乎相同）
+<s-table>
+  <template #bodyCell="{ column, record, text, index }">
+    <!-- 内容（多了 index 参数）-->
+  </template>
+</s-table>
+```
+
+### 完整示例：功能齐全的表格
+
+```vue
+<template>
+  <a-card :bordered="false">
+    <!-- 搜索区域 -->
+    <div class="table-page-search-wrapper">
+      <a-form class="searchForm" @keyup.enter="searchQuery">
+        <a-row :gutter="24">
+          <a-col :xl="6" :lg="8" :md="12" :sm="24">
+            <a-form-item label="关键词">
+              <a-input 
+                v-model:value="queryParam.keyword" 
+                placeholder="请输入关键词"
+                allow-clear
+              />
+            </a-form-item>
+          </a-col>
+          <a-col :xl="6" :lg="8" :md="12" :sm="24">
+            <a-form-item>
+              <a-button type="primary" @click="searchQuery">查询</a-button>
+              <a-button style="margin-left: 8px" @click="searchReset">重置</a-button>
+            </a-form-item>
+          </a-col>
+        </a-row>
+      </a-form>
+    </div>
+
+    <!-- 操作按钮 -->
+    <div style="margin-bottom: 16px">
+      <a-button type="primary" @click="handleAdd">新增</a-button>
+      <a-button 
+        danger 
+        :disabled="selectedRowKeys.length === 0"
+        @click="handleBatchDelete"
+        style="margin-left: 8px"
+      >
+        批量删除 ({{ selectedRowKeys.length }})
+      </a-button>
+    </div>
+
+    <!-- SurelyVue s-table 表格 -->
+    <s-table
+      ref="tableRef"
+      rowKey="id"
+      :columns="columns"
+      :data-source="dataSource"
+      :pagination="pagination"
+      :loading="loading"
+      :scroll="{ y: sTableHeight, x: '100%' }"
+      :row-selection="rowSelection"
+      :rangeSelection="false"
+      size="small"
+      bordered
+      @change="pageChange"
+    >
+      <template #bodyCell="{ column, record, text, index }">
+        <!-- 序号列 -->
+        <template v-if="column.key === 'index'">
+          {{ (pagination.current - 1) * pagination.pageSize + index + 1 }}
+        </template>
+        
+        <!-- 状态列 -->
+        <template v-if="column.dataIndex === 'status'">
+          <a-tag :color="record.status === 1 ? 'green' : 'red'">
+            {{ record.status === 1 ? '启用' : '禁用' }}
+          </a-tag>
+        </template>
+        
+        <!-- 长文本处理 -->
+        <template v-if="column.dataIndex === 'description'">
+          <EllipsisTooltip :text="text" />
+        </template>
+        
+        <!-- 操作列 -->
+        <template v-if="column.key === 'action'">
+          <a @click="handleEdit(record)">编辑</a>
+          <a-divider type="vertical" />
+          <a-popconfirm 
+            title="确定删除吗?" 
+            @confirm="() => handleDelete(record.id)"
+          >
+            <a style="color: red">删除</a>
+          </a-popconfirm>
+        </template>
+      </template>
+    </s-table>
+  </a-card>
+</template>
+
+<script setup>
+import { onMounted, ref } from 'vue';
+import { defHttp } from '/@/utils/http/axios';
+import { useMessage } from '/@/hooks/web/useMessage';
+import { useTable } from '/@/components/useSTable/useSTable';
+import EllipsisTooltip from '/@/components/EllipsisTooltip/index.vue';
+
+const { createMessage } = useMessage();
+const tableRef = ref(null);
+
+// API 配置
+const url = {
+  list: '/api/data/list',
+  delete: '/api/data/delete',
+  batchDelete: '/api/data/batchDelete',
+};
+
+// 数据获取函数
+const fetchTableApi = async (params) => {
+  const res = await defHttp.get({ url: url.list, params });
+  return res || [];
+};
+
+// 使用 useTable
+const {
+  loading,
+  dataSource,
+  pagination,
+  queryParam,
+  sTableHeight,
+  fetchTable,
+  pageChange,
+  searchQuery,
+  searchReset,
+  selectedRowKeys,
+  rowSelection,
+} = useTable(fetchTableApi);
+
+// 初始化查询参数
+queryParam.value = {
+  keyword: undefined,
+};
+
+// 列配置
+const columns = [
+  {
+    title: '序号',
+    key: 'index',
+    width: 60,
+    align: 'center',
+  },
+  {
+    title: 'ID',
+    dataIndex: 'id',
+    width: 80,
+    align: 'center',
+  },
+  {
+    title: '名称',
+    dataIndex: 'name',
+    width: 150,
+    align: 'left',
+    ellipsis: true,
+  },
+  {
+    title: '描述',
+    dataIndex: 'description',
+    width: 300,
+    align: 'left',
+  },
+  {
+    title: '状态',
+    dataIndex: 'status',
+    width: 100,
+    align: 'center',
+  },
+  {
+    title: '创建时间',
+    dataIndex: 'createTime',
+    width: 180,
+    align: 'center',
+  },
+  {
+    title: '操作',
+    key: 'action',
+    width: 150,
+    align: 'center',
+    fixed: 'right',
+  },
+];
+
+// CRUD 操作
+const handleAdd = () => {
+  console.log('新增');
+};
+
+const handleEdit = (record) => {
+  console.log('编辑', record);
+};
+
+const handleDelete = async (id) => {
+  try {
+    await defHttp.delete({ url: url.delete, data: { id } }, { joinParamsToUrl: true });
+    createMessage.success('删除成功');
+    fetchTable();
+  } catch (error) {
+    console.error('handleDelete error:', error);
+    createMessage.error('删除失败');
+  }
+};
+
+const handleBatchDelete = async () => {
+  if (selectedRowKeys.value.length === 0) {
+    createMessage.warning('请选择要删除的数据');
+    return;
+  }
+  
+  try {
+    await defHttp.delete({ 
+      url: url.batchDelete, 
+      data: { ids: selectedRowKeys.value } 
+    });
+    createMessage.success('批量删除成功');
+    fetchTable();
+  } catch (error) {
+    console.error('handleBatchDelete error:', error);
+    createMessage.error('批量删除失败');
+  }
+};
+
+onMounted(() => {
+  fetchTable();
+});
+</script>
+
+<style scoped lang="less">
+.table-page-search-wrapper {
+  margin-bottom: 16px;
+}
+</style>
+```
+
+### SurelyVue s-table 最佳实践总结
+
+1. **始终设置 rowKey**：必须指定唯一标识字段
+2. **合理配置滚动**：使用 useSTable 提供的 sTableHeight
+3. **固定列设置宽度**：所有固定列必须设置 width
+4. **大数据量使用虚拟滚动**：超过 1000 条数据时启用 virtual
+5. **必须绑定 change 事件**：使用 @change="pageChange"
+6. **使用 bodyCell 插槽**：统一使用插槽进行自定义渲染
+7. **多选功能使用 rowSelection**：从 useTable 获取配置对象
+8. **注意性能优化**：避免频繁更新和不必要的重新渲染
+
+### 相关资源
+
+- **官方文档**：https://www.surelyvue.com/doc/guide
+- **项目中的 useTable 函数**：`/@/components/useSTable/useSTable`
+- **配合使用**：s-table + useTable 组合式函数实现完整的表格功能
+

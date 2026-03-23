@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jeecg.modules.email.mapper.EmailPushMainMapper">
+    <select id="pageList" resultType="org.jeecg.modules.email.entity.EmailPushMain">
+        select a.*,c.* from email_push_main a
+        INNER JOIN (
+        SELECT main_id,
+        count(*) AS totalSentCount,
+        COALESCE(SUM(CASE WHEN is_send = 1 THEN 1 ELSE 0 END), 0) AS actualSentCount,
+        COALESCE(SUM(CASE WHEN is_send = -1 THEN 1 ELSE 0 END), 0) AS bounceCount,
+        COALESCE ( SUM( CASE WHEN is_opened = 1 THEN 1 ELSE 0 END ), 0 ) AS openCount,
+        COALESCE ( SUM( CASE WHEN is_reply = 1 THEN 1 ELSE 0 END ), 0 ) AS replyCount
+        FROM email_push_detail
+        GROUP BY main_id
+        ) c ON a.id = c.main_id
+        <where>
+            <if test="emailPushMain.businessType != null">
+                and a.business_type = #{emailPushMain.businessType}
+            </if>
+            <if test="emailPushMain.signatureId != null and emailPushMain.signatureId != ''">
+                and a.signature_id = #{emailPushMain.signatureId}
+            </if>
+            <if test="emailPushMain.brandId != null and emailPushMain.brandId != ''">
+                and a.brand_id = #{emailPushMain.brandId}
+            </if>
+            <if test="emailPushMain.productId != null and emailPushMain.productId != ''">
+                and a.product_id = #{emailPushMain.productId}
+            </if>
+            <if test="emailPushMain.contactEmailId != null and emailPushMain.contactEmailId != ''">
+                and a.contact_email_id = #{emailPushMain.contactEmailId}
+            </if>
+            <if test="emailPushMain.counselorId != null and emailPushMain.counselorId != ''">
+                and counselor_id = #{emailPushMain.counselorId}
+            </if>
+            <if test="emailPushMain.ccEmails != null and emailPushMain.ccEmails != ''">
+                and cc_emails = #{emailPushMain.ccEmails}
+            </if>
+            <if test="emailPushMain.emailPushDateStart != null ">
+                and email_push_date &gt;= #{emailPushMain.emailPushDateStart}
+            </if>
+            <if test="emailPushMain.emailPushDateEnd != null ">
+                and email_push_date &lt;= #{emailPushMain.emailPushDateEnd}
+            </if>
+            AND EXISTS (
+            SELECT 1
+            FROM email_push_detail d
+            WHERE d.main_id = a.id
+            <if test="emailPushMain.username != null and emailPushMain.username != ''">
+                AND d.username LIKE CONCAT('%', #{emailPushMain.username}, '%')
+            </if>
+            <if test="emailPushMain.email != null and emailPushMain.email != ''">
+                AND d.email LIKE CONCAT('%', #{emailPushMain.email}, '%')
+            </if>
+            <if test="emailPushMain.isReply != null">
+                AND d.is_reply = #{emailPushMain.isReply}
+            </if>
+            <if test="emailPushMain.isSend != null">
+                AND d.is_send = #{emailPushMain.isSend}
+            </if>
+            <if test="emailPushMain.brandCategoryId != null and emailPushMain.brandCategoryId != ''">
+                AND d.brand_category_id = #{emailPushMain.brandCategoryId}
+            </if>
+            )
+        </where>
+        order by create_time desc
+    </select>
+</mapper>

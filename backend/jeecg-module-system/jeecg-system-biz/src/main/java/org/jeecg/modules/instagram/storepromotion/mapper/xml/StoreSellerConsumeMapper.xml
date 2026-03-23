@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jeecg.modules.instagram.storepromotion.mapper.StoreSellerConsumeMapper">
+
+    <delete id="deleteByUserId" parameterType="String">
+        delete
+        from store_seller_consume
+        where seller_id = #{id}
+          and status = -1
+          and create_time &lt; date_sub(NOW(), INTERVAL + 1 DAY)
+    </delete>
+    <select id="parentList" resultType="org.jeecg.modules.instagram.storepromotion.entity.StoreSellerConsume">
+        SELECT
+        id,
+        serial_code,
+        seller_id,
+        seller_name,
+        item_id,
+        item_name,
+        item_amount,
+        current_amount,
+        consume_date,
+        status,
+        consume_type,
+        is_refund,
+        refund_date,
+        remark,
+        create_by,
+        create_time,
+        update_by,
+        update_time,
+        pay_way
+        FROM
+        store_seller_consume
+        where status = 0
+        <if test="storeSellerConsumeModel.sellerId !=null">
+            and seller_id = #{storeSellerConsumeModel.sellerId}
+        </if>
+        <if test="storeSellerConsumeModel.serialCode !=null">
+            and serial_code = #{storeSellerConsumeModel.serialCode}
+        </if>
+        <if test="storeSellerConsumeModel.itemName !=null">
+            and item_name like CONCAT(CONCAT('%',#{storeSellerConsumeModel.itemName}),'%')
+        </if>
+        <if test="storeSellerConsumeModel.payWay !=null">
+            and pay_way = #{storeSellerConsumeModel.payWay}
+        </if>
+        <if test="storeSellerConsumeModel.consumeType !=null">
+            and consume_type = #{storeSellerConsumeModel.consumeType}
+        </if>
+        <if test="storeSellerConsumeModel.startConsumeDate != null and storeSellerConsumeModel.endConsumeDate != null">
+            and DATE_FORMAT(consume_date, '%Y-%m-%d') &gt;= DATE_FORMAT(#{storeSellerConsumeModel.startConsumeDate},
+            '%Y-%m-%d')
+            and DATE_FORMAT(consume_date, '%Y-%m-%d') &lt;= DATE_FORMAT(#{storeSellerConsumeModel.endConsumeDate},
+            '%Y-%m-%d')
+        </if>
+        <if test="storeSellerConsumeModel.startConsumeDate != null and storeSellerConsumeModel.endConsumeDate == null">
+            and DATE_FORMAT(consume_date, '%Y-%m-%d') = DATE_FORMAT(#{storeSellerConsumeModel.startConsumeDate},
+            '%Y-%m-%d')
+        </if>
+        <if test="storeSellerConsumeModel.endConsumeDate != null and storeSellerConsumeModel.startConsumeDate == null">
+            and DATE_FORMAT(consume_date, '%Y-%m-%d') = DATE_FORMAT(#{storeSellerConsumeModel.endConsumeDate},
+            '%Y-%m-%d')
+        </if>
+        order by create_time desc
+    </select>
+</mapper>

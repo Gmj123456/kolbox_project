@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jeecg.modules.kol.mapper.KolProductMapper">
+    <resultMap id="KolProductMap" type="org.jeecg.modules.kol.model.KolProductModel">
+        <id property="id" column="id"/>
+        <result property="brandId" column="brand_id"/>
+        <result property="brandName" column="brand_name"/>
+        <result property="productName" column="product_name"/>
+        <result property="productUrl" column="product_url"/>
+        <result property="productAttributes" column="product_attributes"/>
+        <result property="remark" column="remark"/>
+        <result property="dataList" column="dataList" typeHandler="org.jeecg.modules.kol.handler.TypeDataListTypeHandler"/>
+    </resultMap>
+
+    <select id="pageList" resultMap="KolProductMap">
+        SELECT
+        d.id,
+        d.brand_id,
+        d.brand_name,
+        d.product_name,
+        d.product_url,
+        d.product_attributes,
+        d.remark,
+        d.create_by,
+        d.create_time,
+        d.update_by,
+        d.update_time,
+        d.is_delete,
+        (SELECT COALESCE(
+        JSON_ARRAYAGG(
+        JSON_OBJECT(
+        'typeId',
+        type_data.category_type_id,
+        'list',
+        COALESCE(
+        (
+        SELECT
+        JSON_ARRAYAGG(
+        JSON_OBJECT(
+        'level', cc.LEVEL,
+        'categoryId', cc.category_id,
+        'categoryName', cc.category_name,
+        'categoryEnName', sub_c.category_en_name
+        )
+        )
+        FROM
+        kol_product_category cc
+        LEFT JOIN kol_category sub_c ON cc.category_id = sub_c.id
+        WHERE
+        cc.product_id = type_data.product_id
+        AND cc.category_type_id = type_data.category_type_id
+        AND cc.is_delete = 0
+        ),
+        JSON_ARRAY()
+        )
+        )
+        ),
+        JSON_ARRAY()
+        )
+        FROM (
+        SELECT
+        product_id,
+        category_type_id,
+        MIN(id) as min_id
+        FROM
+        kol_product_category
+        WHERE
+        is_delete = 0
+        GROUP BY
+        product_id, category_type_id
+        ) type_data
+        WHERE type_data.product_id = d.id ) AS dataList
+        FROM
+        kol_product d
+        LEFT JOIN
+        kol_product_category pc ON d.id = pc.product_id AND a.brand_id = b.brand_id AND pc.is_delete = 0
+        LEFT JOIN
+        kol_category tc ON pc.category_id = tc.id AND tc.is_delete = 0
+        WHERE d.is_delete = 0
+        <if test="kolProductModel.productName != null and kolProductModel.productName != ''">
+            AND d.product_name LIKE CONCAT('%', #{kolProductModel.productName}, '%')
+        </if>
+        <if test="kolProductModel.brandId != null and kolProductModel.brandId != ''">
+            AND d.brand_id = #{kolProductModel.brandId}
+        </if>
+        <if test="kolProductModel.productUrl != null and kolProductModel.productUrl != ''">
+            AND d.product_url LIKE CONCAT('%', #{kolProductModel.productUrl}, '%')
+        </if>
+        <if test="kolProductModel.productAttributes != null and kolProductModel.productAttributes != ''">
+            AND (JSON_EXTRACT(d.product_attributes, '$.productModel') LIKE CONCAT('%', #{kolProductModel.productAttributes}, '%')
+            or JSON_EXTRACT(d.product_attributes, '$.size') LIKE CONCAT('%', #{kolProductModel.productAttributes}, '%')
+            or JSON_EXTRACT(d.product_attributes, '$.color') LIKE CONCAT('%', #{kolProductModel.productAttributes}, '%'))
+        </if>
+        <!--         <if test="kolProductModel.categoryId != null and kolProductModel.categoryId != ''">
+                    AND tc.id = #{kolProductModel.categoryId}
+                </if> -->
+        <if test="kolProductModel.categoryCode != null and kolProductModel.categoryCode != ''">
+            AND tc.category_code like CONCAT(#{kolProductModel.categoryCode}, '%')
+        </if>
+        GROUP BY
+        d.id
+        ORDER BY d.product_name , d.brand_name DESC
+    </select>
+
+    <select id="pageListNew" resultType="org.jeecg.modules.kol.model.KolProductModel">
+        SELECT
+        a.*,
+        b.category_id,
+        b.category_name
+        FROM
+        `kol_product` a
+        LEFT JOIN kol_product_category b ON a.id = b.product_id AND a.brand_id = b.brand_id
+        LEFT JOIN kol_category c on b.category_id = c.id
+        <where>
+            <if test="kolProductModel.productName != null and kolProductModel.productName != ''">
+                AND a.product_name LIKE CONCAT('%', #{kolProductModel.productName}, '%')
+            </if>
+            <if test="kolProductModel.brandId != null and kolProductModel.brandId != ''">
+                AND a.brand_id = #{kolProductModel.brandId}
+            </if>
+            <if test="kolProductModel.productUrl != null and kolProductModel.productUrl != ''">
+                AND a.product_url LIKE CONCAT('%', #{kolProductModel.productUrl}, '%')
+            </if>
+            <if test="kolProductModel.productAttributes != null and kolProductModel.productAttributes != ''">
+                AND (JSON_EXTRACT(a.product_attributes, '$.productModel') LIKE CONCAT('%', #{kolProductModel.productAttributes}, '%')
+                or JSON_EXTRACT(a.product_attributes, '$.size') LIKE CONCAT('%', #{kolProductModel.productAttributes}, '%')
+                or JSON_EXTRACT(a.product_attributes, '$.color') LIKE CONCAT('%', #{kolProductModel.productAttributes}, '%'))
+            </if>
+            <if test="kolProductModel.categoryId != null and kolProductModel.categoryId != ''">
+                AND c.id = #{kolProductModel.categoryId}
+            </if>
+            <if test="kolProductModel.categoryCode != null and kolProductModel.categoryCode != ''">
+                AND c.category_code_path like CONCAT(#{kolProductModel.categoryCode}, '%')
+            </if>
+        </where>
+        ORDER BY a.brand_name DESC,a.create_time DESC
+    </select>
+
+    <select id="getProductListAll" resultType="org.jeecg.modules.kol.model.KolProductModel">
+        SELECT
+        a.*,
+        b.category_id,
+        b.category_name
+        FROM
+        kol_product a
+        LEFT JOIN kol_product_category b ON a.id = b.product_id and a.brand_id = b.brand_id
+        <where>
+            a.is_delete = 0
+            <if test="kolProductModel.brandId!=null and kolProductModel.brandId!=''">
+               and a.brand_id=#{kolProductModel.brandId}
+            </if>
+
+        </where>
+    </select>
+
+    <select id="getProductListByBrandId" resultType="org.jeecg.modules.kol.entity.KolProduct">
+        select * from kol_product where brand_id = #{brandId} and is_delete = 0
+    </select>
+</mapper>

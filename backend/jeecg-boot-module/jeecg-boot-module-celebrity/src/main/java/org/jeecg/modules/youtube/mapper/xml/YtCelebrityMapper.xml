@@ -1,0 +1,415 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jeecg.modules.youtube.mapper.YtCelebrityMapper">
+    <!-- ******************* 提取公共部分查询条件 ******************** -->
+
+    <!-- 组合列表JOIN条件 -->
+    <!-- 查询网红列表关联条件(Join) -->
+    <sql id="ListJoinConditions">
+        <include refid="yt.common.tagListJoinCondition"/>
+        <include refid="yt.common.uniqueIdJoinCondition"/>
+        <include refid="kol.common.emailJoinCondition">
+            <property name="alias" value="yc"/>
+        </include>
+        <include refid="kol.common.countryJoinCondition">
+            <property name="alias" value="yc"/>
+        </include>
+    </sql>
+    <!-- 查询已分配的网红列表关联条件(Join) -->
+    <sql id="AllotListJoinConditions">
+        <include refid="yt.common.tagNameOrCounselorIdJoinCondition"/>
+        <!--    <include refid="kol.common.brandJoinCondition">
+               <property name="uniqueId" value="yc.account"/>
+           </include> -->
+        <include refid="kol.common.kolContactJoinCondition">
+            <property name="alias" value="yc.account"/>
+        </include>
+        <include refid="yt.common.uniqueIdJoinCondition"/>
+        <include refid="kol.common.emailJoinCondition">
+            <property name="alias" value="yc"/>
+        </include>
+    </sql>
+    <sql id="AllottedJoinConditions">
+        <include refid="yt.common.counselorIdJoinCondition"/>
+        <include refid="kol.common.kolContactJoinCondition">
+            <property name="alias" value="yc.account"/>
+        </include>
+        <include refid="yt.common.uniqueIdJoinCondition"/>
+        <!--    <include refid="kol.common.emailJoinCondition">
+               <property name="alias" value="yc"/>
+           </include> -->
+    </sql>
+    <!-- 组合列表查询条件 -->
+    <!-- 查询网红列表查询条件(Where) -->
+    <sql id="ListQueryConditions">
+        <!-- <include refid="kol.common.isHighFollowerCountCondition">
+            <property name="alias" value="yc"/>
+        </include> -->
+        <include refid="yt.common.signatureCondition"/>
+        <include refid="kol.common.videoStandardCountCondition">
+            <property name="alias" value="yc"/>
+        </include>
+        <include refid="kol.common.isHasEmailCondition">
+            <property name="alias" value="yc"/>
+        </include>
+        <include refid="kol.common.countryCodeCondition">
+            <property name="alias" value="yc"/>
+        </include>
+        <include refid="kol.common.followerCountCondition">
+            <property name="followerCount" value="yc.followers_num"/>
+        </include>
+        <include refid="kol.common.isPrivateKolConditionNew"/>
+        <!--  <include refid="kol.common.brandContactJoinCondition">
+             <property name="uniqueId" value="yc.account"/>
+         </include> -->
+        <!--  <include refid="kol.common.uniqueIdCondition"> -->
+        <!--     <property name="uniqueId" value="yc.username"/> -->
+        <!-- </include> -->
+        <if test="searchModel.minPlayAvgNum != null">
+            AND JSON_EXTRACT(yc.video_data, '$.total.play_avg_num') >= #{searchModel.minPlayAvgNum}
+        </if>
+        <if test="searchModel.maxPlayAvgNum != null">
+            AND JSON_EXTRACT(yc.video_data, '$.total.play_avg_num') &lt; #{searchModel.maxPlayAvgNum}
+        </if>
+    </sql>
+
+    <sql id="ytCelebrityCondition">
+        with yt_celebrity AS ( SELECT id,account FROM youtube_celebrity yc
+        <where>
+            yc.username is not NULL
+            and yc.username !=''
+            <include refid="ListQueryConditions"/>
+            <include refid="kol.common.linktreeCondition">
+                <property name="alias" value="yc.links"/>
+            </include>
+        </where>
+        ORDER BY update_time DESC
+        <!--         <if test="searchModel.total != null">
+                    LIMIT #{searchModel.total}
+                </if> -->
+        )
+    </sql>
+    <!-- ********************** 以下为业务查询部分 ********************** -->
+
+    <!-- 获取网红视图模型记录数 -->
+    <select id="getCelebrityCount" resultType="java.lang.Integer">
+        <include refid="kol.common.celebrityPrivateCondition">
+            <property name="alias" value="1"/>
+        </include>
+        SELECT count(*) FROM youtube_celebrity AS yc
+        LEFT JOIN celebrity_private AS cp ON cp.celebrity_id = yc.account
+        <include refid="kol.common.blacklistKolJoinCondition">
+            <property name="uniqueId" value="yc.account"/>
+            <property name="platformType" value="1"/>
+        </include>
+        <include refid="ListJoinConditions"/>
+        <where>
+            <include refid="ListQueryConditions"/>
+            <include refid="kol.common.blacklistKolCondition"/>
+        </where>
+    </select>
+    <!-- 获取Instagram网红视图模型数据列表 -->
+    <select id="getCelebrityModelList" resultType="org.jeecg.modules.youtube.model.YtCelebrityModel">
+        <include refid="kol.common.celebrityPrivateCondition">
+            <property name="alias" value="1"/>
+        </include>
+        SELECT yc.*,
+        cp.id AS celebrity_private_id
+        FROM youtube_celebrity AS yc
+        LEFT JOIN celebrity_private AS cp ON cp.celebrity_id = yc.account
+        <include refid="kol.common.blacklistKolJoinCondition">
+            <property name="uniqueId" value="yc.account"/>
+            <property name="platformType" value="1"/>
+        </include>
+        <include refid="ListJoinConditions"/>
+        <where>
+            <include refid="ListQueryConditions"/>
+            <include refid="kol.common.blacklistKolCondition"/>
+            <!--            <include refid="kol.common.privatePlatformTypeCondition"><property name="platformType" value="1"/></include>-->
+        </where>
+    </select>
+
+    <!-- 获取网红顾问已分配列表记录数 -->
+    <select id="getAllottedKolCount" resultType="java.lang.Integer">
+        <include refid="kol.common.celebrityPrivateConditionCount">
+            <property name="alias" value="1"/>
+        </include>
+        <if test="searchModel.attributeIds != null and searchModel.attributeIds != ''">
+            <include refid="kol.common.allotAttributeJoinCondition">
+                <property name="platform_type" value="1"/>
+            </include>
+        </if>
+        <include refid="kol.common.kolContactCondition"/>
+        SELECT count(*)
+        FROM youtube_celebrity AS yc
+        <include refid="kol.common.celebrityPrivateCountJoinCondition">
+            <property name="alias" value="yc.account"/>
+            <property name="account" value="yc.username"/>
+        </include>
+        <!--<include refid="kol.common.blacklistKolJoinCondition">
+            <property name="uniqueId" value="yc.account"/>
+            <property name="platformType" value="1"/>
+        </include>-->
+        <include refid="kol.common.shieldsKolJoinCondition">
+            <property name="uniqueId" value="yc.account"/>
+            <property name="platformType" value="1"/>
+        </include>
+        <include refid="AllottedJoinConditions"/>
+        <where>
+            <include refid="ListQueryConditions"/>
+            <!--<include refid="kol.common.blacklistKolCondition"/>-->
+            <!-- <include refid="kol.common.productCondition"/>-->
+            <include refid="kol.common.shieldsKolCondition"/>
+            <include refid="kol.common.linktreeCondition">
+                <property name="alias" value="yc.links"/>
+            </include>
+            <include refid="kol.common.kolContactParamsCondition"/>
+            <include refid="kol.common.kolEmailLikeCondition">
+                <property name="alias" value="yc"/>
+            </include>
+        </where>
+    </select>
+
+    <!-- 获取网红顾问已分配列表 -->
+    <select id="getAllottedKolList" resultType="org.jeecg.modules.kol.model.KolBaseModel">
+        <include refid="kol.common.celebrityPrivateConditionCount">
+            <property name="alias" value="1"/>
+        </include>
+        <if test="searchModel.attributeIds != null and searchModel.attributeIds != ''">
+            <include refid="kol.common.allotAttributeJoinCondition">
+                <property name="platform_type" value="1"/>
+            </include>
+        </if>
+        <include refid="kol.common.kolContactCondition"/>
+        SELECT yc.id,
+        yc.account,
+        yc.username AS unique_id,
+        yc.nickname,
+        yc.avatar_url AS author_avatar_url,
+        yc.country,
+        yc.description AS signature,
+        yc.followers_num AS author_follower_count,
+        yc.video_sample_count,
+        yc.video_standard_count,
+        yc.video_create_time_last,
+        yc.email,
+        yc.website AS bio_link,
+        yc.links AS linktree,
+        yc.remark,
+        yc.create_by,
+        yc.create_time,
+        yc.update_by,
+        yc.update_time,
+        yc.phone,
+        yc.video_data,
+        1 AS platform_type,
+        cp.id AS celebrity_private_id,
+        yctc.allot_time
+        FROM youtube_celebrity AS yc
+
+        <include refid="AllottedJoinConditions"/>
+
+        <include refid="kol.common.celebrityPrivateJoinCondition">
+            <property name="alias" value="yc.account"/>
+            <property name="account" value="yc.username"/>
+        </include>
+        <!--<include refid="kol.common.blacklistKolJoinCondition">
+            <property name="uniqueId" value="yc.account"/>
+            <property name="platformType" value="1"/>
+        </include>-->
+        <include refid="kol.common.shieldsKolJoinCondition">
+            <property name="uniqueId" value="yc.account"/>
+            <property name="platformType" value="1"/>
+        </include>
+
+        <where>
+            <include refid="ListQueryConditions"/>
+            <!--<include refid="kol.common.blacklistKolCondition"/>-->
+            <!--<include refid="kol.common.productCondition"/>-->
+            <include refid="kol.common.shieldsKolCondition"/>
+            <include refid="kol.common.linktreeCondition">
+                <property name="alias" value="yc.links"/>
+            </include>
+            <include refid="kol.common.kolContactParamsCondition"/>
+            <include refid="kol.common.kolEmailLikeCondition">
+                <property name="alias" value="yc"/>
+            </include>
+        </where>
+        order by yctc.allot_time desc
+                            <include refid="kol.common.playAvgNumCountCondition"/><include refid="kol.common.playAvgNumCountCondition"/></select>
+    <!-- 获取网红顾问已分配列表 -->
+    <select id="getYtAllottedKolList" resultType="org.jeecg.modules.youtube.model.YtCelebrityModel">
+        <include refid="kol.common.celebrityPrivateCondition">
+            <property name="alias" value="1"/>
+        </include>
+        SELECT yc.*,
+        cp.id AS celebrity_private_id
+        FROM youtube_celebrity AS yc
+        <include refid="kol.common.celebrityPrivateJoinCondition">
+            <property name="alias" value="yc.account"/>
+            <property name="account" value="yc.username"/>
+        </include>
+        <include refid="AllotListJoinConditions"/>
+        <where>
+            <include refid="ListQueryConditions"/>
+            <!--            <include refid="kol.common.privatePlatformTypeCondition"><property name="platformType" value="1"/></include>-->
+        </where>
+    </select>
+    <!-- 获取未分配完标签网红数量 -->
+    <select id="getNotAllotTagsList" resultType="java.util.Map">
+        SELECT tag_name as tagName,
+        count(1) AS tagNum
+        FROM youtube_celebrity_tags tict
+        WHERE 1 = 1
+        <include refid="kol.common.isNotAllotCondition">
+            <property name="alias" value="tict"/>
+        </include>
+        <include refid="kol.common.countryCodeCondition">
+            <property name="alias" value="tict"/>
+        </include>
+        <include refid="kol.common.tagListInCondition"/>
+        <!--         <include refid="kol.common.isHighFollowerCountCondition">
+                    <property name="alias" value="tict"/>
+                </include> -->
+        GROUP BY tict.tag_name
+        ORDER BY tagNum DESC
+    </select>
+
+    <select id="getNotAllotTagsListCount" resultType="int">
+        SELECT
+        COUNT( 1 )
+        FROM
+        (
+        SELECT tag_name as tagName
+        FROM youtube_celebrity_tags tict
+        WHERE 1 = 1
+        <include refid="kol.common.isNotAllotCondition">
+            <property name="alias" value="tict"/>
+        </include>
+        <include refid="kol.common.countryCodeCondition">
+            <property name="alias" value="tict"/>
+        </include>
+        <include refid="kol.common.tagListInCondition"/>
+        <!--         <include refid="kol.common.isHighFollowerCountCondition">
+                    <property name="alias" value="tict"/>
+                </include> -->
+        GROUP BY tict.tag_name
+        ) TOTAL
+    </select>
+
+    <select id="getCelebrityScreeningList" resultType="org.jeecg.modules.kol.model.KolCelebrityModel">
+        SELECT
+        yc.id AS id,
+        yc.account AS account,
+        yc.username AS username,
+        yc.avatar_url AS avatarUrl,
+        yc.nickname AS fullName,
+        yc.email AS email,
+        yc.description AS description,
+        yc.following_num AS followingCount,
+        yc.followers_num AS followerCount,
+        yc.posts_num AS postCount,
+        yc.like_avg_num AS avgLikeCount,
+        yc.comment_avg_num AS avgCommentCount,
+        yc.play_avg_num AS avgPlayCount,
+        stc.country,
+        yc.gender AS gender,
+        yc.website AS website,
+        yc.links AS linktree,
+        yc.video_sample_count AS videoSampleCount,
+        yc.video_standard_count AS videoStandardCount,
+        yc.video_create_time_last AS lastVideoCreateTime,
+        yc.video_data AS videoData,
+        yc.is_high_follower AS isHighFollower,
+        yc.is_delete AS isDeleted,
+        yc.remark AS remark,
+        yc.create_by AS createdBy,
+        yc.create_time AS createTime,
+        yc.update_by AS updatedBy,
+        yc.update_time AS updateTime,
+        yc.video_data,
+        1 as platform_type
+        <if test="searchModel.isPrivateKol != null">
+            ,cp.id AS celebrity_private_id
+        </if>
+        FROM youtube_celebrity AS yc
+        <if test="searchModel.isPrivateKol == 1">
+            INNER JOIN store_celebrity_private cp ON cp.account = yc.username AND cp.platform_type = 1
+        </if>
+        <if test="searchModel.isPrivateKol == 0">
+            LEFT JOIN store_celebrity_private cp ON cp.account = yc.username AND cp.platform_type = 1
+        </if>
+        <include refid="ListJoinConditions"/>
+        <where>
+            yc.username is not NULL
+            and yc.username !=''
+            <if test="searchModel.isPrivateKol == 0">
+                AND cp.id IS NULL
+            </if>
+            <include refid="yt.common.signatureCondition"/>
+            <include refid="kol.common.videoStandardCountCondition">
+                <property name="alias" value="yc"/>
+            </include>
+            <include refid="kol.common.isHasEmailCondition">
+                <property name="alias" value="yc"/>
+            </include>
+            <include refid="kol.common.countryCodeCondition">
+                <property name="alias" value="yc"/>
+            </include>
+            <include refid="kol.common.followerCountCondition">
+                <property name="followerCount" value="yc.followers_num"/>
+            </include>
+            <if test="searchModel.minPlayAvgNum != null">
+                AND JSON_EXTRACT(yc.video_data, '$.total.play_avg_num') >= #{searchModel.minPlayAvgNum}
+            </if>
+            <if test="searchModel.maxPlayAvgNum != null">
+                AND JSON_EXTRACT(yc.video_data, '$.total.play_avg_num') &lt; #{searchModel.maxPlayAvgNum}
+            </if>
+            <include refid="kol.common.linktreeCondition">
+                <property name="alias" value="yc.links"/>
+            </include>
+        </where>
+    </select>
+
+    <select id="getCelebrityScreeningCount" resultType="java.lang.Integer">
+        SELECT
+        count(*)
+        FROM youtube_celebrity AS yc
+        <if test="searchModel.isPrivateKol == 1">
+            INNER JOIN store_celebrity_private cp ON cp.account = yc.username AND cp.platform_type = 1
+        </if>
+        <if test="searchModel.isPrivateKol == 0">
+            LEFT JOIN store_celebrity_private cp ON cp.account = yc.username AND cp.platform_type = 1
+        </if>
+        <include refid="ListJoinConditions"/>
+        <where>
+            yc.username is not NULL
+            and yc.username !=''
+            <if test="searchModel.isPrivateKol == 0">
+                AND cp.id IS NULL
+            </if>
+            <include refid="yt.common.signatureCondition"/>
+            <include refid="kol.common.videoStandardCountCondition">
+                <property name="alias" value="yc"/>
+            </include>
+            <include refid="kol.common.isHasEmailCondition">
+                <property name="alias" value="yc"/>
+            </include>
+            <include refid="kol.common.countryCodeCondition">
+                <property name="alias" value="yc"/>
+            </include>
+            <include refid="kol.common.followerCountCondition">
+                <property name="followerCount" value="yc.followers_num"/>
+            </include>
+            <if test="searchModel.minPlayAvgNum != null">
+                AND JSON_EXTRACT(yc.video_data, '$.total.play_avg_num') >= #{searchModel.minPlayAvgNum}
+            </if>
+            <if test="searchModel.maxPlayAvgNum != null">
+                AND JSON_EXTRACT(yc.video_data, '$.total.play_avg_num') &lt; #{searchModel.maxPlayAvgNum}
+            </if>
+            <include refid="kol.common.linktreeCondition">
+                <property name="alias" value="yc.links"/>
+            </include>
+        </where>
+    </select>
+</mapper>

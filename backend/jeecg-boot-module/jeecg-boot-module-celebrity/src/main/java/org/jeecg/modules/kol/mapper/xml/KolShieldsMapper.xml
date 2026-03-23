@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jeecg.modules.kol.mapper.KolShieldsMapper">
+
+    <select id="pageShields" resultType="org.jeecg.modules.kol.model.KolShieldsModel">
+        SELECT
+        k.*,
+        COALESCE ( i.ig_username, y.username, t.unique_id ) AS account,
+        COALESCE ( i.full_name, y.nickname, t.nickname ) AS nickname,
+        COALESCE ( i.profile_pic_url, y.avatar_url ,t.author_avatar_url) AS avatar
+        FROM
+        `kol_shields` k
+        LEFT JOIN `ig_celebrity` i ON k.celebrity_id = i.account
+        AND k.platform_type = 0
+        LEFT JOIN `youtube_celebrity` y ON k.celebrity_id = y.account
+        AND k.platform_type = 1
+        LEFT JOIN `tiktok_celebrity` t ON k.celebrity_id = t.author_id
+        AND k.platform_type = 2
+        <where>
+            <if test="kolShieldsModel.uniqueId!= null and kolShieldsModel.uniqueId != ''">
+                AND k.unique_id LIKE CONCAT('%', #{kolShieldsModel.uniqueId}, '%')
+            </if>
+            <if test="kolShieldsModel.platformType != null">
+                AND k.platform_type = #{kolShieldsModel.platformType}
+            </if>
+            <if test="kolShieldsModel.counselorId != null and kolShieldsModel.counselorId != ''">
+                AND k.counselor_id = #{kolShieldsModel.counselorId}
+            </if>
+        </where>
+        ORDER BY
+        k.shield_time DESC
+    </select>
+</mapper>

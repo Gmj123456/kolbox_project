@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jeecg.modules.instagram.storecelebrity.mapper.StoreCelebrityFollowupMapper">
+    <select id="getFollowingUpList"
+            resultType="org.jeecg.modules.instagram.storecelebrity.model.StoreCelebrityFollowupModel">
+        SELECT
+        u.*,
+        CASE
+        c.platform_type
+        WHEN 0 THEN
+        c.username ELSE c.nick_name
+        END AS account,
+        c.nick_name,
+        c.email,
+        c.followers_num,
+        c.platform_type
+        FROM
+        store_celebrity_followup u
+        LEFT JOIN store_celebrity c ON u.celebrity_id = c.id
+        WHERE
+        1 =1
+        <if test="followingUpModel.email != null and followingUpModel.email !=''">
+            and c.email like '%${followingUpModel.email}%'
+        </if>
+        <if test="followingUpModel.nickName != null and followingUpModel.nickName !=''">
+            and c.nick_name like '%${followingUpModel.nickName}%'
+        </if>
+        <if test="followingUpModel.account != null and followingUpModel.account !=''">
+            and c.account like '%${followingUpModel.account}%'
+        </if>
+        <if test="followingUpModel.orderIds != null and followingUpModel.orderIds !=''">
+            and u.order_ids like '%${followingUpModel.orderIds}%'
+        </if>
+        <if test="followingUpModel.waybills != null and followingUpModel.waybills !=''">
+            and u.waybills like '%${followingUpModel.waybills}%'
+        </if>
+        <if test="followingUpModel.feedbackStatus != null">
+            and u.feedback_status = #{followingUpModel.feedbackStatus}
+        </if>
+        <if test="followingUpModel.platformType != null">
+            and c.platform_type = #{followingUpModel.platformType}
+        </if>
+        <if test="followingUpModel.isShipment != null">
+            and u.is_shipment = #{followingUpModel.isShipment}
+        </if>
+        <if test="followingUpModel.followUpStatus != null">
+            and u.follow_up_status = #{followingUpModel.followUpStatus}
+        </if>
+        <if test="followingUpModel.feedbackDate != null">
+            and DATE_FORMAT(u.feedback_time, '%Y-%m-%d') = DATE_FORMAT(#{followingUpModel.feedbackDate},
+            '%Y-%m-%d')
+        </if>
+        <if test="followingUpModel.shipDate != null">
+            and DATE_FORMAT(u.shipment_date, '%Y-%m-%d') = DATE_FORMAT(#{followingUpModel.shipDate},
+            '%Y-%m-%d')
+        </if>
+        <if test="followingUpModel.followDate != null">
+            and DATE_FORMAT(u.follow_up_date, '%Y-%m-%d') = DATE_FORMAT(#{followingUpModel.followDate},
+            '%Y-%m-%d')
+        </if>
+        <if test="followingUpModel.nextFollowDate != null">
+            and DATE_FORMAT(u.next_follow_up_date, '%Y-%m-%d') = DATE_FORMAT(#{followingUpModel.nextFollowDate},
+            '%Y-%m-%d')
+        </if>
+    </select>
+</mapper>

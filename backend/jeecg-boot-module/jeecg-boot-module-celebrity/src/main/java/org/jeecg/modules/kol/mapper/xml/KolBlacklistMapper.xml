@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jeecg.modules.kol.mapper.KolBlacklistMapper">
+    <select id="pageBlackList" resultType="org.jeecg.modules.kol.model.KolBlacklistModel">
+        SELECT
+        k.*,
+        COALESCE ( i.ig_username, y.username, t.unique_id ) AS account,
+        COALESCE ( i.full_name, y.nickname, t.nickname ) AS nickname,
+        COALESCE ( i.profile_pic_url, y.avatar_url ,t.author_avatar_url) AS avatar
+        FROM
+        `kol_blacklist` k
+        LEFT JOIN `ig_celebrity` i ON k.celebrity_id = i.account
+        AND k.platform_type = 0
+        LEFT JOIN `youtube_celebrity` y ON k.celebrity_id = y.account
+        AND k.platform_type = 1
+        LEFT JOIN `tiktok_celebrity` t ON k.celebrity_id = t.author_id
+        AND k.platform_type = 2
+        <where>
+            <if test="kolBlacklistModel.uniqueId!= null and kolBlacklistModel.uniqueId != ''">
+                AND k.unique_id LIKE CONCAT('%', #{kolBlacklistModel.uniqueId}, '%')
+            </if>
+            <if test="kolBlacklistModel.platformType != null">
+                AND k.platform_type = #{kolBlacklistModel.platformType}
+            </if>
+            <if test="kolBlacklistModel.counselorId != null and kolBlacklistModel.counselorId != ''">
+                AND k.counselor_id = #{kolBlacklistModel.counselorId}
+            </if>
+        </where>
+        ORDER BY
+        k.blacklist_time DESC
+    </select>
+</mapper>

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jeecg.modules.instagram.storemerchant.mapper.StoreTaskMapper">
+
+    <update id="agentStatusById" parameterType="List">
+        UPDATE store_task
+        SET task_status = 0
+        <where>
+            id IN
+            <foreach item="item" collection="list" separator="," open="(" close=")" index="">
+                #{item}
+            </foreach>
+        </where>
+    </update>
+    <select id="getTaskList" resultType="org.jeecg.modules.instagram.storemerchant.model.StoreTaskModel">
+        SELECT
+            count( 1 ) AS ins_task_count,
+            youtube_task_count
+        FROM
+            kol_data.store_task st,
+            ( SELECT count( 1 ) AS youtube_task_count FROM kol_data.store_task WHERE platform_type = 1 AND task_status = 0 ) new
+        WHERE
+            platform_type = 0
+            AND task_status = 0
+    </select>
+
+</mapper>

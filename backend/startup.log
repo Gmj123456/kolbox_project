@@ -1,0 +1,38 @@
+[INFO] Scanning for projects...
+[WARNING] 
+[WARNING] Some problems were encountered while building the effective model for org.jeecgframework.boot3:jeecg-system-biz:jar:3.8.3
+[WARNING] 'dependencies.dependency.(groupId:artifactId:type:classifier)' must be unique: org.jeecgframework.boot3:jeecg-boot-module-airag:jar -> duplicate declaration of version ${jeecgboot.version} @ line 76, column 21
+[WARNING] 
+[WARNING] It is highly recommended to fix these problems because they threaten the stability of your build.
+[WARNING] 
+[WARNING] For this reason, future Maven versions might no longer support building such malformed projects.
+[WARNING] 
+[INFO] 
+[INFO] ------------< org.jeecgframework.boot3:jeecg-system-start >-------------
+[INFO] Building jeecg-system-start 3.8.3
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[WARNING] Parameter 'propertiesEncoding' is unknown for plugin 'maven-resources-plugin:3.1.0:resources (default-resources)'
+[WARNING] Parameter 'propertiesEncoding' is unknown for plugin 'maven-resources-plugin:3.1.0:testResources (default-testResources)'
+[INFO] 
+[INFO] >>> spring-boot:3.5.5:run (default-cli) > test-compile @ jeecg-system-start >>>
+[WARNING] The POM for org.jeecgframework.boot3:jeecg-system-biz:jar:3.8.3 is missing, no dependency information available
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  1.250 s
+[INFO] Finished at: 2026-03-21T10:41:11+08:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal on project jeecg-system-start: Could not resolve dependencies for project org.jeecgframework.boot3:jeecg-system-start:jar:3.8.3
+[ERROR] dependency: org.jeecgframework.boot3:jeecg-system-biz:jar:3.8.3 (compile)
+[ERROR] 	org.jeecgframework.boot3:jeecg-system-biz:jar:3.8.3 was not found in https://maven.aliyun.com/repository/public during a previous attempt. This failure was cached in the local repository and resolution is not reattempted until the update interval of aliyun has elapsed or updates are forced
+[ERROR] 	org.jeecgframework.boot3:jeecg-system-biz:jar:3.8.3 was not found in https://maven.jeecg.org/nexus/content/repositories/jeecg during a previous attempt. This failure was cached in the local repository and resolution is not reattempted until the update interval of jeecg has elapsed or updates are forced
+[ERROR] 	org.jeecgframework.boot3:jeecg-system-biz:jar:3.8.3 was not found in https://repo.maven.apache.org/maven2 during a previous attempt. This failure was cached in the local repository and resolution is not reattempted until the update interval of central has elapsed or updates are forced
+[ERROR] 
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/DependencyResolutionException

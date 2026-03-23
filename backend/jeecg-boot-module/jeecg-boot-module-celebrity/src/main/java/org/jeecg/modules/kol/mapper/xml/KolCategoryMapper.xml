@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jeecg.modules.kol.mapper.KolCategoryMapper">
+
+	<select id="queryListByParentId" parameterType="Object" resultType="org.jeecg.modules.kol.model.TreeSelectModel">
+		select category_code,
+			   category_name as "title",
+			   id as "key",
+			   (case when is_has_child = 1 then 0 else 1 end) as isLeaf,
+		       parent_id as parentId
+			   from kol_category
+			where parent_id = #{parentId}
+			<if test="query!= null">
+				<foreach collection="query.entrySet()" item="value"  index="key" >
+					and ${key} = #{value}
+				</foreach>
+			</if>
+	</select>
+
+	<!-- 递归查询类目路径 -->
+	<select id="findCategoryWithSubNodes" resultType="org.jeecg.modules.kol.entity.KolCategory">
+		WITH RECURSIVE cte AS (
+			SELECT id, category_name, parent_id
+			FROM kol_category
+			WHERE id = #{categoryId}
+			UNION ALL
+			SELECT k.id, k.category_name, k.parent_id
+			FROM kol_category k
+					 INNER JOIN cte ON k.parent_id = cte.id
+		)
+		SELECT * FROM cte
+	</select>
+
+	<select id="queryAttributeParentIdsByCategoryId" resultType="java.lang.String">
+        SELECT DISTINCT parent_attr.id
+        FROM kol_attribute parent_attr
+        WHERE parent_attr.attribute_name_path IN (
+        SELECT DISTINCT SUBSTRING_INDEX(attr.attribute_name_path, '|', 1) AS parent_name
+        FROM kol_attribute attr
+        INNER JOIN kol_category_attribute_relation car
+        ON attr.id = car.attribute_category_id
+        WHERE car.category_id = #{categoryId}
+        <!--(
+                SELECT parent_cat.id
+                FROM kol_category current_cat
+                         INNER JOIN kol_category parent_cat
+                                    ON parent_cat.category_name = SUBSTRING_INDEfX(current_cat.category_name_path, '|', 1)
+                WHERE current_cat.id = #{categoryId}
+            )-->
+        )
+    </select>
+</mapper>

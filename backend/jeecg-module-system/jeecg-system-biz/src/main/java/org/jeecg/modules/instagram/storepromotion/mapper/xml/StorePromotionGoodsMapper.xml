@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jeecg.modules.instagram.storepromotion.mapper.StorePromotionGoodsMapper">
+    <select id="queryByPromId" resultType="org.jeecg.modules.instagram.storepromotion.entity.StorePromotionGoods"
+            parameterType="java.lang.String">
+        select *
+        from store_promotion_goods
+        where prom_id = '${promId}'
+    </select>
+    <select id="getList"
+            resultType="org.jeecg.modules.instagram.storepromotion.model.StorePromotionGoodsModel">
+        SELECT spg.id,
+        spg.prom_id,
+        spg.goods_title,
+        spg.goods_pic_url,
+        spg.goods_url,
+        spg.goods_status,
+        spg.goods_remark,
+        spg.kol_product_id,
+        scp.id AS kol_id,
+        scp.account,
+        scp.platform_type,
+        scp.like_tags,
+        scp.avatar_url,
+        scp.play_avg_num,
+        scp.followers_num,
+        scp.like_avg_num,
+        scp.interact_avg_num,
+        scp.video_count,
+        scp.like_count,
+        ssp.payment_amount,
+        spgc.prom_like_tags,
+        spgc.prom_price,
+        spgc.remark,
+        spgc.full_address,
+        spgc.id AS correId,
+        spgc.goods_waybill,
+        spgc.goods_carrier,
+        spgc.celebrity_prom_status,
+        spgc.media_uploads,
+        spgc.media_img_json,
+        spgc.celebrity_status,
+        spgc.discount_code,
+        spgc.discount_off,
+        spgc.discount_start_date,
+        spgc.discount_end_date,
+        spgc.media_uploads_draft,
+        spgc.media_img_json_draft,
+        spgc.video_tags,
+        spgc.celebrity_counselor_id,
+        spgc.celebrity_counselor_name,
+        spgc.celebrity_price,
+        spgc.online_time,
+        spgc.celebrity_pay_amount,
+        spgc.goods_attribute,
+        ssp.prom_status,
+        scp.country_name,
+        spgc.celebrity_paypal_fees,
+        spgc.is_including_tax,
+        spgc.tax_amount
+        FROM store_promotion_goods spg
+        LEFT JOIN (SELECT * FROM store_promotion_goods_celebrity WHERE is_del != 1) spgc
+        ON spg.id = spgc.goods_id
+        LEFT JOIN store_celebrity_private scp ON spgc.celebrity_private_id = scp.id
+        LEFT JOIN (SELECT * FROM store_seller_promotion WHERE is_del != 1) ssp ON ssp.id = spgc.prom_id
+        WHERE spg.prom_id = #{promId}
+        ORDER BY
+        spg.create_time
+    </select>
+</mapper>

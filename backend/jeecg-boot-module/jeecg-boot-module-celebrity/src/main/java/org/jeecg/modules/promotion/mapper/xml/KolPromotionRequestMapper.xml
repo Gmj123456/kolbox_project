@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jeecg.modules.promotion.mapper.KolPromotionRequestMapper">
+
+    <resultMap id="BaseResultMap" type="org.jeecg.modules.promotion.entity.KolPromotionRequest">
+        <id column="id" property="id"/>
+        <result column="name" property="name"/>
+        <result column="company_name" property="companyName"/>
+        <result column="phone" property="phone"/>
+        <result column="email" property="email"/>
+        <result column="position" property="position"/>
+        <result column="industry" property="industry"/>
+        <result column="promotion_area" property="promotionArea"/>
+        <result column="promotion_budget" property="promotionBudget"/>
+        <result column="demand_message" property="demandMessage"/>
+        <result column="create_by" property="createBy"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_by" property="updateBy"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="del_flag" property="delFlag"/>
+    </resultMap>
+
+</mapper>

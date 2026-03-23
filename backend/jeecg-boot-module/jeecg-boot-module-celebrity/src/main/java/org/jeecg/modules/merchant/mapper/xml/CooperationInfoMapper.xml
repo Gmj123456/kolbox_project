@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jeecg.modules.merchant.mapper.CooperationInfoMapper">
+  <select id="pageList" resultType="org.jeecg.modules.merchant.entity.CooperationInfo">
+    SELECT a.*,
+           b.brand_name AS brandName,
+           c.realname   AS businessName
+    FROM cooperation_info a
+           LEFT JOIN kol_brand b ON a.brand_id = b.id
+           LEFT JOIN sys_user c ON a.business_id = c.id
+    WHERE 1 = 1
+      <if test="cooperationInfo.brandId!= null and cooperationInfo.brandId!= ''">
+        AND a.brand_id = #{cooperationInfo.brandId}
+      </if>
+      <if test="cooperationInfo.businessId!= null and cooperationInfo.businessId!= ''">
+        AND a.business_id = #{cooperationInfo.businessId}
+      </if>
+      <if test="cooperationInfo.productPlan!= null and cooperationInfo.productPlan!= ''">
+        AND a.product_plan LIKE CONCAT('%', #{cooperationInfo.productPlan}, '%')
+      </if>
+      <if test="cooperationInfo.customerAcquisitionMethod!= null and cooperationInfo.customerAcquisitionMethod!= ''">
+        AND a.customer_acquisition_method LIKE CONCAT('%', #{cooperationInfo.customerAcquisitionMethod}, '%')
+      </if>
+      <if test="cooperationInfo.latestCooperationDynamic!= null and cooperationInfo.latestCooperationDynamic!= ''">
+        AND a.latest_cooperation_dynamic LIKE CONCAT('%', #{cooperationInfo.latestCooperationDynamic}, '%')
+      </if>
+      <if test="cooperationInfo.projectStatus != null and cooperationInfo.projectStatus != ''">
+        AND a.project_status = #{cooperationInfo.projectStatus}
+      </if>
+         <if test="cooperationInfo.cooperationDate != null and cooperationInfo.cooperationDate != ''">
+        AND a.cooperation_date = #{cooperationInfo.cooperationDate}
+      </if>
+  </select>
+</mapper>

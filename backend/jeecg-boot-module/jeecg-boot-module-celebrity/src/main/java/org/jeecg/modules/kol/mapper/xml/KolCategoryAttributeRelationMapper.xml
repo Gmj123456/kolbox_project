@@ -1,0 +1,271 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jeecg.modules.kol.mapper.KolCategoryAttributeRelationMapper">
+    <select id="pageList" resultType="org.jeecg.modules.kol.model.KolCategoryAttributeRelationModel">
+        SELECT
+        kc.id,
+        kc.id AS categoryId,
+        kc.category_name AS categoryName,
+        kc.category_en_name AS categoryEnName,
+        kc.category_name_path AS categoryNamePath,
+        kc.sort_code,
+        CASE
+        WHEN MAX(coalesce_type.sub_attribute_type_id) IS NULL THEN
+        JSON_ARRAY()
+        ELSE
+        JSON_ARRAYAGG(
+        JSON_OBJECT(
+        'typeId', coalesce_type.sub_attribute_type_id,
+        'list',
+        (
+        SELECT
+        JSON_ARRAYAGG(
+        JSON_OBJECT(
+        'level', rel.level,
+        'attributeId', attr.id,
+        'attributeName', attr.attribute_name,
+        'attributeEnName', attr.attribute_en_name
+        )
+        )
+        FROM kol_category_attribute_relation rel
+        JOIN kol_attribute attr ON rel.attribute_category_id = attr.id
+        WHERE rel.category_id = kc.id
+        AND attr.attribute_type_id = coalesce_type.sub_attribute_type_id
+        AND rel.is_delete = 0
+        AND attr.is_delete = 0
+        )
+        )
+        )
+        END AS dataListStr
+        FROM
+        kol_category kc
+        LEFT JOIN (
+        SELECT
+        rel.category_id,
+        attr.attribute_type_id AS sub_attribute_type_id
+        FROM
+        kol_category_attribute_relation rel
+        JOIN kol_attribute attr ON rel.attribute_category_id = attr.id
+        WHERE
+        rel.is_delete = 0
+        AND attr.is_delete = 0
+        GROUP BY
+        rel.category_id, attr.attribute_type_id
+        ) coalesce_type ON kc.id = coalesce_type.category_id
+        WHERE
+        kc.is_delete = 0
+        <!-- 根节点或指定路径 -->
+        <if test="model.rootPathCode == null or model.rootPathCode == ''">
+            AND kc.parent_id = '0'
+        </if>
+        <if test="model.rootPathCode != null and model.rootPathCode != ''">
+            AND kc.category_code = #{model.rootPathCode}
+        </if>
+        <!-- 属性名模糊匹配 -->
+        <if test="model.subAttributeName != null and model.subAttributeName != ''">
+            AND EXISTS (
+            SELECT 1
+            FROM kol_category_attribute_relation r
+            JOIN kol_attribute a ON r.attribute_category_id = a.id
+            WHERE r.category_id = kc.id
+            AND r.is_delete = 0
+            AND a.is_delete = 0
+            AND a.attribute_name LIKE CONCAT('%', #{model.subAttributeName}, '%')
+            )
+        </if>
+        GROUP BY
+        kc.id,
+        kc.category_name,
+        kc.category_en_name,
+        kc.category_name_path
+        ORDER BY
+        kc.sort_code
+    </select>
+
+    <select id="queryByCategoryId" resultType="org.jeecg.modules.kol.model.KolCategoryAttributeRelationModel">
+        SELECT
+        a.*,
+        b.attribute_name AS attributeName,
+        b.attribute_name_path AS attributeNamePath,
+        b.attribute_type_id AS subattributeTypeId
+        FROM
+        kol_category_attribute_relation a
+        LEFT JOIN kol_attribute b ON a.attribute_category_id = b.id
+        <where>
+            <if test="categoryId != null and categoryId != ''">
+                AND a.category_id = #{categoryId}
+            </if>
+        </where>
+    </select>
+
+    <select id="getCategoryList" resultType="org.jeecg.modules.kol.model.KolCategoryAttributeRelationModel">
+        SELECT
+        a.category_id AS id,
+        a.category_id AS categoryId,
+        b.category_name AS categoryName,
+        b.category_en_name AS categoryEnName,
+        b.category_name_path AS categoryNamePath,
+        JSON_ARRAYAGG(
+        JSON_OBJECT(
+        'typeId', c.sub_attribute_type_id,
+        'list', (
+        SELECT JSON_ARRAYAGG(
+        JSON_OBJECT(
+        'level', sub_a.level,
+        'attributeId', sub_a.attribute_category_id,
+        'attributeName', sub_c.attribute_name,
+        'attributeEnName', sub_c.attribute_en_name
+        )
+        )
+        FROM kol_category_attribute_relation sub_a
+        INNER JOIN kol_attribute sub_c ON sub_a.attribute_category_id = sub_c.id
+        WHERE sub_a.category_id = a.category_id
+        AND sub_c.attribute_type_id = c.sub_attribute_type_id
+        AND sub_a.is_delete = 0
+        AND sub_c.is_delete = 0
+        )
+        )
+        ) AS dataListStr
+        FROM (
+        SELECT DISTINCT category_id
+        FROM kol_category_attribute_relation
+        WHERE is_delete = 0
+        ) a
+        INNER JOIN kol_category b ON a.category_id = b.id
+        INNER JOIN (
+        SELECT DISTINCT attribute_type_id AS sub_attribute_type_id
+        FROM kol_attribute
+        WHERE id IN (
+        SELECT attribute_category_id
+        FROM kol_category_attribute_relation
+        WHERE is_delete = 0
+        )
+        AND is_delete = 0
+        ) c ON EXISTS (
+        SELECT 1
+        FROM kol_category_attribute_relation sub_a
+        INNER JOIN kol_attribute sub_c ON sub_a.attribute_category_id = sub_c.id
+        WHERE sub_a.category_id = a.category_id
+        AND sub_c.attribute_type_id = c.sub_attribute_type_id
+        AND sub_a.is_delete = 0
+        AND sub_c.is_delete = 0
+        <if test="model.subAttributeName != null and model.subAttributeName != ''">
+            AND EXISTS (
+            SELECT 1
+            FROM kol_attribute c2
+            WHERE c2.id = a.attribute_category_id
+            AND c2.attribute_name LIKE CONCAT('%', #{model.subAttributeName}, '%')
+            )
+        </if>
+        )
+        <where>
+            <!--            <if test="model.rootPathCode == null or model.rootPathCode == ''">
+                           AND b.parent_id = '0'
+                       </if> -->
+            <if test="model.rootPathCode != null and model.rootPathCode != ''">
+                AND b.category_code = #{model.rootPathCode}
+            </if>
+            <if test="model.categoryId != null and model.categoryId != ''">
+                AND a.category_id = #{model.categoryId}
+            </if>
+        </where>
+        GROUP BY
+        a.category_id,
+        b.category_name,
+        b.category_name_path
+        ORDER BY
+        b.category_name_path
+    </select>
+
+    <select id="queryCategoryAttributes" resultType="java.lang.String">
+        SELECT attribute_category_id
+        FROM kol_category_attribute_relation
+        WHERE category_id = #{categoryId}
+    </select>
+
+    <select id="getAllCategoryRelations" resultType="org.jeecg.modules.kol.model.KolCategoryAttributeRelationModel">
+        SELECT
+        b.*,
+        a.`level`,
+        a.category_id,
+        c.category_name
+        FROM
+        kol_category_attribute_relation a
+        LEFT JOIN kol_attribute b on a.attribute_category_id = b.id
+        LEFT JOIN kol_category c ON a.category_id = c.id
+        <if test="categoryIds != null and categoryIds.size() > 0">
+            WHERE a.category_id IN (
+            <foreach collection="categoryIds" item="item" separator=",">
+                #{item}
+            </foreach>
+            )
+        </if>
+    </select>
+
+    <select id="pageRelationList" resultType="org.jeecg.modules.kol.model.KolCategoryAttributeRelationModel">
+        SELECT
+        a.category_id AS id,
+        a.category_id AS categoryId,
+        b.category_name AS categoryName,
+        b.category_en_name AS categoryEnName,
+        b.category_name_path AS categoryNamePath,
+        JSON_ARRAYAGG( JSON_OBJECT( 'typeId', c.sub_attribute_type_id,
+        'list', (
+        SELECT JSON_ARRAYAGG(
+        JSON_OBJECT(
+        'level', sub_a.level,
+        'attributeId', sub_a.attribute_category_id,
+        'attributeName', sub_c.attribute_name,
+        'attributeEnName', sub_c.attribute_en_name
+        )
+        )
+        FROM kol_category_attribute_relation sub_a
+        INNER JOIN kol_attribute sub_c ON sub_a.attribute_category_id = sub_c.id
+        WHERE sub_a.category_id = a.category_id
+        AND sub_c.attribute_type_id = c.sub_attribute_type_id
+        AND sub_a.is_delete = 0
+        AND sub_c.is_delete = 0
+        ) ) ) AS dataListStr
+        FROM (
+        SELECT DISTINCT category_id
+        FROM kol_category_attribute_relation
+        WHERE is_delete = 0
+        ) a
+        INNER JOIN kol_category b ON a.category_id = b.id
+        INNER JOIN (
+        SELECT DISTINCT attribute_type_id AS sub_attribute_type_id
+        FROM kol_attribute
+        WHERE id IN (
+        SELECT attribute_category_id
+        FROM kol_category_attribute_relation
+        WHERE is_delete = 0
+        )
+        AND is_delete = 0
+        ) c ON EXISTS ( SELECT 1 FROM kol_category_attribute_relation sub_a INNER JOIN kol_attribute sub_c ON sub_a.attribute_category_id = sub_c.id WHERE sub_a.category_id = b.id AND
+        sub_c.attribute_type_id = c.sub_attribute_type_id AND sub_a.is_delete = 0
+        AND sub_c.is_delete = 0
+        <if test="model.subAttributeName != null and model.subAttributeName != ''">
+            AND EXISTS (
+            SELECT 1
+            FROM kol_attribute c2
+            WHERE c2.id = sub_a.attribute_category_id
+            AND c2.attribute_name LIKE CONCAT('%', #{model.subAttributeName}, '%')
+            )
+        </if>
+        )
+        <where>
+            <if test="model.rootPathCode == null or model.rootPathCode == ''">
+                AND b.parent_id = '0'
+            </if>
+            <if test="model.rootPathCode != null and model.rootPathCode != ''">
+                AND b.category_code = #{model.rootPathCode}
+            </if>
+        </where>
+        GROUP BY
+        a.category_id,
+        b.category_name,
+        b.category_name_path
+        ORDER BY
+        b.category_name_path
+    </select>
+</mapper>

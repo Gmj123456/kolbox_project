@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jeecg.modules.instagram.history.mapper.KolHistoryKolTypeMapper">
+
+    <select id="listAll" resultType="org.jeecg.modules.instagram.history.entity.KolHistoryKolType">
+        select * from kol_history_kol_type khkt
+        <if test="kolHistoryKolType.kolTypes!=null and kolHistoryKolType.kolTypes!=''">
+            JOIN
+            <foreach collection="kolHistoryKolType.kolTypes.split('\\|')" item="item" open="("
+                     separator=" UNION ALL " close=")">
+                SELECT #{item} AS kol_type
+            </foreach>
+            AS types ON khkt.kol_type = types.kol_type
+        </if>
+        where
+        is_delete = 0
+        <if test="kolHistoryKolType.kolType!=null and kolHistoryKolType.kolType!=''">
+            and khkt.kol_type LIKE CONCAT('%', #{kolHistoryKolType.kolType}, '%')
+        </if>
+        order by sort_code
+    </select>
+</mapper>

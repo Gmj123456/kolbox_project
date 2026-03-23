@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jeecg.modules.instagram.history.mapper.KolHistoryCelebrityMapper">
+
+    <select id="pageList" resultType="org.jeecg.modules.instagram.history.entity.KolHistoryCelebrity">
+        select khc.*,kol_types from kol_history_celebrity khc
+        inner join ( SELECT
+        celebrity_id,
+        group_concat(DISTINCT kol_type ) as kol_types
+        FROM
+        kol_history_celebrity_detail
+        <where>
+            <if test="kolHistoryCelebrity.kolTypes != null and kolHistoryCelebrity.kolTypes!=''">
+                and kol_type in
+                <foreach collection="kolHistoryCelebrity.kolTypes.split(',')" open="(" separator="," item="item" close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="kolHistoryCelebrity.productName != null and kolHistoryCelebrity.productName!=''">
+                and product_name like concat('%', #{kolHistoryCelebrity.productName}, '%')
+            </if>
+            <if test="kolHistoryCelebrity.brandName != null and kolHistoryCelebrity.brandName!=''">
+                and brand_name like concat('%', #{kolHistoryCelebrity.brandName}, '%')
+            </if>
+        </where>
+        GROUP BY
+        celebrity_id ) khcd on khc.id = khcd.celebrity_id
+        <where>
+            <if test="kolHistoryCelebrity.celebrityName != null and kolHistoryCelebrity.celebrityName!=''">
+                and khc.celebrity_name like concat('%', #{kolHistoryCelebrity.celebrityName}, '%')
+            </if>
+            <if test="kolHistoryCelebrity.platformType != null">
+                and khc.platform_type = #{kolHistoryCelebrity.platformType}
+            </if>
+            <if test="kolHistoryCelebrity.gender != null and kolHistoryCelebrity.gender!=''">
+                and khc.gender = #{kolHistoryCelebrity.gender}
+            </if>
+            <if test="kolHistoryCelebrity.countryName != null and kolHistoryCelebrity.countryName!=''">
+                and khc.country_name = #{kolHistoryCelebrity.countryName}
+            </if>
+        </where>
+        order by last_submit_date desc
+    </select>
+</mapper>

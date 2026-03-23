@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jeecg.modules.instagram.storecelebrity.mapper.StoreCelebrityFeedbackMapper">
+
+    <select id="feedbackPageList"
+            resultType="org.jeecg.modules.instagram.storecelebrity.model.StoreCelebrityFeedbackModel">
+        select sc.id,
+        sc.nick_name,
+        sc.account,
+        sc.username,
+        sc.followers_num,
+        sc.star,
+        sc.country,
+        sc.platform_type,
+        sc.like_tags,
+        sc.gender,
+        scf.celebrity_id,
+        scf.is_dispose
+        from store_celebrity sc
+        LEFT JOIN store_celebrity_feedback scf ON scf.celebrity_id=sc.id
+        WHERE scf.celebrity_id is not null
+        and scf.is_dispose=0
+        <if test="storeCelebrityFeedbackModel.nickName !=null and storeCelebrityFeedbackModel.nickName !=''">
+            and sc.nick_name like '%${storeCelebrityFeedbackModel.nickName}%'
+        </if>
+        <if test="storeCelebrityFeedbackModel.followersStartNum !=null">
+            and sc.followers_num &gt;= #{storeCelebrityFeedbackModel.followersStartNum}
+        </if>
+        <if test="storeCelebrityFeedbackModel.followersEndNum !=null">
+            and sc.followers_num &lt;= #{storeCelebrityFeedbackModel.followersEndNum}
+        </if>
+        <if test="storeCelebrityFeedbackModel.platformType !=null">
+            and sc.platform_type = #{storeCelebrityFeedbackModel.platformType}
+        </if>
+
+
+        GROUP BY  sc.nick_name,
+        sc.account,
+        sc.username,
+        sc.followers_num,
+        sc.star,
+        sc.country,
+        sc.platform_type,
+        sc.like_tags,
+        sc.gender,
+        scf.celebrity_id,
+        scf.is_dispose
+
+    </select>
+    <select id="getCelebrityFeedback"
+            resultType="org.jeecg.modules.instagram.storecelebrity.model.StoreCelebrityFeedbackUserModel">
+        select scf.id,
+               scf.celebrity_id,
+               scf.country,
+               scf.like_tags,
+               scf.gender,
+               scf.is_existence,
+               scf.is_num_wrong,
+               scf.is_dispose,
+               scf.dispose_user_id,
+               scf.dispose_user_name,
+               scf.create_user_type,
+               scf.remark,
+               scf.create_by,
+               scf.create_time,
+               scf.update_by,
+               scf.update_time,
+               su.username
+              from store_celebrity_feedback scf
+              LEFT JOIN sys_user su ON su.id =scf.create_by
+        WHERE
+            celebrity_id = #{celebrityId}
+
+    </select>
+</mapper>

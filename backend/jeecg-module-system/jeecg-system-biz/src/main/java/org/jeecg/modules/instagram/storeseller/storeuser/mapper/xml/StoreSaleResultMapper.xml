@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jeecg.modules.instagram.storeseller.storeuser.mapper.StoreSaleResultMapper">
+
+    <select id="queryBycategoryId" resultType="org.jeecg.modules.instagram.storeseller.storeuser.entity.StoreSaleResult" parameterType="string">
+        select * from where celebrity_id = #{celebrityId}
+    </select>
+
+    <select id="parentList" resultType="org.jeecg.modules.instagram.storeseller.storeuser.entity.StoreSaleResult">
+      select
+       id,
+       celebrity_id,
+       category_id,
+       category_name,
+       sale_score,
+       sale_num,
+       followers_num,
+       product_title,
+       product_image_url,
+       sale_date,
+       sale_image_url,
+       remark,
+       create_by,
+       create_time,
+       update_by,
+       update_time,
+       category_parent_id,
+       category_parent_name
+
+          FROM
+        store_sale_result
+<where>
+        <if test="storeSaleResultModel.categoryParentId !=null">
+            and  category_parent_id = #{storeSaleResultModel.categoryParentId}
+        </if>
+        <if test="storeSaleResultModel.celebrityId !=null">
+            and  celebrity_id = #{storeSaleResultModel.celebrityId}
+        </if>
+        <if test="storeSaleResultModel.categoryId !=null">
+            and category_id = #{storeSaleResultModel.categoryId}
+        </if>
+        <if test="storeSaleResultModel.productTitle !=null and storeSaleResultModel.productTitle !=''">
+            and  product_title like '%${storeSaleResultModel.productTitle}%'
+        </if>
+
+        <if test="storeSaleResultModel.saleStartNum !=null">
+            and sale_num &gt;= #{storeSaleResultModel.saleStartNum}
+        </if>
+        <if test="storeSaleResultModel.saleEndNum !=null">
+            and sale_num &lt;= #{storeSaleResultModel.saleEndNum}
+        </if>
+
+        <if test="storeSaleResultModel.startSaleDate != null">
+            and DATE_FORMAT(sale_date, '%Y-%m-%d') &gt;= DATE_FORMAT(#{storeSaleResultModel.startSaleDate},
+            '%Y-%m-%d')
+        </if>
+        <if test="storeSaleResultModel.endSaleDate != null">
+            and DATE_FORMAT(sale_date, '%Y-%m-%d') &lt;= DATE_FORMAT(#{storeSaleResultModel.endSaleDate}, '%Y-%m-%d')
+        </if>
+</where>
+        /*and id IN ( SELECT
+        user_id
+        FROM
+        store_level
+        GROUP BY
+        user_id)*/
+
+    </select>
+</mapper>

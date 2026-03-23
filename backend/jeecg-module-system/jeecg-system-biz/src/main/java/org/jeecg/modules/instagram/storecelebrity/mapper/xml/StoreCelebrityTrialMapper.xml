@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jeecg.modules.instagram.storecelebrity.mapper.StoreCelebrityTrialMapper">
+
+    <select id="getStoreCelebrityTrialList"
+            resultType="org.jeecg.modules.instagram.storecelebrity.model.StoreCelebrityTrialModel">
+        SELECT
+        sct.*,
+        ssc.id AS collection_id,
+        send_email_count
+        FROM
+        store_celebrity_trial sct FORCE INDEX ( id )
+        LEFT JOIN store_seller_collection ssc ON ssc.celebrity_id=sct.id
+        <if test="storeCelebrityTrialModel.sellerId !=null and storeCelebrityTrialModel.sellerId !=''">
+            AND ssc.seller_id = #{storeCelebrityTrialModel.sellerId}
+        </if>
+        LEFT JOIN ( SELECT kol_email, COUNT( id ) AS send_email_count FROM store_message_push_detail WHERE seller_id =
+        #{storeCelebrityTrialModel.sellerId} and is_send!=-2 GROUP BY kol_email ) smp ON smp.kol_email = sct.email
+        where 1=1
+        <if test="storeCelebrityTrialModel.platformType != null">
+            AND sct.platform_type = #{storeCelebrityTrialModel.platformType}
+        </if>
+        <if test="storeCelebrityTrialModel.star != null">
+            AND sct.star = #{storeCelebrityTrialModel.star}
+        </if>
+        <if test="storeCelebrityTrialModel.followersStartNum !=null and storeCelebrityTrialModel.followersStartNum != ''">
+            and sct.followers_num >= #{storeCelebrityTrialModel.followersStartNum}
+        </if>
+        <if test="storeCelebrityTrialModel.followersEndNum !=null and storeCelebrityTrialModel.followersEndNum != ''">
+            and sct.followers_num &lt;= #{storeCelebrityTrialModel.followersEndNum}
+        </if>
+        <if test="storeCelebrityTrialModel.playAvgStartNum !=null and storeCelebrityTrialModel.playAvgStartNum != ''">
+            and sct.play_avg_num >= #{storeCelebrityTrialModel.playAvgStartNum}
+        </if>
+        <if test="storeCelebrityTrialModel.playAvgEndNum !=null and storeCelebrityTrialModel.playAvgEndNum != ''">
+            and sct.play_avg_num &lt;= #{storeCelebrityTrialModel.playAvgEndNum}
+        </if>
+        <if test="storeCelebrityTrialModel.postsStartNum !=null and storeCelebrityTrialModel.postsStartNum != ''">
+            and sct.posts_num >= #{storeCelebrityTrialModel.postsStartNum}
+        </if>
+        <if test="storeCelebrityTrialModel.postsEndNum !=null and storeCelebrityTrialModel.postsEndNum != ''">
+            and sct.posts_num &lt;= #{storeCelebrityTrialModel.postsEndNum}
+        </if>
+        <if test="storeCelebrityTrialModel.country != null and storeCelebrityTrialModel.country != ''">
+            AND sct.country = #{storeCelebrityTrialModel.country}
+        </if>
+        <if test="storeCelebrityTrialModel.nickName != null and storeCelebrityTrialModel.nickName != ''">
+            AND sct.nick_name like '%${storeCelebrityTrialModel.nickName}%'
+        </if>
+        <if test="storeCelebrityTrialModel.likeTags !=null and storeCelebrityTrialModel.likeTags !=''">
+            <foreach item="item" index="index" collection="storeCelebrityTrialModel.likeTags.split(',')">
+                AND find_in_set('${item}',like_tags)
+            </foreach>
+        </if>
+        <if test="storeCelebrityTrialModel.gender != null">
+            AND sct.gender = #{storeCelebrityTrialModel.gender}
+        </if>
+        ORDER BY
+        sct.create_time DESC
+    </select>
+    <select id="getCount" resultType="java.lang.Integer">
+        SELECT
+        count(1) as count
+        FROM
+        store_celebrity_trial sct FORCE INDEX ( id )
+        LEFT JOIN store_seller_collection ssc ON ssc.celebrity_id=sct.id
+        <if test="storeCelebrityTrialModel.sellerId !=null and storeCelebrityTrialModel.sellerId !=''">
+            AND ssc.seller_id = #{storeCelebrityTrialModel.sellerId}
+        </if>
+        LEFT JOIN ( SELECT kol_email, COUNT( id ) AS send_email_count FROM store_message_push_detail WHERE seller_id =
+        #{storeCelebrityTrialModel.sellerId} and is_send!=-2 GROUP BY kol_email ) smp ON smp.kol_email = sct.email
+        where 1=1
+        <if test="storeCelebrityTrialModel.platformType != null and storeCelebrityTrialModel.platformType != ''">
+            AND sct.platform_type = '${storeCelebrityTrialModel.platformType}'
+        </if>
+        <if test="storeCelebrityTrialModel.star != null and storeCelebrityTrialModel.star != ''">
+            AND sct.star = '${storeCelebrityTrialModel.star}'
+        </if>
+        <if test="storeCelebrityTrialModel.followersStartNum !=null and storeCelebrityTrialModel.followersStartNum != ''">
+            and sct.followers_num >= #{storeCelebrityTrialModel.followersStartNum}
+        </if>
+        <if test="storeCelebrityTrialModel.followersEndNum !=null and storeCelebrityTrialModel.followersEndNum != ''">
+            and sct.followers_num &lt;= #{storeCelebrityTrialModel.followersEndNum}
+        </if>
+        <if test="storeCelebrityTrialModel.playAvgStartNum !=null and storeCelebrityTrialModel.playAvgStartNum != ''">
+            and sct.play_avg_num >= #{storeCelebrityTrialModel.playAvgStartNum}
+        </if>
+        <if test="storeCelebrityTrialModel.playAvgEndNum !=null and storeCelebrityTrialModel.playAvgEndNum != ''">
+            and sct.play_avg_num &lt;= #{storeCelebrityTrialModel.playAvgEndNum}
+        </if>
+        <if test="storeCelebrityTrialModel.postsStartNum !=null and storeCelebrityTrialModel.postsStartNum != ''">
+            and sct.posts_num >= #{storeCelebrityTrialModel.postsStartNum}
+        </if>
+        <if test="storeCelebrityTrialModel.postsEndNum !=null and storeCelebrityTrialModel.postsEndNum != ''">
+            and sct.posts_num &lt;= #{storeCelebrityTrialModel.postsEndNum}
+        </if>
+        <if test="storeCelebrityTrialModel.country != null and storeCelebrityTrialModel.country != ''">
+            AND sct.country = '${storeCelebrityTrialModel.country}'
+        </if>
+        <if test="storeCelebrityTrialModel.nickName != null and storeCelebrityTrialModel.nickName != ''">
+            AND sct.nick_name like '%${storeCelebrityTrialModel.nickName}%'
+        </if>
+        <if test="storeCelebrityTrialModel.likeTags !=null and storeCelebrityTrialModel.likeTags !=''">
+            <foreach item="item" index="index" collection="storeCelebrityTrialModel.likeTags.split(',')">
+                AND find_in_set('${item}',like_tags)
+            </foreach>
+        </if>
+        <if test="storeCelebrityTrialModel.gender != null and storeCelebrityTrialModel.gender != ''">
+            AND sct.gender = #{storeCelebrityTrialModel.gender}
+        </if>
+    </select>
+    <select id="getStaticList"
+            resultType="org.jeecg.modules.instagram.storecelebrity.model.StoreCelebrityTrialModel">
+        SELECT
+            *
+        FROM
+            store_celebrity_trial FORCE INDEX ( id )
+        ORDER BY
+            create_time DESC
+    </select>
+    <select id="getStaticListCount" resultType="java.lang.Integer">
+        SELECT
+            count(1)
+        FROM
+            store_celebrity_trial FORCE INDEX ( id )
+        ORDER BY
+            create_time DESC
+    </select>
+</mapper>

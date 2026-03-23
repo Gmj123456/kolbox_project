@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jeecg.modules.kol.mapper.KolTagAttributeRelationMapper">
+
+    <insert id="insertBatch" parameterType="java.util.List">
+        INSERT INTO kol_tag_attribute_relation (
+        id,
+        tag_id,
+        tag_name,
+        platform_type,
+        tag_type,
+        video_url,
+        attribute_id,
+        attribute_type_id,
+        attribute_name,
+        attribute_type_name,
+        sort_code,
+        is_delete,
+        create_by,
+        create_time,
+        update_by,
+        update_time,
+        level,
+        product_id
+        ) VALUES
+        <foreach collection="tagAttributeRelations" item="item" separator=",">
+            (
+            #{item.id},
+            #{item.tagId},
+            #{item.tagName},
+            #{item.platformType},
+            #{item.tagType},
+            #{item.videoUrl},
+            #{item.attributeId},
+            #{item.attributeTypeId},
+            #{item.attributeName},
+            #{item.attributeTypeName},
+            #{item.sortCode},
+            #{item.isDelete},
+            #{item.createBy},
+            #{item.createTime},
+            #{item.updateBy},
+            #{item.updateTime},
+            #{item.level},
+            #{item.productId}
+            )
+        </foreach>
+    </insert>
+
+    <select id="getTagAttributeTypes" resultType="java.util.Map">
+        SELECT tag_id, attribute_type_id
+        FROM kol_tag_attribute_relation
+        WHERE is_delete = 0
+        and tag_id in(
+        <foreach collection="tagIds" item="item" separator=",">
+            #{item}
+        </foreach>)
+        GROUP BY tag_id, attribute_type_id
+    </select>
+
+    <select id="getTagAttributeDetails" resultType="org.jeecg.modules.kol.entity.KolTagAttributeRelation">
+        SELECT
+        cc.tag_id,
+        cc.LEVEL,
+        cc.attribute_id,
+        cc.attribute_name,
+        cc.attribute_type_id,
+        sub_c.attribute_en_name,
+        p.brand_id,
+        p.brand_name,
+        p.id as product_id,
+        p.product_name
+        FROM
+        kol_tag_attribute_relation cc
+        left join kol_product p ON cc.product_id = p.id
+        LEFT JOIN kol_attribute sub_c ON cc.attribute_id = sub_c.id
+        WHERE
+        cc.is_delete = 0
+        AND cc.tag_id IN (
+        <foreach collection="tagIds" item="item" separator=",">
+            #{item}
+        </foreach>)
+    </select>
+</mapper>

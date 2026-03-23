@@ -1,0 +1,673 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jeecg.modules.tiktok.mapper.TiktokCelebrityMapper">
+    <!-- ******************* 提取公共部分查询条件 ******************** -->
+
+    <!-- 组合列表JOIN条件 -->
+    <!-- 查询TK网红列表关联条件(Join) -->
+    <sql id="TkListJoinConditions">
+        <!-- <if test="searchModel.productId!= null and searchModel.productId!= ''"> -->
+        <!--     <include refid="tk.common.tagNameOrCounselorIdJoinCondition"/> -->
+        <!-- </if> -->
+        <include refid="tk.common.tagListJoinCondition"/>
+        <include refid="tk.common.uniqueIdJoinCondition"/>
+        <include refid="kol.common.emailJoinCondition">
+            <property name="alias" value="tc"/>
+        </include>
+        <include refid="kol.common.countryJoinCondition">
+            <property name="alias" value="tc"/>
+        </include>
+    </sql>
+    <!-- 查询已分配的网红列表关联条件(Join) -->
+    <sql id="AllotListJoinConditions">
+        <include refid="tk.common.tagNameOrCounselorIdJoinCondition"/>
+        <!--       <include refid="kol.common.brandJoinCondition">
+                  <property name="uniqueId" value="tc.unique_id"/>
+              </include> -->
+        <include refid="kol.common.kolContactJoinCondition">
+            <property name="alias" value="tc.unique_id"/>
+        </include>
+        <include refid="tk.common.uniqueIdJoinCondition"/>
+        <include refid="kol.common.emailJoinCondition">
+            <property name="alias" value="tc"/>
+        </include>
+    </sql>
+    <sql id="AllotJoinConditions">
+        <include refid="tk.common.counselorJoinCondition"/>
+        <include refid="kol.common.kolContactJoinCondition">
+            <property name="alias" value="tc.unique_id"/>
+        </include>
+        <include refid="tk.common.uniqueIdJoinCondition"/>
+        <!--       <include refid="kol.common.emailJoinCondition">
+                  <property name="alias" value="tc"/>
+              </include> -->
+    </sql>
+    <!-- 组合列表查询条件 -->
+    <!-- 查询TK网红列表查询条件(Where) -->
+    <sql id="TkListQueryConditions">
+        <!--        <include refid="kol.common.isHighFollowerCountCondition"><property name="alias" value="tc"/></include>-->
+        <include refid="tk.common.signatureCondition"/>
+        <include refid="kol.common.videoStandardCountCondition">
+            <property name="alias" value="tc"/>
+        </include>
+        <include refid="kol.common.isHasEmailCondition">
+            <property name="alias" value="tc"/>
+        </include>
+        <include refid="kol.common.countryCodeCondition">
+            <property name="alias" value="tc"/>
+        </include>
+        <include refid="kol.common.followerCountCondition">
+            <property name="followerCount" value="tc.author_follower_count"/>
+        </include>
+        <include refid="kol.common.medianViewsCountCondition">
+            <property name="medianViewsCount" value="tc.median_views"/>
+        </include>
+        <include refid="kol.common.playAvgNumCountCondition">
+            <property name="playAvgNumCount" value="tc.video_data"/>
+        </include>
+        <include refid="kol.common.isPrivateKolConditionNew"/>
+        <include refid="kol.common.isNotDevelopCondition">
+            <property name="alias" value="tc"/>
+        </include>
+        <!--<include refid="kol.common.brandContactJoinCondition"><property name="uniqueId" value="tc.unique_id"/></include>-->
+    </sql>
+    <sql id="tkCelebrityCondition">
+        WITH tk_celebrity AS ( SELECT id,author_id FROM tiktok_celebrity tc
+        <where>
+            <include refid="TkListQueryConditions"/>
+            <include refid="kol.common.linktreeCondition">
+                <property name="alias" value="tc.bio_link"/>
+            </include>
+        </where>
+        <if test="searchModel.attributeIds!=null and searchModel.attributeIds!=''">
+            ORDER BY update_time DESC
+            <!--LIMIT #{searchModel.total}-->
+        </if>
+        )
+    </sql>
+
+    <!-- ********************** 以下为业务查询部分 ********************** -->
+
+    <!-- 获取Tiktok网红视图模型记录数 -->
+    <select id="getTkCelebrityCount" resultType="java.lang.Long">
+        <include refid="kol.common.celebrityPrivateCondition">
+            <property name="alias" value="2"/>
+        </include>
+        SELECT count(*) FROM tiktok_celebrity AS tc
+        <include refid="kol.common.celebrityPrivateJoinCondition">
+            <property name="alias" value="tc.sec_uid"/>
+            <property name="account" value="tc.unique_id"/>
+        </include>
+        <include refid="TkListJoinConditions"/>
+        <where>
+            <include refid="TkListQueryConditions"/>
+        </where>
+    </select>
+
+    <!-- 获取Tiktok网红视图模型数据列表 -->
+    <select id="getTkCelebrityModelList" resultType="org.jeecg.modules.tiktok.model.TkCelebrityModel">
+        <include refid="kol.common.celebrityPrivateCondition">
+            <property name="alias" value="2"/>
+        </include>
+        SELECT tc.*,
+        cp.id AS celebrity_private_id
+        FROM tiktok_celebrity AS tc
+        <include refid="kol.common.celebrityPrivateJoinCondition">
+            <property name="alias" value="tc.sec_uid"/>
+            <property name="account" value="tc.unique_id"/>
+        </include>
+        <include refid="TkListJoinConditions"/>
+        <where>
+            <include refid="TkListQueryConditions"/>
+            <!--            <include refid="kol.common.privatePlatformTypeCondition"><property name="platformType" value="2"/></include>-->
+        </where>
+    </select>
+
+    <!-- 获取已经分配给网红顾问的网红总数 -->
+    <select id="getTkAllottedKolCountBack" resultType="java.lang.Integer">
+        <include refid="kol.common.celebrityPrivateConditionCount">
+            <property name="alias" value="2"/>
+        </include>
+        <if test="searchModel.attributeIds != null and searchModel.attributeIds != ''">
+            <include refid="kol.common.allotAttributeJoinCondition">
+                <property name="platform_type" value="2"/>
+            </include>
+        </if>
+        <include refid="kol.common.kolContactCondition"/>
+        SELECT count(*)
+        FROM tiktok_celebrity AS tc
+        <include refid="AllotJoinConditions"/>
+        <include refid="kol.common.celebrityPrivateCountJoinCondition">
+            <property name="alias" value="tc.sec_uid"/>
+            <property name="account" value="tc.unique_id"/>
+        </include>
+        <!--<include refid="kol.common.blacklistKolJoinCondition">
+            <property name="uniqueId" value="tc.author_id"/>
+            <property name="platformType" value="2"/>
+        </include>-->
+        <include refid="kol.common.shieldsKolJoinCondition">
+            <property name="uniqueId" value="tc.author_id"/>
+            <property name="platformType" value="2"/>
+        </include>
+        <where>
+            <include refid="TkListQueryConditions"/>
+            <!--<include refid="kol.common.blacklistKolCondition"/>-->
+            <!-- <include refid="kol.common.productCondition"/>-->
+            <include refid="kol.common.shieldsKolCondition"/>
+            <include refid="kol.common.linktreeCondition">
+                <property name="alias" value="tc.bio_link"/>
+            </include>
+            <include refid="kol.common.kolContactParamsCondition"/>
+            <include refid="kol.common.kolEmailLikeCondition">
+                <property name="alias" value="tc"/>
+            </include>
+        </where>
+    </select>
+    <!-- 获取已经分配给网红顾问的网红列表 -->
+    <select id="getAllottedKolListBack" resultType="org.jeecg.modules.kol.model.KolBaseModel">
+        <include refid="kol.common.celebrityPrivateConditionCount">
+            <property name="alias" value="2"/>
+        </include>
+        <if test="searchModel.attributeIds != null and searchModel.attributeIds != ''">
+            <include refid="kol.common.allotAttributeJoinCondition">
+                <property name="platform_type" value="2"/>
+            </include>
+        </if>
+        <include refid="kol.common.kolContactCondition"/>
+        SELECT tc.id,
+        tc.sec_uid AS account,
+        tc.unique_id,
+        tc.author_id,
+        tc.nickname,
+        tc.author_avatar_url,
+        tc.country,
+        tc.signature,
+        tc.author_follower_count,
+        tc.video_sample_count,
+        tc.video_standard_count,
+        tc.video_create_time_last,
+        tc.email,
+        tc.bio_link,
+        tc.bio_link as linktree,
+        tc.remark,
+        tc.create_by,
+        tc.create_time,
+        tc.update_by,
+        tc.update_time,
+        tc.phone,
+        tc.video_data,
+        2 AS platform_type,
+        cp.id AS celebrity_private_id,
+        tc.median_views,
+        tctc.allot_time
+        FROM tiktok_celebrity AS tc
+        <include refid="AllotJoinConditions"/>
+        <include refid="kol.common.celebrityPrivateJoinCondition">
+            <property name="alias" value="tc.sec_uid"/>
+            <property name="account" value="tc.unique_id"/>
+        </include>
+        <!--<include refid="kol.common.blacklistKolJoinCondition">
+            <property name="uniqueId" value="tc.author_id"/>
+            <property name="platformType" value="2"/>
+        </include>-->
+        <include refid="kol.common.shieldsKolJoinCondition">
+            <property name="uniqueId" value="tc.author_id"/>
+            <property name="platformType" value="2"/>
+        </include>
+        <where>
+            <include refid="TkListQueryConditions"/>
+            <!--  <include refid="kol.common.blacklistKolCondition"/>-->
+            <!--  <include refid="kol.common.productCondition"/>-->
+            <include refid="kol.common.shieldsKolCondition"/>
+            <include refid="kol.common.linktreeCondition">
+                <property name="alias" value="tc.bio_link"/>
+            </include>
+            <include refid="kol.common.kolContactParamsCondition"/>
+            <include refid="kol.common.kolEmailLikeCondition">
+                <property name="alias" value="tc"/>
+            </include>
+        </where>
+        order by tctc.allot_time desc
+    </select>
+    <select id="getTkAllottedKolCount" resultType="java.lang.Integer">
+        <include refid="kol.common.celebrityPrivateConditionCount">
+            <property name="alias" value="2"/>
+        </include>
+        <if test="searchModel.attributeIds != null and searchModel.attributeIds != ''">
+            <include refid="kol.common.allotAttributeJoinCondition">
+                <property name="platform_type" value="2"/>
+            </include>
+        </if>
+        <include refid="kol.common.kolContactCondition"/>
+        SELECT count(*)
+        FROM (
+        SELECT author_id,max(allot_time) as allot_time FROM tiktok_celebrity_tags_counselor AS tc
+        <if test="searchModel.attributeIds != null and searchModel.attributeIds != ''">
+            JOIN attribute_tag_name atn ON tc.tag_name = atn.tag_name
+        </if>
+        <if test="searchModel.tempTableName != null and searchModel.tempTableName != ''">
+            JOIN ${searchModel.tempTableName} AS tags ON tc.tag_name = tags.tag_name
+        </if>
+        <if test="searchModel.productId != null and searchModel.productId != ''">
+            LEFT JOIN kol_product kp ON tc.product_id = kp.id
+        </if>
+        <where>
+            <include refid="kol.common.counselorIdCondition">
+                <property name="alias" value="tc"/>
+            </include>
+            <include refid="kol.common.countryCodeCondition">
+                <property name="alias" value="tc"/>
+            </include>
+            <include refid="kol.common.tagTypeCondition">
+                <property name="alias" value="tc"/>
+            </include>
+            <if test="searchModel.productId != null and searchModel.productId != '' and (searchModel.isContact == null or searchModel.isContact == 0)">
+                <include refid="kol.common.productIdCondition">
+                    <property name="alias" value="tc"/>
+                </include>
+            </if>
+            <include refid="kol.common.allotTimeCondition">
+                <property name="alias" value="tc"/>
+            </include>
+        </where>
+        group by author_id
+        )AS tctc STRAIGHT_JOIN tiktok_celebrity AS tc FORCE INDEX ( idx_author_id_unique_id_country ) ON tc.author_id = tctc.author_id
+        <include refid="kol.common.kolContactJoinCondition">
+            <property name="alias" value="tc.unique_id"/>
+        </include>
+        <include refid="tk.common.uniqueIdJoinCondition"/>
+        <include refid="kol.common.celebrityPrivateCountJoinCondition">
+            <property name="alias" value="tc.sec_uid"/>
+            <property name="account" value="tc.unique_id"/>
+        </include>
+        <include refid="kol.common.shieldsKolJoinCondition">
+            <property name="uniqueId" value="tc.author_id"/>
+            <property name="platformType" value="2"/>
+        </include>
+        <where>
+            <include refid="TkListQueryConditions"/>
+            <include refid="kol.common.shieldsKolCondition"/>
+            <include refid="kol.common.linktreeCondition">
+                <property name="alias" value="tc.bio_link"/>
+            </include>
+            <include refid="kol.common.kolContactParamsCondition"/>
+            <include refid="kol.common.kolEmailLikeCondition">
+                <property name="alias" value="tc"/>
+            </include>
+        </where>
+    </select>
+    <select id="getAllottedKolList" resultType="org.jeecg.modules.kol.model.KolBaseModel">
+        <include refid="kol.common.celebrityPrivateConditionCount">
+            <property name="alias" value="2"/>
+        </include>
+        <if test="searchModel.attributeIds != null and searchModel.attributeIds != ''">
+            <include refid="kol.common.allotAttributeJoinCondition">
+                <property name="platform_type" value="2"/>
+            </include>
+        </if>
+        <include refid="kol.common.kolContactCondition"/>
+        SELECT tc.id,
+        tc.sec_uid AS account,
+        tc.unique_id,
+        tc.author_id,
+        tc.nickname,
+        tc.author_avatar_url,
+        tc.country,
+        tc.signature,
+        tc.author_follower_count,
+        tc.video_sample_count,
+        tc.video_standard_count,
+        tc.video_create_time_last,
+        tc.email,
+        tc.bio_link,
+        tc.bio_link as linktree,
+        tc.remark,
+        tc.create_by,
+        tc.create_time,
+        tc.update_by,
+        tc.update_time,
+        tc.phone,
+        tc.video_data,
+        2 AS platform_type,
+        cp.id AS celebrity_private_id,
+        tc.median_views,
+        tctc.allot_time
+        FROM (
+        SELECT author_id,max(allot_time) as allot_time FROM tiktok_celebrity_tags_counselor AS tc
+        <if test="searchModel.attributeIds != null and searchModel.attributeIds != ''">
+            JOIN attribute_tag_name atn ON tc.tag_name = atn.tag_name
+        </if>
+        <if test="searchModel.tempTableName != null and searchModel.tempTableName != ''">
+            JOIN ${searchModel.tempTableName} AS tags ON tc.tag_name = tags.tag_name
+        </if>
+        <if test="searchModel.productId != null and searchModel.productId != ''">
+            LEFT JOIN kol_product kp ON tc.product_id = kp.id
+        </if>
+        <where>
+            <include refid="kol.common.counselorIdCondition">
+                <property name="alias" value="tc"/>
+            </include>
+            <include refid="kol.common.countryCodeCondition">
+                <property name="alias" value="tc"/>
+            </include>
+            <include refid="kol.common.tagTypeCondition">
+                <property name="alias" value="tc"/>
+            </include>
+            <if test="searchModel.productId != null and searchModel.productId != '' and (searchModel.isContact == null or searchModel.isContact == 0)">
+                <include refid="kol.common.productIdCondition">
+                    <property name="alias" value="tc"/>
+                </include>
+            </if>
+            <include refid="kol.common.allotTimeCondition">
+                <property name="alias" value="tc"/>
+            </include>
+        </where>
+        group by author_id
+        )AS tctc STRAIGHT_JOIN tiktok_celebrity AS tc FORCE INDEX ( idx_author_id_unique_id_country ) ON tc.author_id = tctc.author_id
+        <include refid="kol.common.kolContactJoinCondition">
+            <property name="alias" value="tc.unique_id"/>
+        </include>
+        <include refid="tk.common.uniqueIdJoinCondition"/>
+        <include refid="kol.common.celebrityPrivateJoinCondition">
+            <property name="alias" value="tc.sec_uid"/>
+            <property name="account" value="tc.unique_id"/>
+        </include>
+        <include refid="kol.common.shieldsKolJoinCondition">
+            <property name="uniqueId" value="tc.author_id"/>
+            <property name="platformType" value="2"/>
+        </include>
+        <where>
+            <include refid="TkListQueryConditions"/>
+            <include refid="kol.common.shieldsKolCondition"/>
+            <include refid="kol.common.linktreeCondition">
+                <property name="alias" value="tc.bio_link"/>
+            </include>
+            <include refid="kol.common.kolContactParamsCondition"/>
+            <include refid="kol.common.kolEmailLikeCondition">
+                <property name="alias" value="tc"/>
+            </include>
+        </where>
+        order by tctc.allot_time desc
+    </select>
+
+
+    <!-- 获取已经分配给网红顾问的网红列表 -->
+    <select id="getTkAllottedKolList" resultType="org.jeecg.modules.tiktok.model.TkCelebrityModel">
+        <include refid="kol.common.celebrityPrivateCondition">
+            <property name="alias" value="2"/>
+        </include>
+        SELECT tc.*,
+        cp.id AS celebrity_private_id
+        FROM tiktok_celebrity AS tc
+        <include refid="kol.common.celebrityPrivateJoinCondition">
+            <property name="alias" value="tc.sec_uid"/>
+            <property name="account" value="tc.unique_id"/>
+        </include>
+        <include refid="AllotListJoinConditions"/>
+        <where>
+            <include refid="TkListQueryConditions"/>
+            <!--            <include refid="kol.common.privatePlatformTypeCondition"><property name="platformType" value="2"/></include>-->
+        </where>
+    </select>
+
+    <select id="getCelebrityScreeningList" resultType="org.jeecg.modules.kol.model.KolCelebrityModel">
+        SELECT tc.id AS id,
+        tc.unique_id AS account,
+        tc.author_id,
+        tc.nickname AS username,
+        tc.author_avatar_url AS avatarUrl,
+        tc.nickname AS fullName,
+        tc.email,
+        tc.signature AS description,
+        tc.author_following_count AS followingCount,
+        tc.author_follower_count AS followerCount,
+        tc.author_video_count AS postCount,
+        tc.play_avg_num AS avgPlayCount,
+        tc.is_connectivity AS avgCommentCount,
+        stc.country,
+        tc.gender,
+        tc.bio_link AS website,
+        tc.bio_link AS linktree,
+        tc.video_sample_count,
+        tc.video_standard_count,
+        tc.video_create_time_last AS lastVideoCreateTime,
+        tc.video_data,
+        tc.create_time AS createTime,
+        tc.update_by AS updatedBy,
+        tc.update_time AS updateTime,
+        tc.play_avg_num,
+        2 as platform_type,
+        tc.median_views
+        <if test="searchModel.isPrivateKol != null">
+            ,cp.id AS celebrity_private_id
+        </if>
+        FROM tiktok_celebrity tc
+        <!-- 私有库 -->
+        <if test="searchModel.isPrivateKol == 1">
+            INNER JOIN store_celebrity_private cp ON cp.account = tc.unique_id AND cp.platform_type = 2
+        </if>
+        <if test="searchModel.isPrivateKol == 0">
+            LEFT JOIN store_celebrity_private cp ON cp.account = tc.unique_id AND cp.platform_type = 2
+        </if>
+        LEFT JOIN store_country stc on tc.country = stc.short_code
+        <where>
+            <if test="searchModel.isPrivateKol == 0">
+                AND cp.id IS NULL
+            </if>
+            <!-- 标签 / 商品 / 国家过滤 -->
+            <if test="searchModel.tagNameList != null and searchModel.tagNameList.size() > 0">
+                and EXISTS (
+                SELECT 1
+                FROM tiktok_celebrity_tags tct
+
+                <!-- tag 列表 -->
+                <if test="searchModel.tempTableName == null or searchModel.tempTableName == ''">
+                    JOIN (
+                    <include refid="kol.common.tagNameListForeach"/>
+                    ) tags ON tct.tag_name = tags.tag_name
+                </if>
+                <if test="searchModel.tempTableName != null and searchModel.tempTableName != ''">
+                    JOIN ${searchModel.tempTableName} tags ON tct.tag_name = tags.tag_name
+                </if>
+                WHERE tct.author_id = tc.author_id
+                <include refid="kol.common.countryCodeCondition">
+                    <property name="alias" value="tct"/>
+                </include>
+
+                <include refid="kol.common.tagTypeCondition">
+                    <property name="alias" value="tct"/>
+                </include>
+
+                <!-- 商品过滤：使用嵌套 EXISTS -->
+                <if test="searchModel.productId != null and searchModel.productId != ''">
+                    AND EXISTS (
+                    SELECT 1
+                    FROM kol_tag_product ktp
+                    WHERE ktp.tag_name = tct.tag_name
+                    AND ktp.platform_type = 2
+                    <include refid="kol.common.productIdCondition">
+                        <property name="alias" value="ktp"/>
+                    </include>
+                    )
+                </if>
+                )
+            </if>
+            <include refid="TkListQueryConditions"/>
+            <include refid="kol.common.linktreeCondition">
+                <property name="alias" value="tc.bio_link"/>
+            </include>
+            <!-- uniqueId 精确过滤 -->
+            <if test="searchModel.uniqueId != null and searchModel.uniqueId != ''">
+                AND tc.unique_id IN
+                <foreach collection="searchModel.uniqueId.split(',')" item="item"
+                         open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+
+            <!-- email 精确过滤 -->
+            <if test="searchModel.emailKeyword != null and searchModel.emailKeyword != '' and searchModel.isHasEmail != 0">
+                AND tc.email IN
+                <foreach collection="searchModel.emailKeyword.split(',')" item="item"
+                         open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+        </where>
+        <if test="searchModel.attributeIds!=null and searchModel.attributeIds!=''">
+            ORDER BY tc.update_time DESC
+        </if>
+    </select>
+
+    <!--  <select id="getCelebrityScreeningCount" resultType="java.lang.Integer">
+         <if test="searchModel.isPrivateKol != null">
+             WITH celebrity_private AS (SELECT a.id,a.celebrity_id, a.account
+             FROM store_celebrity_private a
+             WHERE platform_type = 2)
+         </if>
+         SELECT
+         count(*)
+         FROM tiktok_celebrity AS tc
+         <if test="searchModel.isPrivateKol != null">
+             LEFT JOIN celebrity_private AS cp ON cp.account = tc.unique_id
+         </if>
+         <if test="searchModel.tagNameList != null and searchModel.tagNameList.size() > 0">
+             JOIN
+             (SELECT DISTINCT tc.author_id FROM tiktok_celebrity_tags AS tc
+             JOIN
+             <if test="searchModel.tempTableName == null or searchModel.tempTableName == ''">
+                 (
+                 <include refid="kol.common.tagNameListForeach"/>
+                 ) AS tags ON tc.tag_name = tags.tag_name
+             </if>
+             <if test="searchModel.tempTableName != null and searchModel.tempTableName != ''">
+                 ${searchModel.tempTableName} AS tags ON tc.tag_name = tags.tag_name
+             </if>
+             JOIN tiktok_celebrity tct on tc.author_id = tct.author_id
+             <if test="searchModel.productId != null and searchModel.productId != ''">
+                 left join kol_tag_product ktp on tc.tag_name = ktp.tag_name and ktp.platform_type = 2
+             </if>
+             <where>
+                 <include refid="kol.common.countryCodeCondition">
+                     <property name="alias" value="tc"/>
+                 </include>
+                 <include refid="kol.common.tagTypeCondition">
+                     <property name="alias" value="tc"/>
+                 </include>
+                 <if test="searchModel.productId != null and searchModel.productId != ''">
+                     <include refid="kol.common.productIdCondition">
+                         <property name="alias" value="ktp"/>
+                     </include>
+                     &lt;!&ndash;   <include refid="kol.common.brandIdCondition">
+                           <property name="alias" value="ktp"/>
+                       </include> &ndash;&gt;
+                 </if>
+             </where>
+             )
+             tags ON tags.author_id = tc.author_id
+         </if>
+         <if test="searchModel.uniqueId != null and searchModel.uniqueId != ''">
+             JOIN
+             <foreach collection="searchModel.uniqueId.split(',')" item="item" open="("
+                      separator=" UNION ALL " close=")">
+                 SELECT #{item} AS uniqueId
+             </foreach>
+             AS tc_uniqueId ON tc.unique_id = tc_uniqueId.uniqueId
+         </if>
+         <if test="searchModel.emailKeyword != null and searchModel.emailKeyword != '' and searchModel.isHasEmail != 0">
+             JOIN
+             <foreach collection="searchModel.emailKeyword.split(',')" item="item" open="("
+                      separator=" UNION ALL " close=")">
+                 SELECT #{item} AS email
+             </foreach>
+             AS email_list ON tc.email=email_list.email
+         </if>
+     </select>
+  -->
+    <select id="getCelebrityScreeningCount" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM tiktok_celebrity tc
+        <!-- 私有库 -->
+        <if test="searchModel.isPrivateKol == 1">
+            INNER JOIN store_celebrity_private cp ON cp.account = tc.unique_id AND cp.platform_type = 2
+        </if>
+        <if test="searchModel.isPrivateKol == 0">
+            LEFT JOIN store_celebrity_private cp ON cp.account = tc.unique_id AND cp.platform_type = 2
+        </if>
+        <where>
+            <!-- 私有KOL筛选 -->
+            <if test="searchModel.isPrivateKol == 0">
+                AND cp.id is null
+            </if>
+
+            <!-- 标签 / 商品 / 国家过滤 -->
+            <if test="searchModel.tagNameList != null and searchModel.tagNameList.size() > 0">
+                AND EXISTS (
+                SELECT 1
+                FROM tiktok_celebrity_tags tct
+                <!-- tag 列表 -->
+                <if test="searchModel.tempTableName == null or searchModel.tempTableName == ''">
+                    JOIN (
+                    <include refid="kol.common.tagNameListForeach"/>
+                    ) tags ON tct.tag_name = tags.tag_name
+                </if>
+                <if test="searchModel.tempTableName != null and searchModel.tempTableName != ''">
+                    JOIN ${searchModel.tempTableName} tags ON tct.tag_name = tags.tag_name
+                </if>
+                WHERE tct.author_id = tc.author_id
+                <include refid="kol.common.countryCodeCondition">
+                    <property name="alias" value="tct"/>
+                </include>
+
+                <include refid="kol.common.tagTypeCondition">
+                    <property name="alias" value="tct"/>
+                </include>
+
+                <!-- 商品过滤：使用嵌套 EXISTS -->
+                <if test="searchModel.productId != null and searchModel.productId != ''">
+                    AND EXISTS (
+                    SELECT 1
+                    FROM kol_tag_product ktp
+                    WHERE ktp.tag_name = tct.tag_name
+                    AND ktp.platform_type = 2
+                    <include refid="kol.common.productIdCondition">
+                        <property name="alias" value="ktp"/>
+                    </include>
+                    )
+                </if>
+                )
+            </if>
+            <include refid="TkListQueryConditions"/>
+            <include refid="kol.common.linktreeCondition">
+                <property name="alias" value="tc.bio_link"/>
+            </include>
+            <!-- uniqueId 精确过滤 -->
+            <if test="searchModel.uniqueId != null and searchModel.uniqueId != ''">
+                AND tc.unique_id IN
+                <foreach collection="searchModel.uniqueId.split(',')" item="item"
+                         open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+
+            <!-- email 精确过滤 -->
+            <if test="searchModel.emailKeyword != null and searchModel.emailKeyword != '' and searchModel.isHasEmail != 0">
+                AND tc.email IN
+                <foreach collection="searchModel.emailKeyword.split(',')" item="item"
+                         open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+        </where>
+    </select>
+    <select id="getAllottedKolUniqueIdList" resultType="java.lang.String">
+        SELECT b.author_id as unique_id
+        FROM tiktok_celebrity_tags b
+        JOIN #{searchModel.tempTableName} c ON b.tag_name = c.tag_name
+        <where>
+            <include refid="kol.common.countryCodeCondition">
+                <property name="alias" value="b"/>
+            </include>
+        </where>
+    </select>
+</mapper>

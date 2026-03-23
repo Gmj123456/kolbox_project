@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jeecg.modules.kol.mapper.KolCelebrityMapper">
+    <select id="getAllTagNamesByConditions" parameterType="map" resultType="string">
+        <if test="attributeIds != null and attributeIds.size() > 0">
+            SELECT
+            cel_tags.tag_name
+            FROM
+            <if test="platformType!= null and platformType == 0">
+                ig_celebrity_tags
+            </if>
+            <if test="platformType!= null and platformType == 1">
+                youtube_celebrity_tags
+            </if>
+            <if test="platformType!= null and platformType == 2">
+                tiktok_celebrity_tags
+            </if>
+            cel_tags JOIN (
+        </if>
+        SELECT DISTINCT tag_name FROM (
+        <trim prefixOverrides="UNION ALL">
+            <!-- 1. 按类目查询标签：类目 -> 属性类目 -> 一级属性 -> 标签 -->
+            <if test="categoryIds != null and categoryIds.size() > 0">
+                SELECT tar.tag_name
+                FROM kol_category_attribute_relation car
+                INNER JOIN kol_attribute ka ON car.attribute_category_id = ka.id
+                INNER JOIN kol_attribute ka2 ON ka2.attribute_name = SUBSTRING_INDEX(ka.attribute_name_path, '|', 1)
+                INNER JOIN kol_tag_attribute_relation tar ON tar.attribute_id = ka2.id
+                left join kol_tags atr on tar.tag_id = atr.id AND atr.platform_type = #{platformType}
+                WHERE
+                atr.is_active =1
+                and atr.is_delete =0
+                and car.category_id IN
+                <foreach collection="categoryIds" item="categoryId" open="(" close=")" separator=",">
+                    #{categoryId}
+                </foreach>
+            </if>
+        </trim>
+        ) all_tags
+        WHERE tag_name IS NOT NULL
+        AND tag_name != ''
+        <if test="attributeIds != null and attributeIds.size() > 0">
+            ) b ON cel_tags.tag_name = b.tag_name
+            WHERE
+            cel_tags.country = #{countryCode}
+        </if>
+        group by tag_name
+    </select>
+
+    <select id="getProductTags" resultType="java.lang.String">
+        SELECT ktp.tag_name
+        FROM kol_tag_product ktp
+        WHERE ktp.product_id = #{searchModel.productId}
+          and ktp.platform_type = #{searchModel.platformType}
+    </select>
+
+
+    <insert id="batchInsertIntoTempTable">
+        <include refid="kol.common.batchInsertIntoTempTable"/>
+    </insert>
+
+    <insert id="batchInsertIntoUniqueIdTempTable">
+        <include refid="kol.common.batchInsertIntoUniqueIdTempTable"/>
+    </insert>
+
+    <delete id="dropTempTable">
+        <include refid="kol.common.dropTempTable"/>
+    </delete>
+
+    <update id="createTempUpdateTable">
+        <include refid="kol.common.createTempUpdateTable"/>
+    </update>
+    <update id="createUniqueIdTempTable">
+        <include refid="kol.common.createUniqueIdTempTable"/>
+    </update>
+
+    <select id="getTagNameByCategoryIds" resultType="java.lang.String">
+        SELECT tar.tag_name
+        FROM kol_category_attribute_relation car
+        INNER JOIN kol_attribute ka ON car.attribute_category_id = ka.id
+        INNER JOIN kol_attribute ka2 ON ka2.attribute_name = SUBSTRING_INDEX(ka.attribute_name_path, '|', 1)
+        INNER JOIN kol_tag_attribute_relation tar ON tar.attribute_id = ka2.id
+        left join kol_tags atr on tar.tag_id = atr.id AND atr.platform_type = #{platformType}
+        WHERE
+        atr.is_active =1
+        and atr.is_delete =0
+        and car.category_id IN
+        <foreach collection="categoryIdList" item="categoryId" open="(" close=")" separator=",">
+            #{categoryId}
+        </foreach>
+    </select>
+
+    <select id="getTagNameByAttributeIds" resultType="java.lang.String">
+        SELECT tar.tag_name
+        FROM kol_tag_attribute_relation tar
+        STRAIGHT_JOIN kol_tags atr on tar.tag_id = atr.id
+        WHERE
+        tar.attribute_id IN
+        <foreach collection="attributeIds.split(',')" item="attributeId" open="(" close=")" separator=",">
+            #{attributeId}
+        </foreach>
+        and atr.platform_type = #{searchModel.platformType}
+        <if test="searchModel.productId != null and searchModel.productId !=''">
+            AND tar.product_id = #{searchModel.productId}
+        </if>
+        AND atr.is_active =1
+        and atr.is_delete =0
+    </select>
+    <select id="getTagNameByConditions" resultType="java.lang.String">
+        SELECT DISTINCT tag_name
+        FROM ${searchModel.tempTableName} b
+        WHERE EXISTS (
+        SELECT 1
+        FROM
+        <if test="searchModel.platformType!= null and searchModel.platformType == 2">
+            tiktok_celebrity_tags
+        </if>
+        <if test="searchModel.platformType!= null and searchModel.platformType == 0">
+            ig_celebrity_tags
+        </if>
+        <if test="searchModel.platformType!= null and searchModel.platformType == 1">
+            youtube_celebrity_tags
+        </if>
+        as cel_tags
+        WHERE cel_tags.tag_name = b.tag_name
+        AND cel_tags.country = #{searchModel.countryCode}
+        )
+    </select>
+
+    <select id="getUniqueIdByConditions" resultType="java.lang.String">
+        SELECT
+        <if test="searchModel.platformType!= null and searchModel.platformType == 2">
+            author_id as unique_id
+        </if>
+        <if test="searchModel.platformType!= null and (searchModel.platformType == 0 or searchModel.platformType == 1)">
+            account as unique_id
+        </if>
+        FROM
+        <if test="searchModel.platformType!= null and searchModel.platformType == 2">
+            tiktok_celebrity_tags
+        </if>
+        <if test="searchModel.platformType!= null and searchModel.platformType == 0">
+            ig_celebrity_tags
+        </if>
+        <if test="searchModel.platformType!= null and searchModel.platformType == 1">
+            youtube_celebrity_tags
+        </if>
+        as cel_tags join ${searchModel.tempTableName} b on cel_tags.tag_name = b.tag_name
+        <where>
+            <if test="searchModel.countryCode != null and searchModel.countryCode !=''">
+                and cel_tags.country = #{searchModel.countryCode}
+            </if>
+        </where>
+    </select>
+
+    <select id="getTagNameByUniqueIds" resultType="java.lang.String">
+        SELECT
+        DISTINCT tag_name
+        FROM
+        <if test="searchModel.platformType!= null and searchModel.platformType == 2">
+            tiktok_celebrity_tags
+        </if>
+        <if test="searchModel.platformType!= null and searchModel.platformType == 0">
+            ig_celebrity_tags
+        </if>
+        <if test="searchModel.platformType!= null and searchModel.platformType == 1">
+            youtube_celebrity_tags
+        </if>
+        as cel_tags join ${searchModel.tempTableName} b on
+        <if test="searchModel.platformType!= null and searchModel.platformType == 2">
+            cel_tags.authorId = b.unique_id
+        </if>
+        <if test="searchModel.platformType!= null and (searchModel.platformType == 0 or searchModel.platformType == 1)">
+            cel_tags.account = b.unique_id
+        </if>
+    </select>
+</mapper>

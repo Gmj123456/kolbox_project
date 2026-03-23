@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jeecg.modules.instagram.storecelebrity.mapper.StoreCelebrityPrivateProductMapper">
+
+    <select id="queryProducts" resultType="org.jeecg.modules.kol.entity.KolProduct">
+        SELECT DISTINCT kp.* FROM store_celebrity_private_product scpp
+        LEFT JOIN kol_product kp ON kp.id=scpp.product_id
+        <where>
+            <if test="relationStatus != null and relationStatus == 0">
+                and scpp.relation_status>=0
+            </if>
+            <if test="relationStatus != null and relationStatus == 1">
+                and scpp.relation_status=1
+            </if>
+        </where>
+
+    </select>
+
+    <select id="getProductList" resultType="org.jeecg.modules.instagram.storecelebrity.model.StoreCelebrityPrivateProductModel">
+        SELECT
+        a2.id,
+        a2.celebrity_id,
+        b2.brand_id,
+        b2.id AS product_id,
+        b2.brand_name,
+        b2.product_name,
+        a2.relation_status,
+        a2.celebrity_counselor_id,
+        a2.celebrity_counselor_name
+        FROM store_celebrity_private_product a2
+        LEFT JOIN kol_product b2 ON a2.product_id = b2.id
+        WHERE b2.brand_id IS NOT NULL
+        AND b2.id IS NOT NULL
+        AND b2.brand_name IS NOT NULL
+        AND b2.product_name IS NOT NULL
+        AND a2.celebrity_id IN
+        <foreach collection="celebrityPrivateIds" item="item" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+    </select>
+</mapper>

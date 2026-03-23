@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jeecg.modules.instagram.storepromotion.mapper.StoreSellerGoodsMapper">
+    <select id="queryGoodsAndSellerCounseloById" parameterType="java.lang.String"
+            resultType="org.jeecg.modules.instagram.storepromotion.model.StoreSellerGoodsModel">
+SELECT
+	ssg.*,
+	su.seller_counselor_id,
+	su.seller_counselor_name
+FROM
+	store_seller_goods ssg
+	LEFT JOIN sys_user su ON ssg.seller_id = su.id
+WHERE
+	ssg.id = #{id}
+    </select>
+
+    <select id="queryStoreSwllerGoodsAndDetailAndCelebrityPrivateById" parameterType="java.lang.String" resultType="org.jeecg.modules.instagram.storepromotion.model.StoreSellerGoodsModel">
+		SELECT
+		ssg.id,
+		ssg.seller_id,
+		ssg.seller_name,
+		ssg.goods_title,
+		ssg.goods_pic_url,
+		ssg.goods_service_amount,
+		ssg.goods_seller_price,
+		ssg.goods_price,
+		ssg.goods_code,
+		ssg.goods_desc,
+		ssg.goods_desc_one,
+		ssg.goods_desc_two,
+		ssg.goods_desc_three,
+		ssg.goods_brand,
+		ssg.goods_expiration_date,
+		ssg.approved_date,
+		ssg.approved_user_id,
+		ssg.approved_status,
+		ssg.remark,
+		ssg.create_by,
+		ssg.create_time,
+		ssg.update_by,
+		ssg.update_time,
+		ssg.currency_type_id,
+		ssg.currency_name,
+		ssg.currency_type,
+		ssg.goods_category,
+		ssg.discount_rate,
+		ssg.putaway_status,
+		ssg.approved_fail_reason,
+		ssg.goods_channel,
+		ssg.review_num,
+
+		ssd.id storeSellDetailId,
+		ssd.celebrity_private_id,
+		ssd.goods_id,
+		ssd.goods_code storeSellDetailGoodsCode,
+		ssd.code_start_time,
+		ssd.code_end_time,
+		ssd.code_discount_rate,
+		ssd.goods_property,
+		ssd.sell_count,
+		ssd.reality_service_amount,
+		ssd.promotion_status,
+		ssd.logistics_num,
+		ssd.receive_time,
+		ssd.share_time,
+		ssd.service_end_time,
+		ssd.remark storeSellDetailRemark,
+
+		scp.id storeCeleBrityPrivateId,
+		scp.celebrity_id,
+		scp.account,
+		scp.username,
+		scp.email,
+		scp.nick_name,
+		scp.like_tags,
+		scp.address,
+		scp.bank_account,
+		scp.gender,
+		scp.platform_type,
+		scp.followers_num,
+		scp.posts_num,
+		scp.cooperation_time,
+		scp.contract_status,
+		scp.contract_time,
+		scp.contract_amount,
+		scp.service_amount_period,
+		scp.flat_fee_period,
+		scp.celebrity_counselor_id,
+		scp.celebrity_counselor_name,
+		scp.sell_video_url,
+		scp.remark storeCeleBrityPrivateRemark,
+
+		su.seller_counselor_name
+
+		FROM
+		store_seller_goods ssg
+		JOIN store_sell_detail ssd ON ssg.id = ssd.goods_id
+		left join  sys_user su on ssg.seller_id = su.id
+		LEFT JOIN store_celebrity_private scp ON ssd.celebrity_private_id = scp.id
+		WHERE
+		ssg.id = #{id}
+	</select>
+
+
+	<select id="sellerCommerceManagementList" parameterType="org.jeecg.modules.instagram.storepromotion.model.SellerCommerceModel" resultType="org.jeecg.modules.instagram.storepromotion.model.SellerCommerceModel">
+		SELECT
+			ssg.seller_id,
+			ssg.seller_name,
+			ssd.YEAR,
+			ssd.MONTH,
+			count( ssd.id ) commerceCount,
+			sum( CASE WHEN ssd.settlement_status = '1' THEN 1 ELSE 0 END ) settlementCount,
+			sum( CASE WHEN ssd.settlement_status = '0' THEN 1 ELSE 0 END ) unSettlementCount,
+			sum( ssd.settlement_amount ) settlementAmount,
+			su.seller_counselor_name
+		FROM
+			store_seller_goods ssg
+			RIGHT JOIN store_sell_detail ssd ON ssg.id = ssd.goods_id
+			LEFT JOIN sys_user su ON ssg.seller_id = su.id
+			<where>
+				<if test="sellerCommerceModel.sellerName !=null and sellerCommerceModel.sellerName !=''">
+					and ssg.seller_name like CONCAT('%', #{sellerCommerceModel.sellerName}, '%')
+				</if>
+				<if test="sellerCommerceModel.settlementStatus != null">
+					and ssd.settlement_status = #{sellerCommerceModel.settlementStatus}
+				</if>
+				<if test="sellerCommerceModel.sellerCounselorName !=null and sellerCommerceModel.sellerCounselorName !=''">
+					and su.seller_counselor_name like CONCAT('%', #{sellerCommerceModel.sellerCounselorName}, '%')
+				</if>
+
+				<if test="sellerCommerceModel.startYear != '' and sellerCommerceModel.startYear != null and sellerCommerceModel.startMonth != '' and sellerCommerceModel.startMonth != null">
+					and ssd.year >= #{sellerCommerceModel.startYear}
+					and ssd.month >= #{sellerCommerceModel.startMonth}
+				</if>
+				<if test="sellerCommerceModel.endYear != '' and sellerCommerceModel.startYear != null and sellerCommerceModel.endMonth != '' and sellerCommerceModel.endMonth != null">
+					and ssd.year &lt;= #{sellerCommerceModel.endYear}
+					and ssd.month &lt;= #{sellerCommerceModel.endMonth}
+				</if>
+			</where>
+		GROUP BY
+			ssg.seller_id,
+			ssg.seller_name,
+			ssd.YEAR,
+			ssd.MONTH
+	</select>
+
+
+
+	<select id="queryBySellerId" parameterType="org.jeecg.modules.instagram.storepromotion.model.SellerCommerceModel" resultType="org.jeecg.modules.instagram.storecelebrity.model.StoreSellDetailModel">
+		SELECT
+			ssd.*,
+			ssg.seller_name,
+			ssg.goods_title,
+			ssg.goods_url,
+			ssg.goods_pic_url
+		FROM
+			store_seller_goods ssg
+			right JOIN store_sell_detail ssd ON ssg.id = ssd.goods_id
+		WHERE
+			ssg.seller_id = #{sellerCommerceModel.sellerId}
+			and ssd.year = #{sellerCommerceModel.year}
+			and ssd.month = #{sellerCommerceModel.month}
+		<if test="sellerCommerceModel.settlementStatus != null">
+			and ssd.settlement_status = #{sellerCommerceModel.settlementStatus}
+		</if>
+	</select>
+
+</mapper>

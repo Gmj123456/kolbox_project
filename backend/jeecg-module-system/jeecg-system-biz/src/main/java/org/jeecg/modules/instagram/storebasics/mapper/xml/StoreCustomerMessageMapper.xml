@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jeecg.modules.instagram.storebasics.mapper.StoreCustomerMessageMapper">
+    <select id="queryAll" parameterType="org.jeecg.modules.instagram.storebasics.entity.StoreCustomerMessage"
+            resultType="org.jeecg.modules.instagram.storebasics.entity.StoreCustomerMessage">
+        SELECT * FROM `store_customer_message`
+        where is_del != 1
+        <if test="storeCustomerMessage.fullName != null and storeCustomerMessage.fullName != ''">
+            AND full_name LIKE '%${storeCustomerMessage.fullName}%'
+        </if>
+        <if test="storeCustomerMessage.isRead != null">
+            AND is_read = #{storeCustomerMessage.isRead}
+        </if>
+        order by create_time desc
+    </select>
+</mapper>

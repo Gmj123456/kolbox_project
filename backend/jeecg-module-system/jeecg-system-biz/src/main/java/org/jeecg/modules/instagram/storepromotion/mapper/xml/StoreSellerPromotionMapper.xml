@@ -1,0 +1,610 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jeecg.modules.instagram.storepromotion.mapper.StoreSellerPromotionMapper">
+    <select id="queryStoreSellerPromotionManagementList"
+            parameterType="org.jeecg.modules.instagram.storepromotion.entity.StoreSellerPromotion"
+            resultType="org.jeecg.modules.instagram.storepromotion.model.StoreSellerPromotionModel">
+        SELECT ssp.*,
+        qn.qr_code as qrCode,
+        qn.nickname
+        FROM store_seller_promotion as ssp
+        LEFT JOIN (SELECT
+        a.id,
+        a.prom_id,
+        a.goods_title,
+        b.product_name,
+        b.brand_id,
+        b.brand_name
+        FROM
+        store_promotion_goods a
+        LEFT JOIN kol_product b ON a.kol_product_id = b.id ) spg on ssp.id = spg.prom_id
+        LEFT JOIN store_promotion_goods_celebrity spgc ON spgc.goods_id = spg.id
+        LEFT JOIN store_celebrity_private scp ON spgc.celebrity_private_id = scp.id
+        LEFT JOIN store_user_counselor qn ON ssp.seller_counselor_id = qn.id
+        where ssp.is_del =0
+        <if test="storeSellerPromotionModel.productBrand != null and storeSellerPromotionModel.productBrand != ''">
+            and ssp.product_brand like CONCAT('%', #{storeSellerPromotionModel.productBrand}, '%')
+        </if>
+        <if test="storeSellerPromotionModel.account != null and storeSellerPromotionModel.account != ''">
+            and scp.account like CONCAT('%', #{storeSellerPromotionModel.account}, '%')
+        </if>
+        <if test="storeSellerPromotionModel.sellerName != null and storeSellerPromotionModel.sellerName != ''">
+            and ssp.seller_name like CONCAT('%', #{storeSellerPromotionModel.sellerName}, '%')
+        </if>
+        <if test="storeSellerPromotionModel.extensionCode != null and storeSellerPromotionModel.extensionCode != ''">
+            and ssp.extension_code like CONCAT('%', #{storeSellerPromotionModel.extensionCode}, '%')
+        </if>
+        <if test="storeSellerPromotionModel.promStatus != null">
+            and ssp.prom_status = #{storeSellerPromotionModel.promStatus}
+        </if>
+        <if test="storeSellerPromotionModel.promTags != null">
+            and ssp.prom_tags in
+            <foreach collection="storeSellerPromotionModel.promTags.split(',')" item="item" separator="," open="(" close=")" index="index">
+                #{item}
+            </foreach>
+        </if>
+        <if test="storeSellerPromotionModel.approvedStatus != null">
+            and ssp.approved_status = #{storeSellerPromotionModel.approvedStatus}
+        </if>
+        <if test="storeSellerPromotionModel.payStatus != null">
+            and ssp.pay_status = #{storeSellerPromotionModel.payStatus}
+        </if>
+        <if test="storeSellerPromotionModel.counselorUserId != null and storeSellerPromotionModel.counselorUserId != ''">
+            AND ssp.counselor_user_id = #{storeSellerPromotionModel.counselorUserId}
+        </if>
+        <if test="storeSellerPromotionModel.promTitle != null and storeSellerPromotionModel.promTitle != ''">
+            and ssp.prom_title like CONCAT('%', #{storeSellerPromotionModel.promTitle}, '%')
+        </if>
+        <if test="storeSellerPromotionModel.goodsTitle != null and storeSellerPromotionModel.goodsTitle != ''">
+            and spg.goods_title like CONCAT('%', #{storeSellerPromotionModel.goodsTitle}, '%')
+        </if>
+        <if test="storeSellerPromotionModel.celebrityUserId != null and storeSellerPromotionModel.celebrityUserId != ''">
+            and ssp.celebrity_user_id = #{storeSellerPromotionModel.celebrityUserId}
+        </if>
+        <if test="storeSellerPromotionModel.celebrityCounselorId != null and storeSellerPromotionModel.celebrityCounselorId != ''">
+            AND spgc.celebrity_counselor_id = #{storeSellerPromotionModel.celebrityCounselorId}
+            and spgc.celebrity_status = 1
+            AND spgc.is_del = 0
+        </if>
+        <if test="storeSellerPromotionModel.celebrityPromStatus != null">
+            AND spgc.celebrity_prom_status = #{storeSellerPromotionModel.celebrityPromStatus}
+        </if>
+        <!--      <if test="storeSellerPromotionModel.promotionType !=null">
+                  AND ssp.promotion_type = #{storeSellerPromotionModel.promotionType}
+              </if>-->
+        <if test="storeSellerPromotionModel.promotionType == null">
+            AND ssp.promotion_type = 0
+        </if>
+        <if test="storeSellerPromotionModel.isNewData != null">
+            and ssp.create_time > '2025-01-01 00:00:00'
+        </if>
+        group by ssp.id
+        ORDER BY ssp.create_time DESC
+    </select>
+    <select id="pageList"
+            resultType="org.jeecg.modules.instagram.storepromotion.entity.StoreSellerPromotion">
+        SELECT ssp.*
+        FROM store_seller_promotion as ssp
+        LEFT JOIN (SELECT
+        a.id,
+        a.prom_id,
+        a.goods_title,
+        b.product_name,
+        b.brand_id,
+        b.brand_name
+        FROM
+        store_promotion_goods a
+        LEFT JOIN kol_product b ON a.kol_product_id = b.id ) spg on ssp.id = spg.prom_id
+        ${sql}
+        where ssp.is_del != 1
+        <if test="storeSellerPromotionModel.sellerId != null and storeSellerPromotionModel.sellerId != ''">
+            and (ssp.seller_id = #{storeSellerPromotionModel.sellerId} or ssp.counselor_user_id =
+            #{storeSellerPromotionModel.counselorUserId})
+        </if>
+        <if test="storeSellerPromotionModel.promTitle != null and storeSellerPromotionModel.promTitle != ''">
+            and ssp.prom_title like CONCAT('%', #{storeSellerPromotionModel.promTitle}, '%')
+        </if>
+        <if test="storeSellerPromotionModel.sellerName != null and storeSellerPromotionModel.sellerName != ''">
+            and ssp.seller_name like CONCAT('%', #{storeSellerPromotionModel.sellerName}, '%')
+        </if>
+        <if test="storeSellerPromotionModel.extensionCode != null and storeSellerPromotionModel.extensionCode != ''">
+            and ssp.extension_code like '%${storeSellerPromotionModel.extensionCode}%'
+        </if>
+        <if test="storeSellerPromotionModel.celebrityPromStatus != null">
+            and spgc.celebrity_prom_status = #{storeSellerPromotionModel.celebrityPromStatus}
+        </if>
+        <if test="storeSellerPromotionModel.payStatus != null">
+            and ssp.pay_status = #{storeSellerPromotionModel.payStatus}
+        </if>
+        <if test="storeSellerPromotionModel.goodsTitle != null and storeSellerPromotionModel.goodsTitle != ''">
+            and spg.goods_title like CONCAT('%', #{storeSellerPromotionModel.goodsTitle}, '%')
+        </if>
+        <if test="storeSellerPromotionModel.kolAccount != null and storeSellerPromotionModel.kolAccount != ''">
+            and scp.account like '%${storeSellerPromotionModel.kolAccount}%'
+        </if>
+        <if test="storeSellerPromotionModel.isNewData != null">
+            and ssp.create_time > '2025-01-01 00:00:00'
+        </if>
+        <if test="storeSellerPromotionModel.promType != null">
+            and ssp.prom_type = #{storeSellerPromotionModel.promType}
+        </if>
+        GROUP BY ssp.id
+        ORDER BY ssp.create_time DESC
+    </select>
+    <select id="queryByExtensionCode"
+            resultType="org.jeecg.modules.instagram.storepromotion.entity.StoreSellerPromotion">
+        SELECT id,
+               extension_code,
+               prom_title
+        FROM store_seller_promotion
+        WHERE 1 = 1
+        <if test="code != null and code != ''">
+            and extension_code like '%${code}%'
+        </if>
+    </select>
+    <select id="getPromotionStatistics"
+            resultType="org.jeecg.modules.instagram.storepromotion.model.PromotionStatisticsModel">
+        SELECT
+            -- 推广单数
+            COUNT(*)                                                              AS prom_count,
+            -- 未开始单数
+            SUM(IF(prom_status = 0, 1, 0))                                        AS unstart_count,
+            -- 进行中单数
+            SUM(IF(prom_status = 10, 1, 0))                                       AS underway_count,
+            -- 已结束（异常）单数
+            SUM(IF(prom_status = 90, 1, 0))                                       AS abnormal_finish_count,
+            -- 已结束（正常）单数
+            SUM(IF(prom_status = 99, 1, 0))                                       AS normal_finish_count,
+            -- 只收意向金单数
+            SUM(IF(intention_amount > 0 AND (payment_amount = 0 OR payment_amount IS NULL), 1,
+                   0))                                                            AS only_intention_count,
+            -- 只收意向金总额
+            SUM(IF(intention_amount > 0 AND (payment_amount = 0 OR payment_amount IS NULL), intention_amount,
+                   0))                                                            AS only_intention_amount_sum,
+            -- 已付意向金单数
+            SUM(IF(intention_amount > 0, 1, 0))                                   AS intention_count,
+            -- 已付意向金总额
+            SUM(IF(intention_amount > 0, intention_amount, 0))                    AS intention_amount_sum,
+            -- 已付订金单数
+            SUM(IF(payment_amount > 0 AND pay_status &lt; 20, 1, 0))              AS payment_amount_count,
+            -- 已付订金总额
+            SUM(IF(payment_amount > 0 AND pay_status &lt; 20, payment_amount, 0)) AS payment_amount_sum,
+            -- 已付全款单数
+            SUM(IF(pay_status = 20, 1, 0))                                        AS full_payment_amount_count,
+            -- 已付全款总额
+            SUM(IF(pay_status = 20, payment_amount + intention_amount, 0))        AS full_payment_amount_sum,
+            -- 有退款订单单数
+            SUM(IF(refund_amount > 0, 1, 0))                                      AS refund_amount_count,
+            -- 退款总额
+            SUM(IF(refund_amount > 0, refund_amount, 0))                          AS refund_amount_sum,
+            -- 总收入金额
+            SUM(IF(payment_amount > 0, payment_amount, 0)) + SUM(IF(intention_amount > 0, intention_amount, 0)) -
+            SUM(IF(refund_amount > 0, refund_amount, 0))                          AS total_amount_sum
+        FROM store_seller_promotion ssp
+            RIGHT JOIN (SELECT su.id
+        FROM
+        sys_user su
+            LEFT JOIN ( SELECT id, username
+                        FROM sys_user WHERE user_type = 3
+        <if test="promotionStatisticsModel.counselorUserId != null and promotionStatisticsModel.counselorUserId != ''">
+            AND counselor_user_id = #{promotionStatisticsModel.counselorUserId}
+        </if>
+        <if test="promotionStatisticsModel.sid != null and promotionStatisticsModel.sid != ''">
+            AND id = #{promotionStatisticsModel.sid}
+        </if>
+        ) ssu ON ssu.id = su.seller_counselor_id
+        WHERE su.seller_counselor_id IS NOT NULL
+          AND su.seller_counselor_id != ''
+          AND ssu.username IS NOT NULL) qn on qn.id = ssp.seller_id
+        WHERE DATE_FORMAT(ssp.create_time, '%Y-%m-%d') &gt;=
+              DATE_FORMAT(#{promotionStatisticsModel.startDate}, '%Y-%m-%d')
+          AND DATE_FORMAT(ssp.create_time, '%Y-%m-%d') &lt;=
+              DATE_FORMAT(#{promotionStatisticsModel.endDate}, '%Y-%m-%d')
+          AND ssp.is_del = 0
+    </select>
+    <select id="getPromotionStatisticsDetail"
+            resultType="org.jeecg.modules.instagram.storepromotion.model.StoreSellerPromotionModel">
+        SELECT ssp.*,
+               qn.sid     as sid,
+               qn.qr_code as qrCode,
+               qn.nickname
+        FROM store_seller_promotion as ssp
+                 RIGHT JOIN (SELECT ssu.id,
+                                    su.id sid,
+                                    su.qr_code,
+                                    su.nickname,
+                                    su.username,
+                                    su.counselor_user_id
+                             FROM sys_user as su
+                                      LEFT JOIN sys_user as ssu ON su.id = ssu.seller_counselor_id
+                             WHERE su.user_type = 3
+                               AND su.nickname != ''
+                               AND ssu.username != '') qn ON ssp.seller_id = qn.id
+        where is_del != 1
+
+        <if test="storeSellerPromotionModel.sid != null and storeSellerPromotionModel.sid != ''">
+            AND qn.sid = #{storeSellerPromotionModel.sid}
+        </if>
+
+        <if test="storeSellerPromotionModel.counselorUserId != null  and storeSellerPromotionModel.counselorUserId != ''">
+            AND qn.counselor_user_id = #{storeSellerPromotionModel.counselorUserId}
+        </if>
+        -- 未开始单数
+        <if test="storeSellerPromotionModel.params == 1">
+            AND prom_status = 0
+        </if>
+        -- 进行中单数
+        <if test="storeSellerPromotionModel.params == 2">
+            AND prom_status = 10
+        </if>
+        -- 已结束（异常）单数
+        <if test="storeSellerPromotionModel.params == 3">
+            AND prom_status = 90
+        </if>
+        -- 已结束（正常）单数
+        <if test="storeSellerPromotionModel.params == 4">
+            AND prom_status = 99
+        </if>
+        -- 只收意向金单数
+        <if test="storeSellerPromotionModel.params == 5">
+            AND intention_amount &gt; 0
+            AND (payment_amount = 0 OR payment_amount IS NULL)
+        </if>
+        -- 已付意向金单数
+        <if test="storeSellerPromotionModel.params == 6">
+            AND intention_amount &gt; 0
+        </if>
+        -- 已付订金单数
+        <if test="storeSellerPromotionModel.params == 7">
+            AND payment_amount &gt; 0
+            AND pay_status &lt; 20
+        </if>
+        -- 已付全款单数
+        <if test="storeSellerPromotionModel.params == 8">
+            AND pay_status = 20
+        </if>
+        -- 有退款订单单数
+        <if test="storeSellerPromotionModel.params == 9">
+            AND refund_amount &gt; 0
+        </if>
+        <if test="storeSellerPromotionModel.celebrityUserId != null and storeSellerPromotionModel.celebrityUserId != ''">
+            AND ssp.celebrity_user_id = #{storeSellerPromotionModel.celebrityUserId}
+        </if>
+        AND DATE_FORMAT(ssp.create_time, '%Y-%m-%d') &gt;= DATE_FORMAT(#{storeSellerPromotionModel.startDate},
+                                                                       '%Y-%m-%d')
+        AND DATE_FORMAT(ssp.create_time, '%Y-%m-%d') &lt;= DATE_FORMAT(#{storeSellerPromotionModel.endDate}, '%Y-%m-%d')
+        ORDER BY ssp.create_time DESC
+    </select>
+    <select id="getExtensionStaffStatistics"
+            resultType="org.jeecg.modules.instagram.storepromotion.model.PromotionStatisticsModel">
+        SELECT ssp.counselor_user_id,
+               ssp.counselor_user_name                                                  as username,
+               -- 推广单数
+               COUNT(*)                                                                 AS prom_count,
+               -- 未开始单数
+               SUM(IF(prom_status = 0, 1, 0))                                           AS unstart_count,
+               -- 进行中单数
+               SUM(IF(prom_status = 10, 1, 0))                                          AS underway_count,
+               -- 已结束（异常）单数
+               SUM(IF(prom_status = 90, 1, 0))                                          AS abnormal_finish_count,
+               -- 已结束（正常）单数
+               SUM(IF(prom_status = 99, 1, 0))                                          AS normal_finish_count,
+               -- 只收意向金单数
+               SUM(IF(intention_amount &gt; 0 AND (payment_amount = 0 OR payment_amount IS NULL), 1,
+                      0))                                                               AS only_intention_count,
+               -- 只收意向金总额
+               SUM(IF(intention_amount &gt; 0 AND (payment_amount = 0 OR payment_amount IS NULL), intention_amount,
+                      0))                                                               AS only_intention_amount_sum,
+               -- 已付意向金单数
+               SUM(IF(intention_amount &gt; 0, 1, 0))                                   AS intention_count,
+               -- 已付意向金总额
+               SUM(IF(intention_amount &gt; 0, intention_amount, 0))                    AS intention_amount_sum,
+               -- 已付订金单数
+               SUM(IF(payment_amount &gt; 0 AND pay_status &lt; 20, 1, 0))              AS payment_amount_count,
+               -- 已付订金总额
+               SUM(IF(payment_amount &gt; 0 AND pay_status &lt; 20, payment_amount, 0)) AS payment_amount_sum,
+               -- 已付全款单数
+               SUM(IF(pay_status = 20, 1, 0))                                           AS full_payment_amount_count,
+               -- 已付全款总额
+               SUM(IF(pay_status = 20, payment_amount + intention_amount, 0))           AS full_payment_amount_sum,
+               -- 有退款订单单数
+               SUM(IF(refund_amount &gt; 0, 1, 0))                                      AS refund_amount_count,
+               -- 退款总额
+               SUM(IF(refund_amount &gt; 0, refund_amount, 0))                          AS refund_amount_sum,
+               -- 总收入金额
+               SUM(IF(payment_amount &gt; 0, payment_amount, 0)) + SUM(IF(intention_amount &gt; 0, intention_amount, 0)) -
+               SUM(IF(refund_amount &gt; 0, refund_amount, 0))                          AS total_amount_sum
+        FROM store_seller_promotion ssp
+        WHERE ssp.is_del = 0
+        <if test="promotionStatisticsModel.counselorUserId != null and promotionStatisticsModel.counselorUserId != ''">
+            AND ssp.counselor_user_id = #{promotionStatisticsModel.counselorUserId}
+        </if>
+        AND DATE_FORMAT(ssp.create_time, '%Y-%m-%d') &gt;= DATE_FORMAT(#{promotionStatisticsModel.startDate}, '%Y-%m-%d')
+        AND DATE_FORMAT(ssp.create_time, '%Y-%m-%d') &lt;= DATE_FORMAT(#{promotionStatisticsModel.endDate}, '%Y-%m-%d')
+        GROUP BY ssp.counselor_user_id
+    </select>
+    <select id="getPersonChargeStatistics"
+            resultType="org.jeecg.modules.instagram.storepromotion.model.PromotionStatisticsModel">
+        SELECT celebrity_user_name                                                      as username,
+               celebrity_user_id,
+               -- 推广单数
+               COUNT(*)                                                                 AS prom_count,
+               -- 未开始单数
+               SUM(IF(prom_status = 0, 1, 0))                                           AS unstart_count,
+               -- 进行中单数
+               SUM(IF(prom_status = 10, 1, 0))                                          AS underway_count,
+               -- 已结束（异常）单数
+               SUM(IF(prom_status = 90, 1, 0))                                          AS abnormal_finish_count,
+               -- 已结束（正常）单数
+               SUM(IF(prom_status = 99, 1, 0))                                          AS normal_finish_count,
+               -- 只收意向金单数
+               SUM(IF(intention_amount &gt; 0 AND (payment_amount = 0 OR payment_amount IS NULL), 1,
+                      0))                                                               AS only_intention_count,
+               -- 只收意向金总额
+               SUM(IF(intention_amount &gt; 0 AND (payment_amount = 0 OR payment_amount IS NULL), intention_amount,
+                      0))                                                               AS only_intention_amount_sum,
+               -- 已付意向金单数
+               SUM(IF(intention_amount &gt; 0, 1, 0))                                   AS intention_count,
+               -- 已付意向金总额
+               SUM(IF(intention_amount &gt; 0, intention_amount, 0))                    AS intention_amount_sum,
+               -- 已付订金单数
+               SUM(IF(payment_amount &gt; 0 AND pay_status &lt; 20, 1, 0))              AS payment_amount_count,
+               -- 已付订金总额
+               SUM(IF(payment_amount &gt; 0 AND pay_status &lt; 20, payment_amount, 0)) AS payment_amount_sum,
+               -- 已付全款单数
+               SUM(IF(pay_status = 20, 1, 0))                                           AS full_payment_amount_count,
+               -- 已付全款总额
+               SUM(IF(pay_status = 20, payment_amount + intention_amount, 0))           AS full_payment_amount_sum,
+               -- 有退款订单单数
+               SUM(IF(refund_amount &gt; 0, 1, 0))                                      AS refund_amount_count,
+               -- 退款总额
+               SUM(IF(refund_amount &gt; 0, refund_amount, 0))                          AS refund_amount_sum,
+               -- 总收入金额
+               SUM(IF(payment_amount &gt; 0, payment_amount, 0)) +
+               SUM(IF(intention_amount &gt; 0, intention_amount, 0)) -
+               SUM(IF(refund_amount &gt; 0, refund_amount, 0))                          AS total_amount_sum
+        from store_seller_promotion
+        WHERE celebrity_user_id is not null
+          and celebrity_user_name is not null
+          AND is_del = 0
+          AND DATE_FORMAT(create_time, '%Y-%m-%d') &gt;= DATE_FORMAT(#{promotionStatisticsModel.startDate}, '%Y-%m-%d')
+          AND DATE_FORMAT(create_time, '%Y-%m-%d') &lt;= DATE_FORMAT(#{promotionStatisticsModel.endDate}, '%Y-%m-%d')
+        <if test="promotionStatisticsModel.celebrityUserId != null and promotionStatisticsModel.celebrityUserId != ''">
+            AND celebrity_user_id = #{promotionStatisticsModel.celebrityUserId}
+        </if>
+        GROUP BY celebrity_user_id
+    </select>
+
+    <select id="getPaymentStatisticsDetail"
+            resultType="org.jeecg.modules.instagram.storepromotion.model.StoreSellerPromotionModel">
+        SELECT sur.counselor_user_id    AS counselor_user_id,
+               sur.counselor_user_name  AS counselorUserName,
+               su.seller_counselor_name as sellerCounselorName,
+               spp.pay_type,
+               spp.consume_date,
+               ssp.*
+        FROM store_seller_promotion ssp
+                 LEFT JOIN sys_user AS su ON ssp.seller_id = su.id
+                 LEFT JOIN sys_user AS sur ON sur.id = su.seller_counselor_id
+                 LEFT JOIN (SELECT e1.prom_id,
+                                   e1.pay_type,
+                                   e1.consume_date
+                            FROM store_promotion_payment e1
+                                     LEFT JOIN store_promotion_payment e2 ON e1.prom_id = e2.prom_id
+                                AND ((
+                                         e1.consume_date &lt; e2.consume_date
+                                         )
+                                    OR (e1.consume_date = e2.consume_date AND e1.create_time &lt; e2.create_time))
+                            WHERE e1.consume_date is not null
+                            GROUP BY e1.id
+                            HAVING count(DISTINCT e2.consume_date) &lt; 1) spp ON spp.prom_id = ssp.id
+        <where>
+            <if test="promotionStatisticsModel.counselorUserId != null">
+                and sur.counselor_user_id = #{promotionStatisticsModel.counselorUserId}
+            </if>
+            <if test="promotionStatisticsModel.startPayDate != null  and promotionStatisticsModel.params != 6">
+                and spp.consume_date &gt; #{promotionStatisticsModel.startPayDate}
+            </if>
+            <if test="promotionStatisticsModel.endPayDate != null and promotionStatisticsModel.params != 6">
+                and spp.consume_date &lt; #{promotionStatisticsModel.endPayDate}
+            </if>
+            <!-- 意向金 -->
+            <if test="promotionStatisticsModel.params == 1">
+                and spp.pay_type = 1
+                AND ssp.pay_status &lt; 20
+            </if>
+            <!-- 仅全款 -->
+            <if test="promotionStatisticsModel.params == 2">
+                and (ssp.intention_amount is null or ssp.intention_amount = 0)
+                AND ssp.pay_status = 20
+            </if>
+            <!-- 意向金/全款单数 -->
+            <if test="promotionStatisticsModel.params == 3">
+                and ssp.intention_amount IS NOT NULL
+                AND ssp.intention_amount &gt; 0
+                AND ssp.pay_status = 20
+            </if>
+            <!-- 合计单数 -->
+            <if test="promotionStatisticsModel.params == 4">
+                and spp.pay_type &lt;&gt; 2
+                and ssp.pay_status &lt;&gt; 10
+            </if>
+            <!-- 退款单数 -->
+            <if test="promotionStatisticsModel.params == 5">
+                and spp.pay_type = 2
+            </if>
+            <!-- 推广超期单数 -->
+            <if test="promotionStatisticsModel.params == 6">
+                and ssp.pay_status &lt; 20
+                AND spp.consume_date IS NOT NULL
+                and TIMESTAMPDIFF(DAY, spp.consume_date, now()) > 25
+            </if>
+        </where>
+    </select>
+
+    <select id="getPaymentStatisticsDetailByXls"
+            resultType="org.jeecg.modules.instagram.storepromotion.model.StoreSellerPromotionModel">
+        SELECT sur.counselor_user_id    AS counselor_user_id,
+               sur.counselor_user_name  AS counselorUserName,
+               su.seller_counselor_name as sellerCounselorName,
+               spp.pay_type,
+               spp.consume_date,
+               ssp.*
+        FROM store_seller_promotion ssp
+                 LEFT JOIN sys_user AS su ON ssp.seller_id = su.id
+                 LEFT JOIN sys_user AS sur ON sur.id = su.seller_counselor_id
+                 LEFT JOIN (SELECT e1.prom_id,
+                                   e1.pay_type,
+                                   e1.consume_date
+                            FROM store_promotion_payment e1
+                                     LEFT JOIN store_promotion_payment e2 ON e1.prom_id = e2.prom_id
+                                AND ((
+                                         e1.consume_date &lt; e2.consume_date
+                                         )
+                                    OR (e1.consume_date = e2.consume_date AND e1.create_time &lt; e2.create_time))
+                            WHERE e1.consume_date is not null
+                            GROUP BY e1.id
+                            HAVING count(DISTINCT e2.consume_date) &lt; 1) spp ON spp.prom_id = ssp.id
+        <where>
+            sur.counselor_user_id is not null
+            <if test="promotionStatisticsModel.counselorUserId != null">
+                and sur.counselor_user_id = #{promotionStatisticsModel.counselorUserId}
+            </if>
+            <if test="promotionStatisticsModel.startPayDate != null">
+                and spp.consume_date &gt; #{promotionStatisticsModel.startPayDate}
+            </if>
+            <if test="promotionStatisticsModel.endPayDate != null">
+                and spp.consume_date &lt; #{promotionStatisticsModel.endPayDate}
+            </if>
+            <!-- 意向金 -->
+            <if test="promotionStatisticsModel.params == 1">
+                and spp.pay_type = 1
+                AND ssp.pay_status &lt; 20
+            </if>
+            <!-- 仅全款 -->
+            <if test="promotionStatisticsModel.params == 2">
+                and (ssp.intention_amount is null or ssp.intention_amount = 0)
+                AND ssp.pay_status = 20
+            </if>
+            <!-- 意向金/全款单数 -->
+            <if test="promotionStatisticsModel.params == 3">
+                and ssp.intention_amount IS NOT NULL
+                AND ssp.intention_amount &gt; 0
+                AND ssp.pay_status = 20
+            </if>
+            <!-- 合计单数 -->
+            <if test="promotionStatisticsModel.params == 4">
+                and spp.pay_type &lt;&gt; 2
+                and ssp.pay_status &lt;&gt; 10
+            </if>
+            <!-- 退款单数 -->
+            <if test="promotionStatisticsModel.params == 5">
+                and spp.pay_type = 2
+            </if>
+        </where>
+    </select>
+    <select id="getPaymentStatisticsDetailExceedTime"
+            resultType="org.jeecg.modules.instagram.storepromotion.model.StoreSellerPromotionModel">
+        SELECT sur.counselor_user_id    AS counselor_user_id,
+               sur.counselor_user_name  AS counselorUserName,
+               su.seller_counselor_name as sellerCounselorName,
+               spp.consume_date,
+               ssp.*
+        FROM store_seller_promotion ssp
+                 LEFT JOIN sys_user AS su ON ssp.seller_id = su.id
+                 LEFT JOIN sys_user AS sur ON sur.id = su.seller_counselor_id
+                 LEFT JOIN (SELECT prom_id,
+                                   MIN(consume_date) AS consume_date
+                            FROM store_promotion_payment AS spp
+                                     LEFT JOIN store_seller_promotion ssp ON ssp.id = spp.prom_id
+                            WHERE ssp.pay_status &lt; 20
+                              AND consume_date IS NOT NULL
+                            GROUP BY prom_id) spp ON spp.prom_id = ssp.id
+        <where>
+            sur.counselor_user_id is not null
+              and TIMESTAMPDIFF(DAY, spp.consume_date, now()) > 25
+            <if test="promotionStatisticsModel.counselorUserId != null">
+                and sur.counselor_user_id = #{promotionStatisticsModel.counselorUserId}
+            </if>
+        </where>
+    </select>
+
+
+    <select id="getPaymentStatisticsDetailExceedTimeByXls"
+            resultType="org.jeecg.modules.instagram.storepromotion.model.StoreSellerPromotionModel">
+        SELECT sur.counselor_user_id    AS counselor_user_id,
+               sur.counselor_user_name  AS counselorUserName,
+               su.seller_counselor_name as sellerCounselorName,
+               spp.consume_date,
+               ssp.*
+        FROM store_seller_promotion ssp
+                 LEFT JOIN sys_user AS su ON ssp.seller_id = su.id
+                 LEFT JOIN sys_user AS sur ON sur.id = su.seller_counselor_id
+                 LEFT JOIN (SELECT prom_id,
+                                   MIN(consume_date) AS consume_date
+                            FROM store_promotion_payment AS spp
+                                     LEFT JOIN store_seller_promotion ssp ON ssp.id = spp.prom_id
+                            WHERE ssp.pay_status &lt; 20
+                              AND consume_date IS NOT NULL
+                            GROUP BY prom_id) spp ON spp.prom_id = ssp.id
+        <where>
+            sur.counselor_user_id is not null
+              and TIMESTAMPDIFF(DAY, spp.consume_date, now()) > 25
+            <if test="promotionStatisticsModel.counselorUserId != null">
+                and sur.counselor_user_id = #{promotionStatisticsModel.counselorUserId}
+            </if>
+        </where>
+    </select>
+
+    <select id="getPromotionList" resultType="java.util.LinkedHashMap">
+        SELECT ssp.id,
+               ssp.extension_code AS extensionCode,
+               ssp.prom_title     AS promTitle
+        FROM store_seller_promotion ssp
+        WHERE ssp.is_del != 1
+          AND ssp.promotion_type = 1
+          AND ssp.prom_status != 99
+          AND ssp.prom_status != 90
+        <if test="storeSellerPromotionModel.sellerId != null and storeSellerPromotionModel.sellerId != ''">
+            and ssp.seller_id = #{storeSellerPromotionModel.sellerId}
+        </if>
+        <if test="storeSellerPromotionModel.promTitle != null and storeSellerPromotionModel.promTitle != ''">
+            and ssp.prom_title like CONCAT('%', #{storeSellerPromotionModel.promTitle}, '%')
+        </if>
+        <if test="storeSellerPromotionModel.extensionCode != null and storeSellerPromotionModel.extensionCode != ''">
+            and ssp.extension_code like '%${storeSellerPromotionModel.extensionCode}%'
+        </if>
+        <if test="storeSellerPromotionModel.counselorUserId != null and storeSellerPromotionModel.counselorUserId != ''">
+            AND ssp.counselor_user_id = #{storeSellerPromotionModel.counselorUserId}
+        </if>
+        <if test="storeSellerPromotionModel.sellerCounselorId != null and storeSellerPromotionModel.sellerCounselorId != ''">
+            AND ssp.seller_counselor_id = #{storeSellerPromotionModel.sellerCounselorId}
+        </if>
+        ORDER BY ssp.create_time DESC
+    </select>
+
+    <select id="queryPageSellerList" resultType="org.jeecg.modules.instagram.storepromotion.entity.StoreSellerPromotion">
+        SELECT ssp.*
+        FROM store_seller_promotion as ssp
+        where ssp.is_del != 1
+        and ssp.prom_type = 1
+        <if test="storeSellerPromotionModel.sellerId != null and storeSellerPromotionModel.sellerId != ''">
+            and (ssp.seller_id = #{storeSellerPromotionModel.sellerId} or ssp.counselor_user_id =
+            #{storeSellerPromotionModel.counselorUserId})
+        </if>
+        <if test="storeSellerPromotionModel.extensionCode != null and storeSellerPromotionModel.extensionCode != ''">
+            and ssp.extension_code like '%${storeSellerPromotionModel.extensionCode}%'
+        </if>
+        <if test="storeSellerPromotionModel.promPlatform != null and storeSellerPromotionModel.promPlatform != ''">
+            AND (
+            <foreach collection="storeSellerPromotionModel.promPlatform.split(',')" item="platform" separator=" OR " open="" close="">
+                FIND_IN_SET(#{platform}, ssp.prom_platform) > 0
+            </foreach>
+            )
+        </if>
+        <if test="storeSellerPromotionModel.promBudget != null and storeSellerPromotionModel.promBudget != ''">
+            AND ssp.prom_budget like CONCAT('%', #{storeSellerPromotionModel.promBudget}, '%')
+        </if>
+        ORDER BY ssp.create_time DESC
+    </select>
+</mapper>

@@ -1,0 +1,241 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jeecg.modules.youtube.mapper.YoutubeCelebrityMapper">
+
+    <select id="getYoutubeCelebrityList" resultType="org.jeecg.modules.youtube.model.YoutubeCelebrityModel">
+        SELECT tc.*,
+               tc.followers_num as authorFollowerCount,
+               tc.account       as uniqueId,
+               scp.id           AS celebrity_private_id
+        FROM
+        youtube_celebrity tc
+        <!-- <if test="youtubeCelebrityModel.celebrityTagCounselorId != null and youtubeCelebrityModel.celebrityTagCounselorId != ''">
+             JOIN
+             (SELECT account
+             FROM  youtube_celebrity_tags_counselor yctc
+             <if test="youtubeCelebrityModel.tagName!=null and youtubeCelebrityModel.tagName!=''">
+                 JOIN
+                 <foreach collection="youtubeCelebrityModel.tagName.split(',')" item="item" open="("
+                          separator=" UNION ALL " close=")">
+                     SELECT #{item} AS tag_name
+                 </foreach>
+                 AS tags ON yctc.tag_name = tags.tag_name
+             </if>
+             <where>
+                 <if test="youtubeCelebrityModel.celebrityTagCounselorId != null and youtubeCelebrityModel.celebrityTagCounselorId != ''">
+                     AND yctc.celebrity_counselor_id = #{youtubeCelebrityModel.celebrityTagCounselorId}
+                 </if>
+             </where>
+             ) yctc ON yctc.account = tc.account
+         </if>-->
+        <if test="(youtubeCelebrityModel.tagName != null and youtubeCelebrityModel.tagName != '')">
+            JOIN
+            (SELECT DISTINCT account
+            FROM youtube_celebrity_tags yct
+            <if test="youtubeCelebrityModel.tagName != null and youtubeCelebrityModel.tagName != ''">
+                JOIN
+                <foreach collection="youtubeCelebrityModel.tagName.split(',')" item="item" open="("
+                         separator=" UNION ALL " close=")">
+                    SELECT #{item} AS tag_name
+                </foreach>
+                AS tags ON yct.tag_name = tags.tag_name
+            </if>
+            )
+                tct ON tct.account = tc.account
+        </if>
+        <if test="youtubeCelebrityModel.celebrityCounselorId != null and youtubeCelebrityModel.celebrityCounselorId != ''">
+            JOIN (SELECT unique_id
+                  FROM kol_contact
+            <where>
+                <if test="youtubeCelebrityModel.celebrityCounselorId != null and youtubeCelebrityModel.celebrityCounselorId != ''">
+                    AND celebrity_counselor_id = #{youtubeCelebrityModel.celebrityCounselorId}
+                </if>
+            </where>
+            GROUP BY unique_id
+            )
+                tcl ON tcl.unique_id = tc.account
+        </if>
+        LEFT JOIN store_celebrity_private scp ON scp.account = tc.username
+        <where>
+            1 = 1
+            <if test="youtubeCelebrityModel.uniqueId != null and youtubeCelebrityModel.uniqueId != ''">
+                AND tc.username like '%${youtubeCelebrityModel.uniqueId}%'
+            </if>
+            <if test="youtubeCelebrityModel.description != null and youtubeCelebrityModel.description != ''">
+                AND tc.description like '%${youtubeCelebrityModel.description}%'
+            </if>
+            <if test="youtubeCelebrityModel.username != null and youtubeCelebrityModel.username != ''">
+                AND tc.username like '%${youtubeCelebrityModel.username}%'
+            </if>
+            <if test="youtubeCelebrityModel.playAvgStartNum != null">
+                AND tc.video_standard_count &gt;= #{youtubeCelebrityModel.playAvgStartNum}
+            </if>
+            <if test="youtubeCelebrityModel.playAvgEndNum != null">
+                AND tc.video_standard_count &lt;= #{youtubeCelebrityModel.playAvgEndNum}
+            </if>
+            <if test="youtubeCelebrityModel.emailFlag != null and youtubeCelebrityModel.emailFlag == 1">
+                AND tc.email != ''
+            </if>
+            <if test="youtubeCelebrityModel.emailFlag != null and youtubeCelebrityModel.emailFlag == 0">
+                AND tc.email = ''
+            </if>
+            <if test="youtubeCelebrityModel.email != null and youtubeCelebrityModel.email != ''">
+                AND tc.email like CONCAT(CONCAT('%', #{youtubeCelebrityModel.email}), '%')
+            </if>
+            <if test="youtubeCelebrityModel.shortCode != null and youtubeCelebrityModel.shortCode != ''">
+                AND tc.country = #{youtubeCelebrityModel.shortCode}
+            </if>
+            <if test="youtubeCelebrityModel.startFollowers != null and youtubeCelebrityModel.startFollowers > 5000">
+                AND tc.followers_num &gt;= #{youtubeCelebrityModel.startFollowers}
+            </if>
+            <if test="youtubeCelebrityModel.endFollowers != null">
+                AND tc.followers_num &lt;= #{youtubeCelebrityModel.endFollowers}
+            </if>
+            <if test="youtubeCelebrityModel.isPrivate != null and youtubeCelebrityModel.isPrivate == 1">
+                AND scp.id is not null
+            </if>
+            <if test="youtubeCelebrityModel.isPrivate != null and youtubeCelebrityModel.isPrivate == 0">
+                AND scp.id is NULL
+            </if>
+            <if test="youtubeCelebrityModel.brandName != null and youtubeCelebrityModel.brandName != ''">
+                <if test="youtubeCelebrityModel.isContact != null and youtubeCelebrityModel.isContact == 0">
+                    AND tc.account not in (SELECT unique_id
+                                           FROM kol_contact
+                                           WHERE brand_name = #{youtubeCelebrityModel.brandName})
+                </if>
+                <if test="youtubeCelebrityModel.isContact != null and youtubeCelebrityModel.isContact == 1">
+                    AND tc.account in (SELECT unique_id
+                                       FROM kol_contact
+                                       WHERE brand_name = #{youtubeCelebrityModel.brandName}
+                                         AND celebrity_counselor_id = #{youtubeCelebrityModel.celebrityTagCounselorId})
+                </if>
+            </if>
+        </where>
+    </select>
+    <select id="getYoutubeCelebrityCount" resultType="java.lang.Integer">
+        SELECT
+        count(*)
+        FROM
+        youtube_celebrity tc
+        <!--<if test="youtubeCelebrityModel.celebrityTagCounselorId != null and youtubeCelebrityModel.celebrityTagCounselorId != ''">
+            JOIN
+            (
+                SELECT account
+                FROM  youtube_celebrity_tags_counselor yctc
+                <if test="youtubeCelebrityModel.tagName!=null and youtubeCelebrityModel.tagName!=''">
+                    JOIN
+                    <foreach collection="youtubeCelebrityModel.tagName.split(',')" item="item" open="("
+                             separator=" UNION ALL " close=")">
+                        SELECT #{item} AS tag_name
+                    </foreach>
+                    AS tags ON yctc.tag_name = tags.tag_name
+                </if>
+                <where>
+                    <if test="youtubeCelebrityModel.celebrityTagCounselorId != null and youtubeCelebrityModel.celebrityTagCounselorId != ''">
+                        AND yctc.celebrity_counselor_id = #{youtubeCelebrityModel.celebrityTagCounselorId}
+                    </if>
+                </where>
+            ) yctc ON yctc.account = tc.account
+        </if>-->
+        <if test="(youtubeCelebrityModel.tagName != null and youtubeCelebrityModel.tagName != '') ">
+            JOIN
+            (SELECT account
+            FROM youtube_celebrity_tags yct
+            <if test="youtubeCelebrityModel.tagName!=null and youtubeCelebrityModel.tagName!=''">
+                JOIN
+                <foreach collection="youtubeCelebrityModel.tagName.split(',')" item="item" open="("
+                         separator=" UNION ALL " close=")">
+                    SELECT #{item} AS tag_name
+                </foreach>
+                AS tags ON yct.tag_name = tags.tag_name
+            </if>
+            )
+            tct ON tct.account = tc.account
+        </if>
+        <if test="youtubeCelebrityModel.celebrityCounselorId != null and youtubeCelebrityModel.celebrityCounselorId != ''">
+            JOIN (SELECT  unique_id FROM kol_contact
+            <where>
+                <if test="youtubeCelebrityModel.celebrityCounselorId != null and youtubeCelebrityModel.celebrityCounselorId != ''">
+                    AND celebrity_counselor_id = #{youtubeCelebrityModel.celebrityCounselorId}
+                </if>
+            </where>
+            GROUP BY unique_id
+            )
+            tcl ON tcl.unique_id = tc.account
+        </if>
+        LEFT JOIN store_celebrity_private scp ON scp.account = tc.account
+        <where>
+            1 = 1
+            <if test="youtubeCelebrityModel.uniqueId != null and youtubeCelebrityModel.uniqueId != ''">
+                AND tc.username like '%${youtubeCelebrityModel.uniqueId}%'
+            </if>
+            <if test="youtubeCelebrityModel.username != null and youtubeCelebrityModel.username != ''">
+                AND tc.username like '%${youtubeCelebrityModel.username}%'
+            </if>
+            <if test="youtubeCelebrityModel.description != null and youtubeCelebrityModel.description != ''">
+                AND tc.description like '%${youtubeCelebrityModel.description}%'
+            </if>
+            <if test="youtubeCelebrityModel.playAvgStartNum != null">
+                AND tc.video_standard_count &gt;= #{youtubeCelebrityModel.playAvgStartNum}
+            </if>
+            <if test="youtubeCelebrityModel.playAvgEndNum != null">
+                AND tc.video_standard_count &lt;= #{youtubeCelebrityModel.playAvgEndNum}
+            </if>
+            <if test="youtubeCelebrityModel.emailFlag != null and youtubeCelebrityModel.emailFlag==1">
+                AND tc.email != ''
+            </if>
+            <if test="youtubeCelebrityModel.emailFlag != null and youtubeCelebrityModel.emailFlag==0">
+                AND tc.email = ''
+            </if>
+            <if test="youtubeCelebrityModel.email != null and youtubeCelebrityModel.email!=''">
+                AND tc.email like CONCAT(CONCAT('%',#{youtubeCelebrityModel.email}),'%')
+            </if>
+            <if test="youtubeCelebrityModel.shortCode != null and youtubeCelebrityModel.shortCode != ''">
+                AND tc.country = #{youtubeCelebrityModel.shortCode}
+            </if>
+            <if test="youtubeCelebrityModel.startFollowers != null and youtubeCelebrityModel.startFollowers>5000">
+                AND tc.followers_num &gt;= #{youtubeCelebrityModel.startFollowers}
+            </if>
+            <if test="youtubeCelebrityModel.endFollowers != null">
+                AND tc.followers_num &lt;= #{youtubeCelebrityModel.endFollowers}
+            </if>
+            <if test="youtubeCelebrityModel.isPrivate != null and youtubeCelebrityModel.isPrivate == 1">
+                AND scp.id is not null
+            </if>
+            <if test="youtubeCelebrityModel.isPrivate != null and youtubeCelebrityModel.isPrivate == 0">
+                AND scp.id is NULL
+            </if>
+            <if test="youtubeCelebrityModel.brandName != null and youtubeCelebrityModel.brandName!= ''">
+                <if test="youtubeCelebrityModel.isContact != null and youtubeCelebrityModel.isContact==0">
+                    AND tc.account not in (SELECT unique_id FROM kol_contact
+                    WHERE brand_name=#{youtubeCelebrityModel.brandName})
+                </if>
+                <if test="youtubeCelebrityModel.isContact != null and youtubeCelebrityModel.isContact==1">
+                    AND tc.account in (SELECT unique_id FROM kol_contact
+                    WHERE brand_name=#{youtubeCelebrityModel.brandName}
+                    AND celebrity_counselor_id=#{youtubeCelebrityModel.celebrityTagCounselorId})
+                </if>
+            </if>
+        </where>
+    </select>
+    <select id="getNotAllotTagsList" resultType="org.jeecg.modules.youtube.model.YoutubeCelebrityModel">
+        SELECT tag_name,
+               count(1) AS tagNum
+        FROM youtube_celebrity_tags tict
+        LEFT JOIN youtube_celebrity youc ON tict.account = youc.account
+        WHERE  (tict.is_allot=0 or tict.allot_time &lt; DATE_ADD(CURDATE(), INTERVAL - ${youtubeCelebrityModel.days} DAY))
+        <if test="youtubeCelebrityModel.shortCode != null and youtubeCelebrityModel.shortCode != ''">
+            AND youc.country = #{youtubeCelebrityModel.shortCode}
+        </if>
+        <if test="youtubeCelebrityModel.tagName != null and youtubeCelebrityModel.tagName != ''">
+            AND tict.tag_name in
+            <foreach collection="youtubeCelebrityModel.tagName.split(',')" item="item" open="(" close=")" separator=",">
+            #{item}
+            </foreach>
+        </if>
+
+          <!--AND youc.is_high_follower = 1-->
+        GROUP BY tict.tag_name
+        ORDER BY tagNum DESC
+    </select>
+</mapper>

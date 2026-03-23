@@ -1,0 +1,583 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jeecg.modules.instagram.storecelebrity.mapper.StoreCelebrityMapper">
+    <select id="getStoreList" resultType="org.jeecg.modules.instagram.storecelebrity.model.StoreCelebrityPriceModel">
+        SELECT
+        sc.id,
+        sc.account,
+        sc.avatar_url,
+        sc.username,
+        sc.nick_name,
+        sc.email,
+        sc.phone,
+        sc.following_num,
+        sc.followers_num,
+        sc.posts_num,
+        sc.like_avg_num,
+        sc.comment_avg_num,
+        sc.play_avg_num,
+        sc.tag,
+        sc.description,
+        sc.country,
+        sc.platform_type,
+        sc.keyword,
+        sc.new_tag,
+        sc.face_status,
+        sc.del_flag,
+        sc.kol_price_min,
+        sc.kol_price_max,
+        sc.dislike_tags,
+        sc.like_tags,
+        sc.remark,
+        sc.create_by,
+        sc.create_time,
+        sc.update_by,
+        sc.update_time,
+        sc.is_tag_confirm,
+        sc.star,
+        sc.gender,
+        sc.age,
+        ssc.id AS collection_id
+        FROM
+        store_celebrity sc
+        LEFT JOIN ( SELECT id, celebrity_id FROM store_seller_collection WHERE 1=1
+        <if test="storeCelebrityModel.sellerId !=null and storeCelebrityModel.sellerId !=''">
+            AND seller_id = #{storeCelebrityModel.sellerId}
+        </if>
+        ) ssc ON ssc.celebrity_id = sc.id
+        where sc.del_flag = 0
+        and avatar_url != ''
+        and email != ''
+        <if test="storeCelebrityModel.platformType !=null">
+            and sc.platform_type = #{storeCelebrityModel.platformType}
+        </if>
+        <if test="storeCelebrityModel.account !=null and storeCelebrityModel.account !=''">
+            and sc.account like '%${storeCelebrityModel.account}%'
+        </if>
+        <if test="storeCelebrityModel.phone !=null and storeCelebrityModel.phone !=''">
+            and sc.phone like '%${storeCelebrityModel.phone}%'
+        </if>
+        <if test="storeCelebrityModel.likeTags !=null and storeCelebrityModel.likeTags !=''">
+            <foreach item="item" index="index" collection="storeCelebrityModel.likeTags.split(',')">
+                AND find_in_set('${item}',like_tags)
+            </foreach>
+        </if>
+        <if test="storeCelebrityModel.dislikeTags !=null and storeCelebrityModel.dislikeTags !=''">
+            <foreach item="item" index="index" collection="storeCelebrityModel.dislikeTags.split(',')">
+                AND find_in_set('${item}',dislike_tags)
+            </foreach>
+        </if>
+        <if test="storeCelebrityModel.star !=null">
+            and sc.star=#{storeCelebrityModel.star}
+        </if>
+        <if test="storeCelebrityModel.isTagConfirm !=null">
+            and sc.is_tag_confirm=#{storeCelebrityModel.isTagConfirm}
+        </if>
+        <if test="storeCelebrityModel.nickName !=null and storeCelebrityModel.nickName !=''">
+            and sc.nick_name like '%${storeCelebrityModel.nickName}%'
+        </if>
+        <if test="storeCelebrityModel.email !=null and storeCelebrityModel.email !=''">
+            and sc.email like '%${storeCelebrityModel.email}%'
+        </if>
+        <if test="storeCelebrityModel.description !=null and storeCelebrityModel.description !=''">
+            and sc.description like '%${storeCelebrityModel.description}%'
+        </if>
+        <if test="storeCelebrityModel.username !=null and storeCelebrityModel.username !=''">
+            and sc.username like '%${storeCelebrityModel.username}%'
+        </if>
+        <if test="storeCelebrityModel.country !=null and storeCelebrityModel.country !=''">
+            and sc.country = #{storeCelebrityModel.country}
+        </if>
+        <if test="storeCelebrityModel.followersStartNum !=null">
+            and sc.followers_num &gt;= #{storeCelebrityModel.followersStartNum}
+        </if>
+        <if test="storeCelebrityModel.followersEndNum !=null">
+            and sc.followers_num &lt;= #{storeCelebrityModel.followersEndNum}
+        </if>
+        <if test="storeCelebrityModel.postsStartNum !=null">
+            and sc.posts_num &gt;= #{storeCelebrityModel.postsStartNum}
+        </if>
+        <if test="storeCelebrityModel.postsEndNum !=null">
+            and sc.posts_num &lt;= #{storeCelebrityModel.postsEndNum}
+        </if>
+        <if test="storeCelebrityModel.likeAvgStartNum !=null">
+            and sc.like_avg_num &gt;= #{storeCelebrityModel.likeAvgStartNum}
+        </if>
+        <if test="storeCelebrityModel.likeAvgEndNum !=null">
+            and sc.like_avg_num &lt;= #{storeCelebrityModel.likeAvgEndNum}
+        </if>
+        <if test="storeCelebrityModel.commentAvgStartNum !=null">
+            and sc.comment_avg_num &gt;= #{storeCelebrityModel.commentAvgStartNum}
+        </if>
+        <if test="storeCelebrityModel.commentAvgEndNum !=null">
+            and sc.comment_avg_num &lt;= #{storeCelebrityModel.commentAvgEndNum}
+        </if>
+        <if test="storeCelebrityModel.playAvgStartNum !=null">
+            and sc.play_avg_num &gt;= #{storeCelebrityModel.playAvgStartNum}
+        </if>
+        <if test="storeCelebrityModel.playAvgEndNum !=null">
+            and sc.play_avg_num &lt;= #{storeCelebrityModel.playAvgEndNum}
+        </if>
+        <if test="storeCelebrityModel.faceStatus !=null">
+            and sc.face_status = #{storeCelebrityModel.faceStatus}
+        </if>
+        <if test="storeCelebrityModel.remark !=null and storeCelebrityModel.remark !=''">
+            and sc.remark = #{storeCelebrityModel.remark}
+        </if>
+        <if test="storeCelebrityModel.sendEmailCount !=null">
+            and IF(smp.send_email_count is null ,0,smp.send_email_count)=#{storeCelebrityModel.sendEmailCount}
+        </if>
+        <if test="storeCelebrityModel.gender !=null and storeCelebrityModel.gender >= 0">
+            and sc.gender = #{storeCelebrityModel.gender}
+        </if>
+
+        <if test="storeCelebrityModel.gender !=null and storeCelebrityModel.gender &lt; 0">
+            and (sc.gender &lt;= -1 or sc.gender is null)
+        </if>
+
+        <if test="storeCelebrityModel.startCreateTime != null">
+            and DATE_FORMAT(sc.create_time, '%Y-%m-%d') &gt;= DATE_FORMAT(#{storeCelebrityModel.startCreateTime},
+            '%Y-%m-%d')
+        </if>
+        <if test="storeCelebrityModel.endCreateTime != null">
+            and DATE_FORMAT(sc.create_time, '%Y-%m-%d') &lt;= DATE_FORMAT(#{storeCelebrityModel.endCreateTime},
+            '%Y-%m-%d')
+        </if>
+        <if test="storeCelebrityModel.platformType ==null">
+            AND followers_num > 1000
+        </if>
+        order by sc.create_time desc
+    </select>
+
+
+    <select id="getStoreListCount" resultType="java.lang.Integer">
+        SELECT
+        count(1)
+        FROM
+        store_celebrity sc
+        where sc.del_flag = 0
+        and avatar_url != ''
+        and email != ''
+        <if test="storeCelebrityModel.platformType !=null">
+            and sc.platform_type = #{storeCelebrityModel.platformType}
+        </if>
+        <if test="storeCelebrityModel.account !=null and storeCelebrityModel.account !=''">
+            and sc.account like '%${storeCelebrityModel.account}%'
+        </if>
+        <if test="storeCelebrityModel.phone !=null and storeCelebrityModel.phone !=''">
+            and sc.phone like '%${storeCelebrityModel.phone}%'
+        </if>
+        <if test="storeCelebrityModel.likeTags !=null and storeCelebrityModel.likeTags !=''">
+            <foreach item="item" index="index" collection="storeCelebrityModel.likeTags.split(',')">
+                AND find_in_set('${item}',like_tags)
+            </foreach>
+        </if>
+        <if test="storeCelebrityModel.dislikeTags !=null and storeCelebrityModel.dislikeTags !=''">
+            <foreach item="item" index="index" collection="storeCelebrityModel.dislikeTags.split(',')">
+                AND find_in_set('${item}',dislike_tags)
+            </foreach>
+        </if>
+        <if test="storeCelebrityModel.star !=null">
+            and sc.star=#{storeCelebrityModel.star}
+        </if>
+        <if test="storeCelebrityModel.isTagConfirm !=null">
+            and sc.is_tag_confirm=#{storeCelebrityModel.isTagConfirm}
+        </if>
+        <if test="storeCelebrityModel.nickName !=null and storeCelebrityModel.nickName !=''">
+            and sc.nick_name like '%${storeCelebrityModel.nickName}%'
+        </if>
+        <if test="storeCelebrityModel.email !=null and storeCelebrityModel.email !=''">
+            and sc.email like '%${storeCelebrityModel.email}%'
+        </if>
+        <if test="storeCelebrityModel.description !=null and storeCelebrityModel.description !=''">
+            and sc.description like '%${storeCelebrityModel.description}%'
+        </if>
+        <if test="storeCelebrityModel.username !=null and storeCelebrityModel.username !=''">
+            and sc.username like '%${storeCelebrityModel.username}%'
+        </if>
+        <if test="storeCelebrityModel.country !=null and storeCelebrityModel.country !=''">
+            and sc.country = #{storeCelebrityModel.country}
+        </if>
+        <if test="storeCelebrityModel.followersStartNum !=null">
+            and sc.followers_num &gt;= #{storeCelebrityModel.followersStartNum}
+        </if>
+        <if test="storeCelebrityModel.followersEndNum !=null">
+            and sc.followers_num &lt;= #{storeCelebrityModel.followersEndNum}
+        </if>
+        <if test="storeCelebrityModel.postsStartNum !=null">
+            and sc.posts_num &gt;= #{storeCelebrityModel.postsStartNum}
+        </if>
+        <if test="storeCelebrityModel.postsEndNum !=null">
+            and sc.posts_num &lt;= #{storeCelebrityModel.postsEndNum}
+        </if>
+        <if test="storeCelebrityModel.likeAvgStartNum !=null">
+            and sc.like_avg_num &gt;= #{storeCelebrityModel.likeAvgStartNum}
+        </if>
+        <if test="storeCelebrityModel.likeAvgEndNum !=null">
+            and sc.like_avg_num &lt;= #{storeCelebrityModel.likeAvgEndNum}
+        </if>
+        <if test="storeCelebrityModel.commentAvgStartNum !=null">
+            and sc.comment_avg_num &gt;= #{storeCelebrityModel.commentAvgStartNum}
+        </if>
+        <if test="storeCelebrityModel.commentAvgEndNum !=null">
+            and sc.comment_avg_num &lt;= #{storeCelebrityModel.commentAvgEndNum}
+        </if>
+        <if test="storeCelebrityModel.playAvgStartNum !=null">
+            and sc.play_avg_num &gt;= #{storeCelebrityModel.playAvgStartNum}
+        </if>
+        <if test="storeCelebrityModel.playAvgEndNum !=null">
+            and sc.play_avg_num &lt;= #{storeCelebrityModel.playAvgEndNum}
+        </if>
+        <if test="storeCelebrityModel.faceStatus !=null">
+            and sc.face_status = #{storeCelebrityModel.faceStatus}
+        </if>
+        <if test="storeCelebrityModel.remark !=null and storeCelebrityModel.remark !=''">
+            and sc.remark = #{storeCelebrityModel.remark}
+        </if>
+        <if test="storeCelebrityModel.sendEmailCount !=null">
+            and IF(smp.send_email_count is null ,0,smp.send_email_count)=#{storeCelebrityModel.sendEmailCount}
+        </if>
+        <if test="storeCelebrityModel.gender !=null and storeCelebrityModel.gender >= 0">
+            and sc.gender = #{storeCelebrityModel.gender}
+        </if>
+
+        <if test="storeCelebrityModel.gender !=null and storeCelebrityModel.gender &lt; 0">
+            and (sc.gender &lt;= -1 or sc.gender is null)
+        </if>
+
+        <if test="storeCelebrityModel.startCreateTime != null">
+            and DATE_FORMAT(sc.create_time, '%Y-%m-%d') &gt;= DATE_FORMAT(#{storeCelebrityModel.startCreateTime},
+            '%Y-%m-%d')
+        </if>
+        <if test="storeCelebrityModel.endCreateTime != null">
+            and DATE_FORMAT(sc.create_time, '%Y-%m-%d') &lt;= DATE_FORMAT(#{storeCelebrityModel.endCreateTime},
+            '%Y-%m-%d')
+        </if>
+        <if test="storeCelebrityModel.platformType ==null">
+            AND followers_num > 1000
+        </if>
+        order by sc.create_time desc
+    </select>
+
+    <select id="celebrityValidation" resultType="org.jeecg.modules.instagram.storecelebrity.entity.StoreCelebrity">
+        SELECT
+        id,
+        account,
+        avatar_url,
+        username,
+        nick_name,
+        followers_num,
+        play_avg_num,
+        tag,
+        star,
+        country,
+        like_tags,
+        platform_type,
+        del_flag,
+        remark,
+        create_by,
+        create_time,
+        update_by,
+        update_time,
+        verify_Result,
+        gender,
+        approved_status,
+        verify_user_id
+
+        FROM
+        store_celebrity
+        where del_flag = 0
+
+        <if test="storeCelebrityModel.followersStartNum !=null">
+            and followers_num &gt;= #{storeCelebrityModel.followersStartNum}
+        </if>
+        <if test="storeCelebrityModel.followersEndNum !=null">
+            and followers_num &lt;= #{storeCelebrityModel.followersEndNum}
+        </if>
+
+        <if test="storeCelebrityModel.nickName !=null and storeCelebrityModel.nickName !=''">
+            and nick_name like '%${storeCelebrityModel.nickName}%'
+        </if>
+        <if test="storeCelebrityModel.verifyResult == 0">
+            and verify_result is null
+        </if>
+        <if test="storeCelebrityModel.verifyResult !=null and storeCelebrityModel.verifyResult !=''">
+            and verify_result = #{storeCelebrityModel.verifyResult}
+        </if>
+
+        <if test="storeCelebrityModel.verifyUserId !=null ">
+            and verify_user_id = #{storeCelebrityModel.verifyUserId}
+        </if>
+
+        <if test="storeCelebrityModel.isLikeTagsNull !=null and storeCelebrityModel.isLikeTagsNull == 1">
+            and (like_tags is null or like_tags = '')
+        </if>
+
+        <if test="storeCelebrityModel.isCountryNull !=null and storeCelebrityModel.isCountryNull == 1">
+            and (country is null or country = '')
+        </if>
+
+        <if test="storeCelebrityModel.platformType !=null">
+            and platform_type = #{storeCelebrityModel.platformType}
+        </if>
+        order by create_time DESC
+    </select>
+    <select id="parentList" resultType="org.jeecg.modules.instagram.storecelebrity.entity.StoreCelebrity">
+        SELECT
+        id,
+        account,
+        avatar_url,
+        username,
+        nick_name,
+        description,
+        following_num,
+        followers_num,
+        posts_num,
+        like_avg_num,
+        comment_avg_num,
+        play_avg_num,
+        tag,
+        country,
+        platform_type,
+        keyword,
+        new_tag,
+        face_status,
+        del_flag,
+        kol_price_min,
+        kol_price_max,
+        dislike_tags,
+        like_tags,
+        remark,
+        create_by,
+        create_time,
+        update_by,
+        update_time
+        FROM
+        store_celebrity
+        where del_flag = 0
+        <if test="storeCelebrityModel.platformType !=null">
+            and platform_type = #{storeCelebrityModel.platformType}
+        </if>
+        <if test="storeCelebrityModel.account !=null and storeCelebrityModel.account !=''">
+            and account like '%${storeCelebrityModel.account}%'
+        </if>
+        <if test="storeCelebrityModel.tag !=null and storeCelebrityModel.tag !=''">
+            and tag like '%${storeCelebrityModel.tag}%'
+        </if>
+        <if test="storeCelebrityModel.nickName !=null and storeCelebrityModel.nickName !=''">
+            and nick_name like '%${storeCelebrityModel.nickName}%'
+        </if>
+        <if test="storeCelebrityModel.username !=null and storeCelebrityModel.username !=''">
+            and username like '%${storeCelebrityModel.username}%'
+        </if>
+        <if test="storeCelebrityModel.country !=null and storeCelebrityModel.country !=''">
+            and country = #{storeCelebrityModel.country}
+        </if>
+        <if test="storeCelebrityModel.followersStartNum !=null">
+            and followers_num &gt;= #{storeCelebrityModel.followersStartNum}
+        </if>
+        <if test="storeCelebrityModel.followersEndNum !=null">
+            and followers_num &lt;= #{storeCelebrityModel.followersEndNum}
+        </if>
+        <if test="storeCelebrityModel.postsStartNum !=null">
+            and posts_num &gt;= #{storeCelebrityModel.postsStartNum}
+        </if>
+        <if test="storeCelebrityModel.postsEndNum !=null">
+            and posts_num &lt;= #{storeCelebrityModel.postsEndNum}
+        </if>
+        <if test="storeCelebrityModel.likeAvgStartNum !=null">
+            and like_avg_num &gt;= #{storeCelebrityModel.likeAvgStartNum}
+        </if>
+        <if test="storeCelebrityModel.likeAvgEndNum !=null">
+            and like_avg_num &lt;= #{storeCelebrityModel.likeAvgEndNum}
+        </if>
+        <if test="storeCelebrityModel.commentAvgStartNum !=null">
+            and comment_avg_num &gt;= #{storeCelebrityModel.commentAvgStartNum}
+        </if>
+        <if test="storeCelebrityModel.commentAvgEndNum !=null">
+            and comment_avg_num &lt;= #{storeCelebrityModel.commentAvgEndNum}
+        </if>
+        <if test="storeCelebrityModel.playAvgStartNum !=null">
+            and play_avg_num &gt;= #{storeCelebrityModel.playAvgStartNum}
+        </if>
+        <if test="storeCelebrityModel.playAvgEndNum !=null">
+            and play_avg_num &lt;= #{storeCelebrityModel.playAvgEndNum}
+        </if>
+        <if test="storeCelebrityModel.faceStatus !=null">
+            and face_status = #{storeCelebrityModel.faceStatus}
+        </if>
+        <if test="storeCelebrityModel.remark !=null and storeCelebrityModel.remark !=''">
+            and remark = #{storeCelebrityModel.remark}
+        </if>
+        <if test="storeCelebrityModel.startCreateTime != null">
+            and DATE_FORMAT(create_time, '%Y-%m-%d') &gt;= DATE_FORMAT(#{storeCelebrityModel.startCreateTime},
+            '%Y-%m-%d')
+        </if>
+        <if test="storeCelebrityModel.endCreateTime != null">
+            and DATE_FORMAT(create_time, '%Y-%m-%d') &lt;= DATE_FORMAT(#{storeCelebrityModel.endCreateTime}, '%Y-%m-%d')
+        </if>
+        and id IN ( SELECT
+        user_id
+        FROM
+        store_level
+        GROUP BY
+        user_id)
+    </select>
+    <select id="followingList" resultType="org.jeecg.modules.instagram.storecelebrity.entity.StoreCelebrity">
+        SELECT id,
+        account,
+        avatar_url,
+        username,
+        nick_name,
+        description,
+        following_num,
+        followers_num,
+        posts_num,
+        like_avg_num,
+        comment_avg_num,
+        play_avg_num,
+        tag,
+        country,
+        platform_type,
+        keyword,
+        new_tag,
+        face_status,
+        del_flag,
+        kol_price_min,
+        kol_price_max,
+        dislike_tags,
+        like_tags,
+        remark,
+        create_by,
+        create_time,
+        update_by,
+        update_time
+        FROM store_celebrity
+        WHERE del_flag = 0
+        AND id IN (SELECT following_id
+        FROM store_level
+        WHERE user_id = #{storeCelebrityModel.id})
+    </select>
+    <select id="seedFollowingList"
+            resultType="org.jeecg.modules.instagram.storecelebrity.model.StoreCelebrityModel">
+        SELECT
+        id,
+        account,
+        avatar_url,
+        username,
+        nick_name,
+        description,
+        following_num,
+        followers_num,
+        posts_num,
+        like_avg_num,
+        comment_avg_num,
+        play_avg_num,
+        tag,
+        country,
+        platform_type,
+        keyword,
+        new_tag,
+        face_status,
+        del_flag,
+        kol_price_min,
+        kol_price_max,
+        dislike_tags,
+        like_tags,
+        remark,
+        create_by,
+        create_time,
+        update_by,
+        update_time
+
+        FROM
+        store_celebrity
+        WHERE
+        del_flag = 0
+        <if test="storeCelebrityModel.account !=null and storeCelebrityModel.account !=''">
+            and account like '%${storeCelebrityModel.account}%'
+        </if>
+        <if test="storeCelebrityModel.tag !=null and storeCelebrityModel.tag !=''">
+            and tag like '%${storeCelebrityModel.tag}%'
+        </if>
+        <if test="storeCelebrityModel.nickName !=null and storeCelebrityModel.nickName !=''">
+            and nick_name like '%${storeCelebrityModel.nickName}%'
+        </if>
+        <if test="storeCelebrityModel.username !=null and storeCelebrityModel.username !=''">
+            and username like '%${storeCelebrityModel.username}%'
+        </if>
+        <if test="storeCelebrityModel.country !=null and storeCelebrityModel.country !=''">
+            and country = #{storeCelebrityModel.country}
+        </if>
+        <if test="storeCelebrityModel.followersStartNum !=null">
+            and followers_num &gt;= #{storeCelebrityModel.followersStartNum}
+        </if>
+        <if test="storeCelebrityModel.followersEndNum !=null">
+            and followers_num &lt;= #{storeCelebrityModel.followersEndNum}
+        </if>
+        <if test="storeCelebrityModel.postsStartNum !=null">
+            and posts_num &gt;= #{storeCelebrityModel.postsStartNum}
+        </if>
+        <if test="storeCelebrityModel.postsEndNum !=null">
+            and posts_num &lt;= #{storeCelebrityModel.postsEndNum}
+        </if>
+        <if test="storeCelebrityModel.faceStatus !=null">
+            and face_status = #{storeCelebrityModel.faceStatus}
+        </if>
+        <if test="storeCelebrityModel.remark !=null and storeCelebrityModel.remark !=''">
+            and remark = #{storeCelebrityModel.remark}
+        </if>
+        <if test="storeCelebrityModel.startCreateTime != null">
+            and DATE_FORMAT(create_time, '%Y-%m-%d') &gt;= DATE_FORMAT(#{storeCelebrityModel.startCreateTime},
+            '%Y-%m-%d')
+        </if>
+        <if test="storeCelebrityModel.endCreateTime != null">
+            and DATE_FORMAT(create_time, '%Y-%m-%d') &lt;= DATE_FORMAT(#{storeCelebrityModel.endCreateTime}, '%Y-%m-%d')
+        </if>
+
+        and id IN ( SELECT DISTINCT following_id FROM store_level ) order by create_time desc
+    </select>
+    <select id="showList" resultType="org.jeecg.modules.instagram.storecelebrity.entity.StoreCelebrity">
+        SELECT account,
+        nick_name,
+        followers_num,
+        tag,
+        like_tags,
+        posts_num,
+        gender,
+        age,
+        kol_price_min,
+        kol_price_max
+        FROM store_celebrity
+        WHERE followers_num &gt; 100000
+        AND posts_num &gt; 0
+        AND like_tags IS NOT NULL
+        AND like_tags != ''
+        AND like_tags LIKE '%,%'
+        AND tag IS NOT NULL
+        AND tag != ''
+        AND tag LIKE '%,%'
+        ORDER BY
+        RAND()
+        LIMIT 4
+    </select>
+    <select id="getOldList" resultType="org.jeecg.modules.instagram.storecelebrity.entity.StoreCelebrity">
+        SELECT id
+        FROM store_celebrity
+        ORDER BY RAND() LIMIT 30
+    </select>
+
+    <select id="queryByEmail" resultType="org.jeecg.modules.instagram.storecelebrity.entity.StoreCelebrity"
+            parameterType="java.lang.String">
+        SELECT id
+        FROM store_celebrity
+        where email = #{email}
+    </select>
+
+    <select id="queryByUserName" resultType="org.jeecg.modules.instagram.storecelebrity.entity.StoreCelebrity"
+            parameterType="java.lang.String">
+        SELECT id
+        FROM store_celebrity
+        where username = #{userName}
+    </select>
+</mapper>

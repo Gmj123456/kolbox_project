@@ -1,0 +1,343 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jeecg.modules.instagram.storecelebrity.mapper.MessagePushDetailMapper">
+    <select id="pageList" resultType="org.jeecg.modules.instagram.storecelebrity.model.MessagePushDetailModel">
+        SELECT
+        mp.*,
+        sc.nick_name,
+        sc.username,
+        sc.avatar_url,
+        sc.country,
+        sc.account,
+        sc.platform_type,
+        mt.template_name
+        FROM
+        store_message_push_detail mp
+        LEFT JOIN store_celebrity sc ON mp.kol_id = sc.id
+        LEFT JOIN store_message_template mt on mp.message_tel_type = mt.id
+        where
+        1=1
+        <if test="messagePushDetailModel.sellerId !=null and messagePushDetailModel.sellerId!=''">
+            and mp.seller_id = #{messagePushDetailModel.sellerId}
+        </if>
+        <if test="messagePushDetailModel.kolEmail !=null and messagePushDetailModel.kolEmail!=''">
+            and mp.kol_email = #{messagePushDetailModel.kolEmail}
+        </if>
+        <if test="messagePushDetailModel.templateName !=null and messagePushDetailModel.templateName!=''">
+            and mt.template_name like '%${messagePushDetailModel.templateName}%'
+        </if>
+        <if test="messagePushDetailModel.kolName !=null and messagePushDetailModel.kolName!=''">
+            and sc.nick_name like '%${messagePushDetailModel.kolName}%'
+        </if>
+        <if test="messagePushDetailModel.sendEmail !=null and messagePushDetailModel.sendEmail!=''">
+            and mp.send_email like '%${messagePushDetailModel.sendEmail}%'
+        </if>
+
+        <if test="messagePushDetailModel.isConfirm !=null and messagePushDetailModel.isConfirm== 0 ">
+            and mp.is_confirm = #{messagePushDetailModel.isConfirm}
+        </if>
+        <if test="messagePushDetailModel.isConfirm !=null and messagePushDetailModel.isConfirm== 1 ">
+            and mp.is_confirm >= #{messagePushDetailModel.isConfirm}
+        </if>
+        <if test="messagePushDetailModel.createDate !=null and messagePushDetailModel.createDate!=''">
+            and DATE_FORMAT(mp.create_time, '%Y-%m-%d') = DATE_FORMAT(#{messagePushDetailModel.createDate}, '%Y-%m-%d')
+        </if>
+        <if test="messagePushDetailModel.emailPushTime !=null and messagePushDetailModel.emailPushTime!=''">
+            and DATE_FORMAT(mp.email_push_date, '%Y-%m-%d') = DATE_FORMAT(#{messagePushDetailModel.emailPushTime},
+            '%Y-%m-%d')
+        </if>
+        <if test="messagePushDetailModel.isSend !=null">
+            and mp.is_send = #{messagePushDetailModel.isSend}
+        </if>
+        <if test="messagePushDetailModel.startSendTime != '' and messagePushDetailModel.startSendTime != null">
+            and DATE_FORMAT(mp.email_push_date, '%Y-%m-%d') >= DATE_FORMAT(#{messagePushDetailModel.startSendTime},
+            '%Y-%m-%d')
+        </if>
+        <if test="messagePushDetailModel.endSendTime != '' and messagePushDetailModel.endSendTime != null">
+            and DATE_FORMAT(mp.email_push_date, '%Y-%m-%d') &lt;= DATE_FORMAT(#{messagePushDetailModel.endSendTime},
+            '%Y-%m-%d')
+        </if>
+
+
+        order by create_time desc
+    </select>
+    <select id="detailsPageList"
+            resultType="org.jeecg.modules.instagram.storecelebrity.model.DetailsMerchantEmailModel">
+        SELECT
+        mp.*,
+        sc.nick_name,
+        sc.avatar_url,
+        sc.country,
+        sc.account,
+        mt.template_name,
+        sys.user_type
+        FROM
+        store_message_push_detail mp
+        LEFT JOIN store_celebrity sc ON mp.kol_id = sc.id
+        LEFT JOIN store_message_template mt on mp.message_tel_type = mt.id
+        LEFT JOIN sys_user sys on mp.seller_id = sys.id
+        where 1=1
+        <if test="detailsMerchantEmailModel.sellerName !=null and detailsMerchantEmailModel.sellerName!=''">
+            and mp.seller_name like '%${detailsMerchantEmailModel.sellerName}%'
+        </if>
+        <if test="detailsMerchantEmailModel.kolName !=null and detailsMerchantEmailModel.kolName!=''">
+            and sc.nick_name like '%${detailsMerchantEmailModel.kolName}%'
+        </if>
+        <if test="detailsMerchantEmailModel.isSend !=null">
+            and mp.is_send = #{detailsMerchantEmailModel.isSend}
+        </if>
+        <if test="detailsMerchantEmailModel.isConfirm !=null">
+            and mp.is_confirm = #{detailsMerchantEmailModel.isConfirm}
+        </if>
+        <if test="detailsMerchantEmailModel.packageId !=null and detailsMerchantEmailModel.packageId ==1">
+            and mp.package_id is null
+        </if>
+        <if test="detailsMerchantEmailModel.packageId !=null and detailsMerchantEmailModel.packageId ==2">
+            and mp.package_id is not null
+        </if>
+        <if test="detailsMerchantEmailModel.sendEmail !=null and detailsMerchantEmailModel.sendEmail!=''">
+            and mp.send_email like '%${detailsMerchantEmailModel.sendEmail}%'
+        </if>
+        <if test="detailsMerchantEmailModel.templateName !=null and detailsMerchantEmailModel.templateName!=''">
+            and mt.template_name like '%${detailsMerchantEmailModel.templateName}%'
+        </if>
+        <if test="detailsMerchantEmailModel.startSendTime != '' and detailsMerchantEmailModel.startSendTime != null">
+            and DATE_FORMAT(mp.email_push_date, '%Y-%m-%d') >= DATE_FORMAT(#{detailsMerchantEmailModel.startSendTime},
+            '%Y-%m-%d')
+        </if>
+        <if test="detailsMerchantEmailModel.endSendTime != '' and detailsMerchantEmailModel.endSendTime != null">
+            and DATE_FORMAT(mp.email_push_date, '%Y-%m-%d') &lt;= DATE_FORMAT(#{detailsMerchantEmailModel.endSendTime},
+            '%Y-%m-%d')
+        </if>
+        order by create_time desc
+    </select>
+    <select id="queryCountPageList"
+            resultType="org.jeecg.modules.instagram.storecelebrity.model.MessagePushEmailCountModel">
+        SELECT seller_id,
+        seller_name,
+        COUNT(is_send) as emailCount,
+        SUM(if(is_send=1,1,0)) AS successCount,
+        SUM(if(is_send=0,1,0)) AS waitCount ,
+        SUM(if(is_send=-1,1,0)) AS errorCount,
+        SUM(if(is_confirm=1,1,0)) AS openCount,
+        COUNT(DISTINCT kol_id) AS kolCount
+        FROM store_message_push_detail
+        <where>
+            is_send != -2
+            <if test="messagePushEmailCountModel.startEmailPushTime != '' and messagePushEmailCountModel.startEmailPushTime != null">
+                and DATE_FORMAT(email_push_date, '%Y-%m-%d') >=
+                DATE_FORMAT(#{messagePushEmailCountModel.startEmailPushTime},
+                '%Y-%m-%d')
+            </if>
+            <if test="messagePushEmailCountModel.endEmailPushTime != '' and messagePushEmailCountModel.endEmailPushTime!= null">
+                and DATE_FORMAT(email_push_date, '%Y-%m-%d') &lt;=
+                DATE_FORMAT(#{messagePushEmailCountModel.endEmailPushTime},
+                '%Y-%m-%d')
+            </if>
+            <if test="messagePushEmailCountModel.sellerName != '' and messagePushEmailCountModel.sellerName!= null">
+                and seller_name like '%${messagePushEmailCountModel.sellerName}%'
+            </if>
+        </where>
+        GROUP BY seller_id,seller_name
+
+        <if test="messagePushEmailCountModel.orderWord!='' and messagePushEmailCountModel.orderWord!=null">
+            order by ${messagePushEmailCountModel.orderWord} ${messagePushEmailCountModel.order}
+        </if>
+        <if test="messagePushEmailCountModel.orderWord=='' || messagePushEmailCountModel.orderWord==null">
+            order by emailCount desc
+        </if>
+    </select>
+    <select id="queryCelebrityCount"
+            resultType="org.jeecg.modules.instagram.storecelebrity.model.CelebrityEmailStatisticsModel">
+        select
+        smp.kol_id,
+        smp.kol_name,
+        smp.kol_email,
+        sc.tag,
+        count(kol_id) as celebrityCount,
+        SUM( IF(smp.is_confirm = 1, 1, 0)) AS openCount
+        FROM store_message_push_detail smp
+        LEFT JOIN store_celebrity sc on sc.id = smp.kol_id
+        where
+        is_send !=- 2
+        <if test="celebrityEmailStatisticsModel.kolEmail !=null and celebrityEmailStatisticsModel.kolEmail!=''">
+            and smp.kol_email like '%${celebrityEmailStatisticsModel.kolEmail}%'
+        </if>
+        <if test="celebrityEmailStatisticsModel.kolName !=null and celebrityEmailStatisticsModel.kolName!=''">
+            and smp.kol_name like '%${celebrityEmailStatisticsModel.kolName}%'
+        </if>
+        <if test="celebrityEmailStatisticsModel.startEmailPushTime != '' and celebrityEmailStatisticsModel.startEmailPushTime != null">
+            and DATE_FORMAT(email_push_date, '%Y-%m-%d') >=
+            DATE_FORMAT(#{celebrityEmailStatisticsModel.startEmailPushTime},
+            '%Y-%m-%d')
+        </if>
+        <if test="celebrityEmailStatisticsModel.endEmailPushTime != '' and celebrityEmailStatisticsModel.endEmailPushTime!= null">
+            and DATE_FORMAT(email_push_date, '%Y-%m-%d') &lt;=
+            DATE_FORMAT(#{celebrityEmailStatisticsModel.endEmailPushTime},
+            '%Y-%m-%d')
+        </if>
+        GROUP BY kol_id,kol_name,kol_email,tag
+        order by celebrityCount desc
+    </select>
+    <select id="querySellerCount"
+            resultType="org.jeecg.modules.instagram.storecelebrity.model.CelebrityEmailStatisticsModel">
+        SELECT
+        seller_id,
+        seller_name,
+        count( seller_id ) AS sellerPushCount,
+        sum(IF( is_confirm = 1, 1, 0 )) AS openCount
+        FROM
+        store_message_push_detail
+        where
+        kol_id = #{celebrityEmailStatisticsModel.kolId}
+        and is_send !=- 2
+        GROUP BY
+        seller_id,seller_name
+        order by sellerPushCount desc
+    </select>
+
+    <select id="financialStatistics"
+            resultType="org.jeecg.modules.instagram.storecelebrity.model.FinancialStatisticsModel">
+        SELECT
+        t.*
+        FROM
+        ( SELECT
+        id,
+        seller_id,
+        seller_name,
+        serial_code,
+        item_amount,
+        consume_type,
+        item_name,
+        pay_way,
+        '' AS pay_status,
+        STATUS,
+        consume_date
+        FROM
+        store_seller_consume
+        WHERE
+        consume_type IN ( 0, 3, 4 )
+        ANd status = 0
+        AND pay_way != 2
+
+        UNION
+        SELECT
+        id,
+        seller_id,
+        seller_name,
+        serial_code,
+        recharge_amount AS item_amount,
+        7 AS consume_type,
+        '充值',
+        pay_way,
+        pay_status,
+        '' AS STATUS,
+        create_time AS consume_date
+        FROM
+        store_seller_recharge
+        WHERE pay_status = 1
+        UNION
+        SELECT
+        id,
+        user_id AS seller_id,
+        user_name AS seller_name,
+        serial_code,
+        cash_amount AS item_amount,
+        8 AS consume_type,
+        '提现',
+        account_type AS pay_way,
+        '' AS pay_status,
+        STATUS,
+        create_time AS consume_date
+        FROM
+        store_cash_draws
+        WHERE status = 1
+        ORDER BY
+        consume_date DESC
+        )t
+        <where>
+            <if test="financialStatisticsModel.consumeType != null and financialStatisticsModel.consumeType != '' ">
+                and t.consume_type = #{financialStatisticsModel.consumeType}
+            </if>
+            <if test="financialStatisticsModel.startConsumeDate != '' and financialStatisticsModel.startConsumeDate != null">
+                and DATE_FORMAT(consume_date, '%Y-%m-%d') >=
+                DATE_FORMAT(#{financialStatisticsModel.startConsumeDate},
+                '%Y-%m-%d')
+            </if>
+            <if test="financialStatisticsModel.endConsumeDate != '' and financialStatisticsModel.endConsumeDate!= null">
+                and DATE_FORMAT(consume_date, '%Y-%m-%d') &lt;=
+                DATE_FORMAT(#{financialStatisticsModel.endConsumeDate},
+                '%Y-%m-%d')
+            </if>
+            <if test="financialStatisticsModel.sellerName != '' and financialStatisticsModel.sellerName!= null">
+                and seller_name like '%${financialStatisticsModel.sellerName}%'
+            </if>
+        </where>
+    </select>
+    <select id="getDetailList"
+            resultType="org.jeecg.modules.instagram.storecelebrity.model.MessagePushDetailModel">
+        select count(1) as count from store_message_push_detail where 1=1
+        <if test="detailModel.isSend ==-2">
+            and is_send != -2
+        </if>
+        <if test="detailModel.isSend ==1">
+            and is_send = 1
+        </if>
+        <if test="detailModel.kolId !=null and detailModel.kolId!=''">
+            and kol_id = #{detailModel.kolId}
+        </if>
+        <if test="detailModel.emailPushDate !=null and detailModel.emailPushDate!=''">
+            and email_push_date like '%${detailModel.emailPushDate}%'
+        </if>
+        <if test="detailModel.sellerId !=null and detailModel.sellerId!=''">
+            and seller_id = #{detailModel.sellerId}
+        </if>
+        <if test="detailModel.emailTitle !=null and detailModel.emailTitle!=''">
+            and email_title = #{detailModel.emailTitle}
+        </if>
+    </select>
+    <select id="getEmailSendResult"
+            resultType="org.jeecg.modules.instagram.storecelebrity.entity.MessagePushDetail">
+        SELECT
+        is_send,
+        email_push_date,
+        is_confirm
+        FROM
+        store_message_push_detail
+        WHERE
+        is_send !=- 2
+        AND is_send !=0
+    </select>
+    <select id="getDomainResult"
+            resultType="org.jeecg.modules.instagram.storecelebrity.model.MessagePushDetailModel">
+        SELECT
+        send_domain AS domain,
+        count( send_domain ) AS count
+        FROM
+        store_message_push_detail
+        WHERE
+        email_push_date LIKE '%${format}'
+        AND is_send !=- 2
+        GROUP BY
+        send_domain
+        HAVING
+        count( send_domain ) > 0
+    </select>
+
+    <select id="getByEmails" resultType="java.util.Map">
+        SELECT kol_email,
+        COUNT( id ) AS send_email_count
+        FROM
+        store_message_push_detail
+        WHERE
+        seller_id = #{sellerId}
+        AND is_send != - 2
+        <if test="emails!=null">
+            AND kol_email in
+            <foreach item="item" collection="emails" separator="," open="(" close=")" index="">
+                #{item}
+            </foreach>
+        </if>
+        GROUP BY kol_email
+    </select>
+</mapper>

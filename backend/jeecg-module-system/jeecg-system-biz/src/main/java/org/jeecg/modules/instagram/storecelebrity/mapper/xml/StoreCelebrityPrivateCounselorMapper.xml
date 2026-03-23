@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jeecg.modules.instagram.storecelebrity.mapper.StoreCelebrityPrivateCounselorMapper">
+    <update id="updateCounselorByEmails">
+        UPDATE store_celebrity_private_counselor
+        SET celebrity_counselor_id =  #{counselorModel.celebrityCounselorId},
+        celebrity_counselor_name =  #{counselorModel.celebrityCounselorName}
+        <where>
+            celebrity_contact_email IN
+            <foreach item="item" collection="counselorModel.celebrityContactEmails" separator="," open="(" close=")" index="">
+                #{item}
+            </foreach>
+        </where>
+    </update>
+
+    <select id="queryByCelebrityPrivateId"
+            resultType="org.jeecg.modules.instagram.storecelebrity.model.StoreCelebrityPrivateCounselorModel">
+        SELECT scpc.*,
+               sys.is_leave
+        FROM store_celebrity_private_counselor scpc
+                 LEFT JOIN sys_user sys ON scpc.celebrity_counselor_id = sys.id
+        WHERE scpc.celebrity_private_id = #{id}
+        order by scpc.celebrity_counselor_id
+    </select>
+</mapper>

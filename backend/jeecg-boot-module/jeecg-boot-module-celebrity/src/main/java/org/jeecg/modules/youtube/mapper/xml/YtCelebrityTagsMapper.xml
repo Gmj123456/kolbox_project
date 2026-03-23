@@ -1,0 +1,610 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jeecg.modules.youtube.mapper.YtCelebrityTagsMapper">
+    <!-- ******************* 提取公共部分查询条件 ******************** -->
+
+    <!-- 组合列表JOIN条件 -->
+    <!-- 查询未分配的网红标签列表关联条件(Join) -->
+    <sql id="listJoinConditions">
+        <include refid="yt.common.tagCounselorLeftJoinCondition"/>
+        <include refid="kol.common.brandJoinCondition">
+            <property name="uniqueId" value="yc.username"/>
+        </include>
+        <include refid="yt.common.tagListJoinCondition"/>
+        <include refid="yt.common.uniqueIdJoinCondition"/>
+        <include refid="kol.common.emailJoinCondition">
+            <property name="alias" value="yc"/>
+        </include>
+    </sql>
+    <!--  2025年4月8日10:51:12 刘峰 增加过滤Tag标签临时表 -->
+
+
+    <!-- 组合列表查询条件 -->
+    <!-- 查询未分配的网红标签列表查询条件(Where) -->
+    <sql id="listQueryConditions">
+        <!--       <include refid="kol.common.isHighFollowerCountCondition">
+                  <property name="alias" value="yc"/>
+              </include>
+              <include refid="kol.common.isHighFollowerCountCondition">
+                  <property name="alias" value="yct"/>
+              </include> -->
+        <include refid="kol.common.isNotAllotCondition">
+            <property name="alias" value="yct"/>
+        </include>
+        <include refid="kol.common.tagCounselorIdCondition">
+            <property name="alias" value="yctc"/>
+        </include>
+        <include refid="kol.common.countryCodeCondition">
+            <property name="alias" value="yc"/>
+        </include>
+        <include refid="kol.common.countryCodeCondition">
+            <property name="alias" value="yct"/>
+        </include>
+        <include refid="kol.common.videoStandardCountCondition">
+            <property name="alias" value="yc"/>
+        </include>
+        <include refid="kol.common.followerCountCondition">
+            <property name="followerCount" value="yc.followers_num"/>
+        </include>
+        <include refid="kol.common.isHasEmailCondition">
+            <property name="alias" value="yc"/>
+        </include>
+        <include refid="kol.common.isPrivateKolConditionNew"/>
+        <include refid="yt.common.signatureCondition"/>
+        <!--<include refid="kol.common.tagTypeCondition"><property name="alias" value="yct_tag"/></include>-->
+    </sql>
+    <!-- 导出excel，未分配标签对应的网红列表查询条件 -->
+    <sql id="exportUnassignedKolListForExcel">
+        <include refid="kol.common.isNotAllotCondition">
+            <property name="alias" value="yct"/>
+        </include>
+        <include refid="kol.common.countryCodeCondition">
+            <property name="alias" value="yct"/>
+        </include>
+        <include refid="kol.common.countryCodeCondition">
+            <property name="alias" value="yct"/>
+        </include>
+        <include refid="kol.common.followerCountCondition">
+            <property name="followerCount" value="yct.followers_num"/>
+        </include>
+        <include refid="kol.common.videoCountRangeCondition">
+            <property name="videoCount" value="yc.play_avg_num"/>
+        </include>
+    </sql>
+
+    <!--  2025年4月8日10:51:12 刘峰 增加过滤Tag标签临时表 -->
+    <sql id="filteredTagsCondition">
+        ,filtered_tags AS (
+        SELECT yct.id,yct.account,yct.username,yct.tag_name,yct.country,yct.tag_type
+        FROM youtube_celebrity_tags yct
+        <include refid="kol.common.tagNameJoinConditionPlus">
+            <property name="alias" value="yct"/>
+        </include>
+        <where>
+            <include refid="JoinTagsWhereConditions"/>
+            <!--   <include refid="kol.common.isHighFollowerCountCondition">
+                  <property name="alias" value="yct"/>
+              </include> -->
+        </where>
+        )
+    </sql>
+    <sql id="filteredTagsConditionNew">
+        WITH filtered_tags AS (
+        SELECT yct.id,yct.account,yct.username,yct.tag_name,yct.country,yct.tag_type
+        FROM ${searchModel.tempTableName} as tl
+        STRAIGHT_JOIN youtube_celebrity_tags yct ON yct.tag_name = tl.tag_name
+        <where>
+            <include refid="kol.common.countryCodeCondition">
+                <property name="alias" value="yct"/>
+            </include>
+            <include refid="kol.common.followerCountCondition">
+                <property name="followerCount" value="yct.followers_num"/>
+            </include>
+              <if test="searchModel.productId == null">
+                  <include refid="kol.common.isNotAllotCondition">
+                      <property name="alias" value="yct"/>
+                  </include>
+              </if>
+        </where>
+        GROUP BY yct.account
+        )
+    </sql>
+    <sql id="notAllotCountCondition">
+        WITH filtered_yc AS (
+        SELECT yc.account
+        FROM youtube_celebrity yc
+        <include refid="kol.common.uniqueIdJoinConditionPlus">
+            <property name="unique_field" value="yc.username"/>
+        </include>
+        <include refid="kol.common.emailJoinConditionPlus">
+            <property name="alias" value="yc"/>
+        </include>
+        <where>
+            <include refid="JoinCelebrityWhereConditions"/>
+            <include refid="kol.common.isHasEmailCondition">
+                <property name="alias" value="yc"/>
+            </include>
+        </where>
+        <include refid="kol.common.totalCountCondition"/>
+        )
+    </sql>
+    <sql id="filteredTagsConditionCountNew">
+        , filtered_tags AS (
+        SELECT distinct
+        yct.account
+        FROM
+        youtube_celebrity_tags yct
+        INNER JOIN ${searchModel.tempTableName} tl ON yct.tag_name = tl.tag_name
+        INNER JOIN youtube_celebrity yc ON yct.account = yc.account
+        <if test="searchModel.countryCode != null and searchModel.countryCode != ''">
+            AND yct.country = #{searchModel.countryCode}
+        </if>
+        <if test="searchModel.minFollowers != null">
+            AND yct.followers_num >= #{searchModel.minFollowers}
+        </if>
+        INNER JOIN kol_tag_product ktp ON yct.tag_name = ktp.tag_name
+        AND ktp.platform_type = 2
+        <if test="searchModel.productId != null and searchModel.productId != ''">
+            AND ktp.product_id = #{searchModel.productId}
+        </if>
+        WHERE
+        (yct.is_allot = 0 OR yct.allot_time &lt; DATE_SUB(CURDATE(), INTERVAL #{searchModel.allotDays} DAY))
+        )
+    </sql>
+    <sql id="filteredCelebrityCondition">
+        ,filtered_yc AS (
+        SELECT yc.account,yc.followers_num,yc.username,yc.email
+        FROM youtube_celebrity yc
+        <include refid="kol.common.uniqueIdJoinConditionPlus">
+            <property name="unique_field" value="yc.username"/>
+        </include>
+        <include refid="kol.common.emailJoinConditionPlus">
+            <property name="alias" value="yc"/>
+        </include>
+        <where>
+            <include refid="JoinCelebrityWhereConditions"/>
+            <include refid="kol.common.isHasEmailCondition">
+                <property name="alias" value="yc"/>
+            </include>
+        </where>
+        <include refid="kol.common.totalCountCondition"/>
+        )
+    </sql>
+    <sql id="tagsCounselorProductCondition">
+        ,filtered_ycyc AS ( SELECT `account`, id FROM youtube_celebrity_tags_counselor ycyc
+        <where>
+            <include refid="kol.common.countryCodeCondition">
+                <property name="alias" value="ycyc"/>
+            </include>
+            <include refid="kol.common.productIdCondition">
+                <property name="alias" value="ycyc"/>
+            </include>
+            <if test="searchModel.productId != null or searchModel.productId != '' ">
+                and ycyc.product_id = #{searchModel.productId}
+            </if>
+            <if test="(searchModel.productId != null or searchModel.productId != '') or (searchModel.attributeIds != null or searchModel.attributeIds != '')">
+                and ycyc.allot_time &gt;= DATE_SUB(CURDATE(), INTERVAL #{searchModel.allotDays} DAY)
+            </if>
+        </where>
+        )
+    </sql>
+    <!--  2025年4月8日11:09:48 刘峰 创建CelebrityTags（Where）连接-->
+    <sql id="JoinTagsWhereConditions">
+        <include refid="kol.common.countryCodeCondition">
+            <property name="alias" value="yct"/>
+        </include>
+        <include refid="kol.common.followerCountCondition">
+            <property name="followerCount" value="yc.followers_num"/>
+        </include>
+        <if test="searchModel.productId == null">
+            <include refid="kol.common.isNotAllotCondition">
+                <property name="alias" value="yct"/>
+            </include>
+        </if>
+    </sql>
+    <sql id="JoinCelebrityWhereConditions">
+        <include refid="kol.common.countryCodeCondition">
+            <property name="alias" value="yc"/>
+        </include>
+        <include refid="kol.common.followerCountCondition">
+            <property name="followerCount" value="yc.followers_num"/>
+        </include>
+        <include refid="kol.common.videoStandardCountCondition">
+            <property name="alias" value="yc"/>
+        </include>
+        <include refid="yt.common.signatureCondition"/>
+    </sql>
+
+    <!-- ********************** 以下为业务查询部分 ********************** -->
+
+    <!-- 查询Tiktok网红未分配的数量 -->
+    <select id="getUnallottedTagCount" resultType="java.lang.Long">
+        <include refid="kol.common.celebrityPrivateCondition">
+            <property name="alias" value="1"/>
+        </include>
+        SELECT count(*) FROM youtube_celebrity_tags AS yct
+        LEFT JOIN youtube_celebrity AS yc ON yc.account = yct.account
+        <include refid="kol.common.celebrityPrivateJoinCondition">
+            <property name="alias" value="yc.account"/>
+            <property name="account" value="yc.username"/>
+        </include>
+        <include refid="listJoinConditions"/>
+        <where>
+            <include refid="listQueryConditions"/>
+        </where>
+    </select>
+
+    <!-- 查询Tiktok网红未分配的数量 升级版 -->
+    <!--    2025年4月8日14:56:07 刘峰-->
+    <select id="getUnallottedTagCountPlus" resultType="java.lang.Long">
+        <if test="searchModel.tempTableName == null or  searchModel.tempTableName == ''">
+            <include refid="kol.common.tagNameTempTable"/>
+            <include refid="filteredTagsCondition"/>
+        </if>
+        <if test="searchModel.tempTableName != null and searchModel.tempTableName !=''">
+            <include refid="filteredTagsConditionNew"/>
+        </if>
+        <include refid="kol.common.uniqueIdTempTable"/>
+        <include refid="kol.common.emailTempTable"/>
+        <include refid="filteredCelebrityCondition"/>
+        <if test="searchModel.productId != null and searchModel.productId != ''">
+            <include refid="tagsCounselorProductCondition"/>
+        </if>
+        SELECT count(*) FROM filtered_tags AS ft
+        JOIN filtered_yc AS yc ON yc.account = ft.account
+        <if test="searchModel.productId != null and searchModel.productId != ''">
+            left join filtered_ycyc ycyc on ycyc.account = yc.account
+        </if>
+        <where>
+            <!--    <include refid="kol.common.isPrivateKolConditionNew"/> -->
+            <if test="searchModel.productId != null and searchModel.productId != ''">
+                and ycyc.id is null
+            </if>
+        </where>
+    </select>
+
+
+    <!-- 获取Tiktok未分配网红标签列表 -->
+    <select id="getUnallottedTagList" resultType="org.jeecg.modules.kol.model.UserTagAllotModel">
+        <include refid="kol.common.celebrityPrivateCondition">
+            <property name="alias" value="1"/>
+        </include>
+        SELECT yct.id,
+        yct.account ,
+        yct.username AS unique_id,
+        yct.tag_name,
+        yct.country,
+        yct.tag_type,
+        yc.followers_num AS author_follower_count,
+        cp.id as celebrity_private_id,
+        cp.celebrity_counselor_id AS counselor_id,
+        cp.celebrity_counselor_name AS counselor_name
+        FROM youtube_celebrity_tags AS yct
+        LEFT JOIN youtube_celebrity AS yc ON yc.account = yct.account
+        <include refid="kol.common.celebrityPrivateJoinCondition">
+            <property name="alias" value="yc.account"/>
+            <property name="account" value="yc.username"/>
+        </include>
+        <include refid="listJoinConditions"/>
+        <where>
+            <include refid="listQueryConditions"/>
+        </where>
+    </select>
+    <!-- 获取Tiktok未分配网红标签列表  升级版-->
+    <!--  2025年4月8日17:19:02 刘峰 增加  -->
+
+    <select id="getUnallottedTagListPlus" resultType="org.jeecg.modules.kol.model.UserTagAllotModel">
+        <include refid="kol.common.tagNameTempTable"/>
+        <include refid="kol.common.uniqueIdTempTable"/>
+        <include refid="kol.common.emailTempTable"/>
+        <include refid="filteredTagsCondition"/>
+        <include refid="filteredCelebrityCondition"/>
+        <if test="searchModel.productId != null and searchModel.productId != ''">
+            <include refid="tagsCounselorProductCondition"/>
+        </if>
+        <include refid="kol.common.celebrityPrivateConditionNew">
+            <property name="alias" value="1"/>
+        </include>
+        SELECT
+        ft.id,
+        ft.account,
+        ft.username AS unique_id,
+        ft.tag_name,
+        ft.country,
+        ft.tag_type,
+        yc.followers_num AS author_follower_count,
+        cp.id AS celebrity_private_id,
+        cp.celebrity_counselor_id AS counselor_id,
+        cp.celebrity_counselor_name AS counselor_name
+        FROM filtered_tags AS ft
+        JOIN filtered_yc AS yc ON yc.account = ft.account
+        <include refid="kol.common.celebrityPrivateJoinCondition">
+            <property name="alias" value="yc.account"/>
+            <property name="account" value="yc.username"/>
+        </include>
+    </select>
+
+    <!-- 获取Tiktok标签未分配数量分类汇总 -->
+    <select id="getUnallottedTagCountSummary" resultType="org.jeecg.modules.kol.model.KolTagCountModel">
+        SELECT tag_name,
+        count(*) AS tag_num
+        FROM youtube_celebrity_tags AS yct
+        <where>
+            <include refid="kol.common.isNotAllotCondition">
+                <property name="alias" value="yct"/>
+            </include>
+            <include refid="kol.common.countryCodeCondition">
+                <property name="alias" value="yct"/>
+            </include>
+            <include refid="kol.common.tagListInCondition"/>
+        </where>
+        GROUP BY tag_name
+        ORDER BY tag_num DESC
+    </select>
+    <select id="exportTagsExcel" resultType="org.jeecg.modules.tiktok.model.TiktokTagsNumModel">
+        SELECT yct.username as unique_id,
+        yc.followers_num as author_follower_count,
+        yc.video_standard_count as video_standard_count,
+        yct.tag_name,
+        yc.email
+        FROM youtube_celebrity_tags yct
+        <include refid="kol.common.joinTagNameListForFilter">
+            <property name="tagCelebrityTable" value="yct"/>
+        </include>
+        LEFT JOIN youtube_celebrity yc ON yct.username = yc.username
+        LEFT JOIN store_celebrity_private scp ON yc.username = scp.account
+        WHERE scp.id IS NULL
+        <include refid="exportUnassignedKolListForExcel"/>
+    </select>
+
+    <select id="getUnAlloteTagList" resultType="org.jeecg.modules.youtube.model.YoutubeCelebrityTagsModel">
+        SELECT
+        yct.id,
+        yct.account,
+        yct.username,
+        yct.tag_name,
+        yct.country,
+        yct.tag_type,
+        yct.followers_num
+        <if test="searchModel.isPrivateKol != null">
+            ,
+            cp.id AS celebrity_private_id,
+            cp.celebrity_counselor_id AS counselor_id,
+            cp.celebrity_counselor_name AS counselor_name
+        </if>
+        FROM
+        youtube_celebrity yc
+        LEFT JOIN youtube_celebrity_tags yct ON yc.account = yct.account
+        INNER JOIN ${searchModel.tempTableName} tl ON yct.tag_name = tl.tag_name
+        LEFT JOIN youtube_celebrity_tags_counselor AS yctc ON yctc.account = yct.account
+        <if test="searchModel.countryCode != null and searchModel.countryCode != ''">
+            AND yctc.country = #{searchModel.countryCode}
+        </if>
+        <if test="searchModel.productId != null and searchModel.productId != ''">
+            AND yctc.product_id = #{searchModel.productId}
+        </if>
+        <if test="searchModel.productId != null and searchModel.productId != ''">
+            AND yctc.allot_time &gt; DATE_SUB(CURDATE(), INTERVAL #{searchModel.allotDays} DAY)
+        </if>
+        <if test="searchModel.isPrivateKol == 1">
+            INNER JOIN store_celebrity_private cp ON cp.account = yc.username AND cp.platform_type = 1
+        </if>
+        <if test="searchModel.isPrivateKol == 0">
+            LEFT JOIN store_celebrity_private cp ON cp.account = yc.username AND cp.platform_type = 1
+        </if>
+        <where>
+            <!-- 私有KOL筛选 -->
+            <if test="searchModel.isPrivateKol == 0">
+                AND cp.id is null
+            </if>
+            <if test="searchModel.countryCode != null and searchModel.countryCode != ''">
+                AND yct.country = #{searchModel.countryCode}
+            </if>
+            <if test="searchModel.countryCode != null and searchModel.countryCode != ''">
+                AND yc.country = #{searchModel.countryCode}
+            </if>
+            <if test="searchModel.minFollowers != null">
+                AND yct.followers_num >= #{searchModel.minFollowers}
+            </if>
+            <if test="searchModel.maxFollowers != null">
+                AND yct.followers_num &lt;= #{searchModel.maxFollowers}
+            </if>
+            <if test="searchModel.productId == null or searchModel.productId == ''">
+                AND (yct.is_allot = 0 OR yct.allot_time &lt; DATE_SUB(CURDATE(), INTERVAL #{searchModel.allotDays} DAY))
+            </if>
+            <if test="searchModel.productId != null and searchModel.productId != ''">
+                AND yctc.id IS NULL
+            </if>
+            <if test="searchModel.minVideoStandardCount != null">
+                AND yc.video_standard_count &gt;= #{searchModel.minVideoStandardCount}
+            </if>
+            <if test="searchModel.maxVideoStandardCount != null">
+                AND yc.video_standard_count &lt;= #{searchModel.maxVideoStandardCount}
+            </if>
+            <if test="searchModel.signatureKeyword != null and searchModel.signatureKeyword != ''">
+                and yc.signature like '%${searchModel.signatureKeyword}%'
+            </if>
+            <if test="searchModel.isHasEmail != null">
+                <choose>
+                    <when test="searchModel.isHasEmail == 1">
+                        AND yc.email != ''
+                    </when>
+                    <when test="searchModel.isHasEmail == 0">
+                        AND ( yc.email IS NULL OR yc.email = '')
+                    </when>
+                </choose>
+            </if>
+            <if test="searchModel.uniqueId != null and searchModel.uniqueId != ''">
+                and yc.username in
+                <foreach collection="searchModel.uniqueId.split(',')" item="item" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="searchModel.emailKeyword != null and searchModel.emailKeyword != '' and searchModel.isHasEmail != 0">
+                and yc.email in
+                <foreach collection="searchModel.emailKeyword.split(',')" item="item" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+        </where>
+        group by yct.id
+    </select>
+    <select id="getNotAllotTagsList" resultType="org.jeecg.modules.kol.model.KolTagUpdateDTO">
+        <include refid="kol.common.tagsCountTempTable">
+            <property name="platform_type" value="1"/>
+            <property name="alias" value="youtube_celebrity_tags"/>
+        </include>
+    </select>
+
+    <select id="getCelebrityTagsList" resultType="org.jeecg.modules.youtube.entity.YoutubeCelebrityTags">
+        select
+        yct.account,
+        yct.tag_name,
+        yct.is_allot,
+        yct.tag_type,
+        yct.allot_time
+        from ${tempTableName} t STRAIGHT_JOIN youtube_celebrity_tags yct on yct.account = t.unique_id
+        <if test="searchModel.productId != null and searchModel.productId != ''">
+            join kol_tag_product ktp on yct.tag_name = ktp.tag_name and ktp.platform_type = 1 and ktp.product_id = #{searchModel.productId}
+        </if>
+        <where>
+            <if test="searchModel.countryCode != null and searchModel.countryCode != ''">
+                and yct.country = #{searchModel.countryCode}
+            </if>
+            <if test="searchModel.tagType != null">
+                and yct.tag_type = #{searchModel.tagType}
+            </if>
+        </where>
+        ORDER BY
+        yct.update_time DESC
+    </select>
+    <select id="getUnAlloteTagPageList" resultType="org.jeecg.modules.youtube.model.YoutubeCelebrityTagsModel">
+        <if test="searchModel.tempTableName == null or searchModel.tempTableName ==''">
+            <include refid="kol.common.tagNameTempTable"/>
+        </if>
+        <if test="searchModel.tempTableName != null and searchModel.tempTableName !=''">
+            <include refid="filteredTagsConditionNew"/>
+        </if>
+        <include refid="kol.common.uniqueIdTempTable"/>
+        <include refid="kol.common.emailTempTable"/>
+        <include refid="filteredCelebrityCondition"/>
+        <if test="searchModel.productId != null and searchModel.productId != ''">
+            <include refid="tagsCounselorProductCondition"/>
+        </if>
+        <include refid="kol.common.celebrityPrivateConditionNew">
+            <property name="alias" value="1"/>
+        </include>
+        SELECT
+        ft.id,
+        ft.account,
+        ft.username,
+        ft.tag_name,
+        ft.country,
+        ft.tag_type,
+        yc.followers_num,
+        cp.id AS celebrity_private_id,
+        cp.celebrity_counselor_id AS counselor_id,
+        cp.celebrity_counselor_name AS counselor_name
+        FROM filtered_tags AS ft
+        JOIN filtered_yc AS yc ON yc.account = ft.account
+        <include refid="kol.common.celebrityPrivateJoinCondition">
+            <property name="alias" value="yc.account"/>
+            <property name="account" value="yc.username"/>
+        </include>
+        <if test="searchModel.productId != null and searchModel.productId != ''">
+            left join filtered_ycyc ycyc on ycyc.account = yc.account
+        </if>
+        <where>
+            <if test="searchModel.productId != null and searchModel.productId != ''">
+                and ycyc.id is null
+            </if>
+        </where>
+    </select>
+
+    <select id="getNotAllotCount" resultType="int">
+        SELECT
+        count(*)
+        FROM
+        (
+        SELECT
+        yc.account
+        FROM
+        youtube_celebrity yc
+        LEFT JOIN youtube_celebrity_tags yct ON yc.account = yct.account
+        INNER JOIN ${searchModel.tempTableName} tl ON yct.tag_name = tl.tag_name
+        LEFT JOIN youtube_celebrity_tags_counselor AS yctc ON yctc.account = yct.account
+        <if test="searchModel.countryCode != null and searchModel.countryCode != ''">
+            AND yctc.country = #{searchModel.countryCode}
+        </if>
+        <if test="searchModel.productId != null and searchModel.productId != ''">
+            AND yctc.product_id = #{searchModel.productId}
+        </if>
+        <if test="searchModel.productId != null and searchModel.productId != ''">
+            AND yctc.allot_time &gt; DATE_SUB(CURDATE(), INTERVAL #{searchModel.allotDays} DAY)
+        </if>
+        <if test="searchModel.isPrivateKol == 1">
+            INNER JOIN store_celebrity_private cp ON cp.account = yc.account AND cp.platform_type = 1
+        </if>
+        <if test="searchModel.isPrivateKol == 0">
+            LEFT JOIN store_celebrity_private cp ON cp.account = yc.account AND cp.platform_type = 1
+        </if>
+
+        <where>
+            <if test="searchModel.isPrivateKol == 0">
+                AND cp.id IS NULL
+            </if>
+            <if test="searchModel.countryCode != null and searchModel.countryCode != ''">
+                AND yct.country = #{searchModel.countryCode}
+            </if>
+            <if test="searchModel.countryCode != null and searchModel.countryCode != ''">
+                AND yc.country = #{searchModel.countryCode}
+            </if>
+            <if test="searchModel.minFollowers != null">
+                AND yct.followers_num >= #{searchModel.minFollowers}
+            </if>
+            <if test="searchModel.maxFollowers != null">
+                AND yct.followers_num &lt;= #{searchModel.maxFollowers}
+            </if>
+            <if test="searchModel.productId == null or searchModel.productId == ''">
+                AND (yct.is_allot = 0 OR yct.allot_time &lt; DATE_SUB(CURDATE(), INTERVAL #{searchModel.allotDays} DAY))
+            </if>
+            <if test="searchModel.productId != null and searchModel.productId != ''">
+                AND yctc.id IS NULL
+            </if>
+            <if test="searchModel.minVideoStandardCount != null">
+                AND yc.video_standard_count &gt;= #{searchModel.minVideoStandardCount}
+            </if>
+            <if test="searchModel.maxVideoStandardCount != null">
+                AND yc.video_standard_count &lt;= #{searchModel.maxVideoStandardCount}
+            </if>
+            <if test="searchModel.signatureKeyword != null and searchModel.signatureKeyword != ''">
+                and yc.signature like '%${searchModel.signatureKeyword}%'
+            </if>
+            <if test="searchModel.isHasEmail != null">
+                <choose>
+                    <when test="searchModel.isHasEmail == 1">
+                        AND yc.email != ''
+                    </when>
+                    <when test="searchModel.isHasEmail == 0">
+                        AND ( yc.email IS NULL OR yc.email = '')
+                    </when>
+                </choose>
+            </if>
+            <if test="searchModel.uniqueId != null and searchModel.uniqueId != ''">
+                and yc.username in
+                <foreach collection="searchModel.uniqueId.split(',')" item="item" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="searchModel.emailKeyword != null and searchModel.emailKeyword != '' and searchModel.isHasEmail != 0">
+                and yc.email in
+                <foreach collection="searchModel.emailKeyword.split(',')" item="item" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+        </where>
+        GROUP BY
+        yct.account
+        ) total_tc
+    </select>
+</mapper>

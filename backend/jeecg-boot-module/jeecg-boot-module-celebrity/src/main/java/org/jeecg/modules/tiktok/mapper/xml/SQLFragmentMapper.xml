@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="tk.common">
+    <!-- 标签关联查询条件 -->
+    <sql id="tagListJoinCondition">
+        <if test="searchModel.tagNameList != null and searchModel.tagNameList.size() > 0">
+            JOIN
+            (SELECT tc.author_id FROM tiktok_celebrity_tags AS tc
+            JOIN
+            <if test="searchModel.tempTableName == null or searchModel.tempTableName == ''">
+                (
+                <include refid="kol.common.tagNameListForeach"/>
+                ) AS tags ON tc.tag_name = tags.tag_name
+            </if>
+            <if test="searchModel.tempTableName != null and searchModel.tempTableName != ''">
+                ${searchModel.tempTableName} AS tags ON tc.tag_name = tags.tag_name
+            </if>
+            JOIN tk_celebrity tct on tc.author_id = tct.author_id
+            <if test="searchModel.productId != null and searchModel.productId != ''">
+                left join kol_tag_product ktp on tc.tag_name = ktp.tag_name and ktp.platform_type = 2
+            </if>
+            <where>
+                <include refid="kol.common.countryCodeCondition">
+                    <property name="alias" value="tc"/>
+                </include>
+                <include refid="kol.common.tagTypeCondition">
+                    <property name="alias" value="tc"/>
+                </include>
+                <if test="searchModel.productId != null and searchModel.productId != ''">
+                    <include refid="kol.common.productIdCondition">
+                        <property name="alias" value="ktp"/>
+                    </include>
+                    <include refid="kol.common.brandIdCondition">
+                        <property name="alias" value="ktp"/>
+                    </include>
+                </if>
+            </where>
+            group by tc.author_id
+            )
+            tags ON tags.author_id = tc.author_id
+        </if>
+    </sql>
+    <!-- 标签网红顾问关联查询条件 -->
+    <sql id="tagCounselorJoinCondition">
+        <if test="searchModel.tagCounselorId != null and searchModel.tagCounselorId != ''">
+            JOIN (
+            SELECT DISTINCT unique_id
+            FROM tiktok_celebrity_tags_counselor
+            <where>
+                counselor_id = #{searchModel.tagCounselorId}
+            </where>
+            )
+            tctc ON tctc.unique_id = tct.unique_id
+        </if>
+    </sql>
+    <!-- 标签名称或网红顾问ID关联查询条件 -->
+    <sql id="tagNameOrCounselorIdJoinCondition">
+        JOIN (
+        SELECT Distinct author_id, brand_id, brand_name,product_id, kp.product_name FROM tiktok_celebrity_tags_counselor AS tc
+        <if test="searchModel.tempTableName == null or searchModel.tempTableName == ''">
+            <if test="searchModel.isContact == null or searchModel.isContact == 0">
+                <if test="searchModel.tagNameList != null and searchModel.tagNameList.size() > 0 and (searchModel.productId == null or searchModel.productId == '')">
+                    JOIN
+                    (
+                    <include refid="kol.common.tagNameListForeach"/>
+                    ) AS tags ON tc.tag_name = tags.tag_name
+                </if>
+            </if>
+        </if>
+        <if test="searchModel.tempTableName != null and searchModel.tempTableName != ''">
+            JOIN ${searchModel.tempTableName} AS tags ON tc.tag_name = tags.tag_name
+        </if>
+        LEFT JOIN kol_product kp ON tc.product_id = kp.id
+        <where>
+            <include refid="kol.common.counselorIdCondition">
+                <property name="alias" value="tc"/>
+            </include>
+            <include refid="kol.common.countryCodeCondition">
+                <property name="alias" value="tc"/>
+            </include>
+            <if test="searchModel.productId != null and searchModel.productId != '' and (searchModel.isContact == null or searchModel.isContact == 0)">
+                <include refid="kol.common.productIdCondition">
+                    <property name="alias" value="tc"/>
+                </include>
+            </if>
+            <if test="searchModel.brandId != null and searchModel.brandId != ''">
+                <include refid="kol.common.brandIdCondition">
+                    <property name="alias" value="kp"/>
+                </include>
+            </if>
+        </where>
+        )
+        tctc ON tctc.author_id = tc.author_id
+    </sql>
+    <sql id="counselorJoinCondition">
+        JOIN (
+        SELECT author_id,max(allot_time) as allot_time FROM tiktok_celebrity_tags_counselor AS tc
+        <if test="searchModel.attributeIds != null and searchModel.attributeIds != ''">
+            JOIN attribute_tag_name atn ON tc.tag_name = atn.tag_name
+        </if>
+        <if test="searchModel.tempTableName != null and searchModel.tempTableName != ''">
+            JOIN ${searchModel.tempTableName} AS tags ON tc.tag_name = tags.tag_name
+        </if>
+        <if test="searchModel.productId != null and searchModel.productId != ''">
+            LEFT JOIN kol_product kp ON tc.product_id = kp.id
+        </if>
+        <where>
+            <include refid="kol.common.counselorIdCondition">
+                <property name="alias" value="tc"/>
+            </include>
+            <include refid="kol.common.countryCodeCondition">
+                <property name="alias" value="tc"/>
+            </include>
+            <include refid="kol.common.tagTypeCondition">
+                <property name="alias" value="tc"/>
+            </include>
+            <if test="searchModel.productId != null and searchModel.productId != '' and (searchModel.isContact == null or searchModel.isContact == 0)">
+                <include refid="kol.common.productIdCondition">
+                    <property name="alias" value="tc"/>
+                </include>
+            </if>
+            <!--       <if test="searchModel.brandId != null and searchModel.brandId != ''">
+                      <include refid="kol.common.brandIdCondition">
+                          <property name="alias" value="kp"/>
+                      </include>
+                  </if> -->
+            <include refid="kol.common.allotTimeCondition">
+                <property name="alias" value="tc"/>
+            </include>
+      <!--       <if test="searchModel.brandId != null and searchModel.brandId != ''">
+                <include refid="kol.common.brandIdCondition">
+                    <property name="alias" value="kp"/>
+                </include>
+            </if> -->
+            <!--   <include refid="kol.common.attributeUniqueIdCondition">
+                  <property name="uniqueId" value="tc.unique_id"/>
+              </include> -->
+        </where>
+        <if test="searchModel.allotTime != null">
+            HAVING DATE(MAX(allot_time)) = DATE(#{searchModel.allotTime})
+        </if>
+        group by author_id
+        )
+        tctc ON tctc.author_id = tc.author_id
+    </sql>
+    <sql id="tagNameJoinCondition">
+        <if test="searchModel.tagNameList != null and searchModel.tagNameList.size() > 0">
+            JOIN
+            (
+            <include refid="kol.common.tagNameListForeach"/>
+            )
+            AS tags_name ON tct.tag_name = tags_name.tag_name
+        </if>
+    </sql>
+
+    <!-- 网红账号关联查询条件 -->
+    <sql id="uniqueIdJoinCondition">
+        <if test="searchModel.uniqueId != null and searchModel.uniqueId != ''">
+            JOIN
+            <foreach collection="searchModel.uniqueId.split(',')" item="item" open="("
+                     separator=" UNION ALL " close=")">
+                SELECT #{item} AS uniqueId
+            </foreach>
+            AS tc_uniqueId ON tc.unique_id = tc_uniqueId.uniqueId
+        </if>
+    </sql>
+
+
+    <!-- 网红标签表关联条件 -->
+    <sql id="kolTagsJoinCondition">
+        LEFT JOIN tiktok_celebrity_tags AS tct
+        ON tc.unique_id = tct.unique_id
+    </sql>
+
+    <!-- 个人签名查询条件 -->
+    <sql id="signatureCondition">
+        <if test="searchModel.signatureKeyword != null and searchModel.signatureKeyword != ''">
+            and tc.signature like '%${searchModel.signatureKeyword}%'
+        </if>
+    </sql>
+
+    <!-- 标签网红顾问左连接关联查询条件 -->
+    <sql id="tagCounselorLeftJoinCondition">
+        <if test="searchModel.tagCounselorId != null and searchModel.tagCounselorId != ''">
+            LEFT JOIN tiktok_celebrity_tags_counselor tctc
+            on tct.id = tctc.tiktok_celebrity_tags_id
+        </if>
+    </sql>
+
+    <!-- 标签关联产品 -->
+    <sql id="tagProductJoinCondition">
+        <if test="searchModel.productId != null and searchModel.productId != ''">
+            JOIN kol_tag_product AS ktp
+            ON tct.id = ktp.tiktok_celebrity_tags_id
+            AND tctp.product_id = #{searchModel.productId}
+        </if>
+    </sql>
+
+    <sql id="tkCelebrityCondition">
+        WITH tk_celebrity AS ( SELECT id, author_id FROM tiktok_celebrity tc
+        <where>
+            <include refid="kol.common.countryCodeCondition">
+                <property name="alias" value="tc"/>
+            </include>
+        </where>
+        <if test="searchModel.attributeIds!=null and searchModel.attributeIds!=''">
+            ORDER BY update_time DESC
+            <!--LIMIT #{searchModel.total}-->
+        </if>
+        )
+    </sql>
+</mapper>

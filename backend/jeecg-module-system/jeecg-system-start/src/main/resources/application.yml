@@ -1,0 +1,8 @@
+spring:
+  application:
+    name: jeecg-system
+  profiles:
+    active: 'dev'
+jasypt:
+  encryptor:
+    password: ${JASYPT_PASSWORD:}

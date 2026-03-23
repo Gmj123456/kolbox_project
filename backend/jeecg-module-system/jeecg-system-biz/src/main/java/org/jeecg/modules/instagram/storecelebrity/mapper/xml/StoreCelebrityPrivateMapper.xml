@@ -1,0 +1,1519 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jeecg.modules.instagram.storecelebrity.mapper.StoreCelebrityPrivateMapper">
+    <update id="updateCounselorByEmails">
+        UPDATE store_celebrity_private
+        SET celebrity_counselor_id = #{counselorModel.celebrityCounselorId},
+        celebrity_counselor_name = #{counselorModel.celebrityCounselorName}
+        <where>
+            celebrity_contact_email IN
+            <foreach item="item" collection="counselorModel.celebrityContactEmails" separator="," open="(" close=")" index="">
+                #{item}
+            </foreach>
+        </where>
+    </update>
+
+    <select id="getPageList"
+            resultType="org.jeecg.modules.instagram.storecelebrity.model.StoreCelebrityPrivateModel">
+        select
+        scp.id,
+        scp.celebrity_id,
+        scp.account,
+        scp.email,
+        scp.nick_name,
+        scp.like_tags,
+        scp.gender,
+        scp.platform_type,
+        scp.followers_num,
+        scp.cooperation_time,
+        scp.contract_status,
+        scp.contract_time,
+        scp.contract_amount,
+        scp.contract_goods_num,
+        scp.contract_goods_price,
+        scp.celebrity_counselor_id,
+        scp.celebrity_counselor_name,
+        scp.remark,
+        scp.create_by,
+        scp.create_time,
+        scp.update_by,
+        scp.update_time,
+        scp.full_address
+        from store_celebrity_private scp
+        <where>
+            <if test="storeCelebrityPrivateModel.nickName !=null and storeCelebrityPrivateModel.nickName !=''">
+                and scp.nick_name like CONCAT('%', #{storeCelebrityPrivateModel.nickName}, '%')
+            </if>
+
+            <if test="storeCelebrityPrivateModel.platformType !=null">
+                and scp.platform_type = #{storeCelebrityPrivateModel.platformType}
+            </if>
+
+            <if test="storeCelebrityPrivateModel.gender !=null">
+                and scp.gender = #{storeCelebrityPrivateModel.gender}
+            </if>
+
+            <if test="storeCelebrityPrivateModel.celebrityCounselorId !=null and storeCelebrityPrivateModel.celebrityCounselorId != ''">
+                and scp.celebrity_counselor_id = #{storeCelebrityPrivateModel.celebrityCounselorId}
+            </if>
+
+            <if test="storeCelebrityPrivateModel.contractStatus !=null">
+                and scp.contract_status = #{storeCelebrityPrivateModel.contractStatus}
+            </if>
+
+            <if test="storeCelebrityPrivateModel.account !=null and storeCelebrityPrivateModel.account !=''">
+                and scp.account like CONCAT('%', #{storeCelebrityPrivateModel.account}, '%')
+            </if>
+
+            <if test="storeCelebrityPrivateModel.likeTags !=null and storeCelebrityPrivateModel.likeTags !=''">
+                <foreach item="item" index="index" collection="storeCelebrityPrivateModel.likeTags.split(',')">
+                    AND find_in_set('${item}',scp.like_tags)
+                </foreach>
+            </if>
+
+            <if test="storeCelebrityPrivateModel.followersStartNum !=null">
+                and scp.followers_num &gt;= #{storeCelebrityPrivateModel.followersStartNum}
+            </if>
+            <if test="storeCelebrityPrivateModel.followersEndNum !=null">
+                and scp.followers_num &lt;= #{storeCelebrityPrivateModel.followersEndNum}
+            </if>
+
+            <if test="storeCelebrityPrivateModel.startCooperationTime != '' and storeCelebrityPrivateModel.startCooperationTime != null">
+                and DATE_FORMAT(scp.cooperation_time, '%Y-%m-%d') >=
+                DATE_FORMAT(#{storeCelebrityPrivateModel.startCooperationTime},
+                '%Y-%m-%d')
+            </if>
+            <if test="storeCelebrityPrivateModel.endCooperationTime != '' and storeCelebrityPrivateModel.endCooperationTime != null">
+                and DATE_FORMAT(scp.cooperation_time, '%Y-%m-%d') &lt;=
+                DATE_FORMAT(#{storeCelebrityPrivateModel.endCooperationTime},
+                '%Y-%m-%d')
+            </if>
+
+            <if test="storeCelebrityPrivateModel.startContractTime != '' and storeCelebrityPrivateModel.startContractTime != null">
+                and DATE_FORMAT(scp.contract_time, '%Y-%m-%d') >=
+                DATE_FORMAT(#{storeCelebrityPrivateModel.startContractTime},
+                '%Y-%m-%d')
+            </if>
+            <if test="storeCelebrityPrivateModel.endContractTime != '' and storeCelebrityPrivateModel.endContractTime != null">
+                and DATE_FORMAT(scp.contract_time, '%Y-%m-%d') &lt;=
+                DATE_FORMAT(#{storeCelebrityPrivateModel.endContractTime},
+                '%Y-%m-%d')
+            </if>
+        </where>
+    </select>
+
+
+    <select id="getPrivatePageList"
+            resultType="org.jeecg.modules.instagram.storecelebrity.model.StoreCelebrityPrivateModel">
+        SELECT
+        stcp.id,
+        stcp.celebrity_id,
+        stcp.account,
+        scpc.email,
+        stcp.nick_name,
+        stcp.like_tags,
+        stcp.gender,
+        stcp.platform_type,
+        stcp.followers_num,
+        stcp.cooperation_time,
+        stcp.contract_status,
+        stcp.contract_time,
+        scpc.contract_amount,
+        stcp.contract_goods_num,
+        stcp.contract_goods_price,
+        stcp.remark,
+        stcp.create_by,
+        stcp.create_time,
+        stcp.update_by,
+        stcp.update_time,
+        stcp.full_address,
+        stcp.avatar_url,
+        stcp.like_avg_num,
+        stcp.prom_price,
+        stcp.video_tags,
+        stcp.interact_avg_num,
+        stcp.mcn_id,
+        stcp.is_mcn,
+        stcp.personal_tags,
+        stcp.is_top_star,
+        stcp.celebrity_tel,
+        stcp.country_id,
+        stcp.country_name,
+        stcp.prom_like_tags,
+        stcp.like_count,
+        stcp.video_count,
+        stcp.play_avg_num,
+        scpc.celebrity_counselor_id,
+        scpc.celebrity_counselor_name
+        FROM
+        store_celebrity_private AS stcp
+        LEFT JOIN store_celebrity_private_counselor AS scpc ON stcp.id = scpc.celebrity_private_id
+        <where>
+            1=1 ${permissionSql}
+            <if test="storeCelebrityPrivateModel.nickName !=null and storeCelebrityPrivateModel.nickName !=''">
+                and nick_name like CONCAT(CONCAT('%',#{storeCelebrityPrivateModel.nickName}),'%')
+            </if>
+
+            <if test="storeCelebrityPrivateModel.platformType !=null">
+                and platform_type = #{storeCelebrityPrivateModel.platformType}
+            </if>
+
+            <if test="storeCelebrityPrivateModel.gender !=null">
+                and gender = #{storeCelebrityPrivateModel.gender}
+            </if>
+
+            <if test="storeCelebrityPrivateModel.isMcn !=null">
+                and is_mcn = #{storeCelebrityPrivateModel.isMcn}
+            </if>
+
+            <if test="storeCelebrityPrivateModel.celebrityCounselorId !=null and storeCelebrityPrivateModel.celebrityCounselorId != ''">
+                and scpc.celebrity_counselor_id = #{storeCelebrityPrivateModel.celebrityCounselorId}
+            </if>
+
+            <if test="storeCelebrityPrivateModel.personalTags !=null and storeCelebrityPrivateModel.personalTags !=''">
+                and personal_tags like CONCAT(CONCAT('%',#{storeCelebrityPrivateModel.personalTags}),'%')
+            </if>
+            <if test="storeCelebrityPrivateModel.isTopStar !=null">
+                and is_top_star = #{storeCelebrityPrivateModel.isTopStar}
+            </if>
+            <if test="storeCelebrityPrivateModel.account !=null and storeCelebrityPrivateModel.account !=''">
+                and account like CONCAT(CONCAT('%',#{storeCelebrityPrivateModel.account}),'%')
+            </if>
+            <if test="storeCelebrityPrivateModel.email !=null and storeCelebrityPrivateModel.email  !=''">
+                and stcp.email like CONCAT(CONCAT('%',#{storeCelebrityPrivateModel.email}),'%')
+            </if>
+            <if test="storeCelebrityPrivateModel.celebrityTel !=null and storeCelebrityPrivateModel.celebrityTel !=''">
+                and celebrity_tel like CONCAT(CONCAT('%',#{storeCelebrityPrivateModel.celebrityTel}),'%')
+            </if>
+
+            <if test="storeCelebrityPrivateModel.likeTags !=null and storeCelebrityPrivateModel.likeTags !=''">
+                <foreach item="item" index="index" collection="storeCelebrityPrivateModel.likeTags.split(',')">
+                    AND find_in_set('${item}',like_tags)
+                </foreach>
+            </if>
+
+            <if test="storeCelebrityPrivateModel.followersStartNum !=null">
+                and followers_num &gt;= #{storeCelebrityPrivateModel.followersStartNum}
+            </if>
+            <if test="storeCelebrityPrivateModel.followersEndNum !=null">
+                and followers_num &lt;= #{storeCelebrityPrivateModel.followersEndNum}
+            </if>
+            <if test="storeCelebrityPrivateModel.playAvgStartNum !=null">
+                and play_avg_num &gt;= #{storeCelebrityPrivateModel.playAvgStartNum}
+            </if>
+            <if test="storeCelebrityPrivateModel.playAvgEndNum !=null">
+                and play_avg_num &lt;= #{storeCelebrityPrivateModel.playAvgEndNum}
+            </if>
+
+            <if test="storeCelebrityPrivateModel.mixContractAmount !=null">
+                and stcp.contract_amount &gt;= #{storeCelebrityPrivateModel.mixContractAmount}
+            </if>
+            <if test="storeCelebrityPrivateModel.maxContractAmount !=null">
+                and stcp.contract_amount &lt;= #{storeCelebrityPrivateModel.maxContractAmount}
+            </if>
+
+            <if test="storeCelebrityPrivateModel.startCooperationTime != '' and storeCelebrityPrivateModel.startCooperationTime != null">
+                and DATE_FORMAT(cooperation_time, '%Y-%m-%d') >=
+                DATE_FORMAT(#{storeCelebrityPrivateModel.startCooperationTime},
+                '%Y-%m-%d')
+            </if>
+            <if test="storeCelebrityPrivateModel.endCooperationTime != '' and storeCelebrityPrivateModel.endCooperationTime != null">
+                and DATE_FORMAT(cooperation_time, '%Y-%m-%d') &lt;=
+                DATE_FORMAT(#{storeCelebrityPrivateModel.endCooperationTime},
+                '%Y-%m-%d')
+            </if>
+
+            <if test="storeCelebrityPrivateModel.startContractTime != '' and storeCelebrityPrivateModel.startContractTime != null">
+                and DATE_FORMAT(contract_time, '%Y-%m-%d') >=
+                DATE_FORMAT(#{storeCelebrityPrivateModel.startContractTime},
+                '%Y-%m-%d')
+            </if>
+            <if test="storeCelebrityPrivateModel.endContractTime != '' and storeCelebrityPrivateModel.endContractTime != null">
+                and DATE_FORMAT(contract_time, '%Y-%m-%d') &lt;=
+                DATE_FORMAT(#{storeCelebrityPrivateModel.endContractTime},
+                '%Y-%m-%d')
+            </if>
+            <if test="storeCelebrityPrivateModel.countryId != '' and storeCelebrityPrivateModel.countryId != null">
+                and country_id = #{storeCelebrityPrivateModel.countryId}
+            </if>
+        </where>
+        order by create_time desc
+    </select>
+
+
+    <select id="getDetailById"
+            resultType="org.jeecg.modules.instagram.storecelebrity.model.StoreSellDetailModel">
+        SELECT ssd.*,
+               ssg.seller_name,
+               ssg.goods_title,
+               ssg.goods_pic_url,
+               ssg.goods_url,
+               ssg.goods_price,
+               su.seller_counselor_name
+        FROM store_sell_detail ssd
+                 LEFT JOIN store_seller_goods ssg ON ssd.goods_id = ssg.id
+                 LEFT JOIN sys_user su ON su.id = ssg.seller_id
+        where ssd.celebrity_private_id = #{storeSellDetailModel.celebrityPrivateId}
+    </select>
+    <select id="getKolData"
+            resultType="org.jeecg.modules.instagram.storecelebrity.model.StoreCelebrityPrivateModel">
+        SELECT spgc.id,
+               scp.account,
+               scp.like_tags,
+               scp.gender,
+               scp.platform_type,
+               scp.id AS celebrity_id,
+               spgc.full_address,
+               spgc.prom_id,
+               spgc.goods_id,
+               spgc.goods_waybill,
+               spgc.media_img_json,
+               spgc.media_uploads,
+               spgc.remark,
+               spgc.goods_carrier,
+               spgc.celebrity_prom_status,
+               spgc.append_goods_amount,
+               ssp.payment_amount
+        FROM store_celebrity_private scp
+                 LEFT JOIN store_promotion_goods_celebrity spgc ON scp.id = spgc.celebrity_private_id
+                 left join store_seller_promotion ssp on ssp.extension_code = spgc.extension_code
+        WHERE spgc.goods_id = #{goodsId}
+          AND scp.id IN (SELECT celebrity_private_id
+                         FROM `store_promotion_goods_celebrity`
+                         WHERE goods_id = #{goodsId})
+    </select>
+    <select id="getCelebrityData"
+            resultType="org.jeecg.modules.instagram.storecelebrity.model.StoreCelebrityPrivateModel">
+        SELECT ssp.seller_name,
+               ssp.product_brand,
+               ssp.currency_symbol,
+               scp.account,
+               scp.avatar_url,
+               scp.like_avg_num,
+               spgc.video_tags,
+               scp.interact_avg_num,
+               scp.play_avg_num,
+               scp.video_count,
+               scp.like_count,
+               spgc.prom_like_tags,
+               scp.platform_type,
+               scp.followers_num,
+               spgc.prom_price,
+               qn.qr_code AS qrCode,
+               qn.nickname,
+               qn.phone,
+               scp.country_name
+        FROM store_seller_promotion AS ssp
+                 LEFT JOIN (SELECT * FROM store_promotion_goods_celebrity WHERE is_del = 0) spgc
+                           ON spgc.prom_id = ssp.id
+                 LEFT JOIN store_celebrity_private scp ON spgc.celebrity_private_id = scp.id
+                 LEFT JOIN (SELECT ssu.id,
+                                   su.id sid,
+                                   su.qr_code,
+                                   su.nickname,
+                                   su.username,
+                                   su.phone
+                            FROM sys_user AS su
+                                     LEFT JOIN sys_user AS ssu ON su.id = ssu.seller_counselor_id
+                            WHERE su.user_type = 3
+                              AND su.nickname != ''
+                              AND ssu.username != '') qn ON ssp.seller_id = qn.id
+        WHERE prom_id = #{promId}
+          AND spgc.celebrity_status = 0
+    </select>
+
+    <select id="getCelebrityPrivateListOld"
+            resultType="org.jeecg.modules.instagram.storecelebrity.model.StoreCelebrityPrivateModel">
+        SELECT stcp.*,
+        scpp.productSelectIds,
+        scpp.productSelectInfo,
+        scpp.productCooperateIds,
+        scpp.productCooperateInfo
+        FROM
+        store_celebrity_private stcp
+        <if test="storeCelebrityPrivateModel.celebrityCounselorId != null and storeCelebrityPrivateModel.celebrityCounselorId != ''">
+            LEFT JOIN
+            ( SELECT *
+            FROM store_celebrity_private_counselor
+            WHERE 1 = 1
+            <if test="storeCelebrityPrivateModel.celebrityCounselorId != null and storeCelebrityPrivateModel.celebrityCounselorId != ''">
+                and celebrity_counselor_id = #{storeCelebrityPrivateModel.celebrityCounselorId}
+            </if>
+            <if test="storeCelebrityPrivateModel.mixContractAmount != null">
+                and contract_amount &gt;= #{storeCelebrityPrivateModel.mixContractAmount}
+            </if>
+            <if test="storeCelebrityPrivateModel.maxContractAmount != null">
+                and contract_amount &lt;= #{storeCelebrityPrivateModel.maxContractAmount}
+            </if>
+            ) scpc ON stcp.id = scpc.celebrity_private_id
+        </if>
+        LEFT JOIN (
+        SELECT
+        celebrity_id,
+        GROUP_CONCAT( DISTINCT b.id ) AS productSelectIds,
+        GROUP_CONCAT( DISTINCT CONCAT( b.product_name, ' ', b.brand_name END ) ) AS productSelectInfo,
+        GROUP_CONCAT( CASE WHEN a.relation_status = 1 THEN b.id ELSE NULL END ) AS productCooperateIds,
+        GROUP_CONCAT( CASE WHEN a.relation_status = 1 THEN CONCAT( b.product_name, ' ', b.brand_name ELSE NULL END )) AS productCooperateInfo
+        FROM
+        store_celebrity_private_product a
+        LEFT JOIN kol_product b ON a.product_id = b.id
+        GROUP BY
+        celebrity_id
+        ) scpp ON stcp.id = scpp.celebrity_id
+        where 1 = 1
+        <if test="permissionSql != null and permissionSql != ''">
+            ${permissionSql}
+        </if>
+        <if test="storeCelebrityPrivateModel.nickName != null and storeCelebrityPrivateModel.nickName != ''">
+            and nick_name like CONCAT(CONCAT('%', #{storeCelebrityPrivateModel.nickName}), '%')
+        </if>
+        <if test="storeCelebrityPrivateModel.webUrl != null and storeCelebrityPrivateModel.webUrl != ''">
+            and web_url like CONCAT(CONCAT('%', #{storeCelebrityPrivateModel.webUrl}), '%')
+        </if>
+        <if test="storeCelebrityPrivateModel.platformType != null">
+            and platform_type = #{storeCelebrityPrivateModel.platformType}
+        </if>
+
+        <if test="storeCelebrityPrivateModel.gender != null">
+            and gender = #{storeCelebrityPrivateModel.gender}
+        </if>
+
+        <if test="storeCelebrityPrivateModel.isMcn != null">
+            and is_mcn = #{storeCelebrityPrivateModel.isMcn}
+        </if>
+        <if test="storeCelebrityPrivateModel.mcnName != null and storeCelebrityPrivateModel.mcnName != ''">
+            and mcn_name like CONCAT(CONCAT('%', #{storeCelebrityPrivateModel.mcnName}), '%')
+        </if>
+        <if test="storeCelebrityPrivateModel.celebrityCounselorId != null and storeCelebrityPrivateModel.celebrityCounselorId != ''">
+            and scpc.celebrity_counselor_id = #{storeCelebrityPrivateModel.celebrityCounselorId}
+        </if>
+
+        <if test="storeCelebrityPrivateModel.personalTags != null and storeCelebrityPrivateModel.personalTags != ''">
+            and personal_tags like CONCAT(CONCAT('%', #{storeCelebrityPrivateModel.personalTags}), '%')
+        </if>
+        <if test="storeCelebrityPrivateModel.isTopStar != null">
+            and is_top_star = #{storeCelebrityPrivateModel.isTopStar}
+        </if>
+        <if test="storeCelebrityPrivateModel.account != null and storeCelebrityPrivateModel.account != ''">
+            and stcp.account like CONCAT(CONCAT('%', #{storeCelebrityPrivateModel.account}), '%')
+        </if>
+        <if test="storeCelebrityPrivateModel.email != null and storeCelebrityPrivateModel.email != ''">
+            and stcp.email like CONCAT(CONCAT('%', #{storeCelebrityPrivateModel.email}), '%')
+        </if>
+        <if test="storeCelebrityPrivateModel.celebrityTel != null and storeCelebrityPrivateModel.celebrityTel != ''">
+            and celebrity_tel like CONCAT(CONCAT('%', #{storeCelebrityPrivateModel.celebrityTel}), '%')
+        </if>
+        <if test="storeCelebrityPrivateModel.likeTags != null and storeCelebrityPrivateModel.likeTags != ''">
+            AND (
+            <foreach item="item" index="index" collection="storeCelebrityPrivateModel.likeTags.split(',')" separator=" or ">
+                find_in_set('${item}', like_tags)
+            </foreach>
+            )
+        </if>
+
+        <if test="storeCelebrityPrivateModel.followersStartNum != null">
+            and followers_num &gt;= #{storeCelebrityPrivateModel.followersStartNum}
+        </if>
+        <if test="storeCelebrityPrivateModel.followersEndNum != null">
+            and followers_num &lt;= #{storeCelebrityPrivateModel.followersEndNum}
+        </if>
+        <if test="storeCelebrityPrivateModel.playAvgStartNum != null">
+            and play_avg_num &gt;= #{storeCelebrityPrivateModel.playAvgStartNum}
+        </if>
+        <if test="storeCelebrityPrivateModel.playAvgEndNum != null">
+            and play_avg_num &lt;= #{storeCelebrityPrivateModel.playAvgEndNum}
+        </if>
+
+        <if test="storeCelebrityPrivateModel.mixContractAmount != null and  storeCelebrityPrivateModel.celebrityCounselorId == null ">
+            and stcp.contract_amount &gt;= #{storeCelebrityPrivateModel.mixContractAmount}
+        </if>
+        <if test="storeCelebrityPrivateModel.maxContractAmount != null and  storeCelebrityPrivateModel.celebrityCounselorId == null  ">
+            and stcp.contract_amount &lt;= #{storeCelebrityPrivateModel.maxContractAmount}
+        </if>
+
+        <if test="storeCelebrityPrivateModel.startCooperationTime != '' and storeCelebrityPrivateModel.startCooperationTime != null">
+            and DATE_FORMAT(cooperation_time, '%Y-%m-%d') >=
+            DATE_FORMAT(#{storeCelebrityPrivateModel.startCooperationTime},
+            '%Y-%m-%d')
+        </if>
+        <if test="storeCelebrityPrivateModel.endCooperationTime != '' and storeCelebrityPrivateModel.endCooperationTime != null">
+            and DATE_FORMAT(cooperation_time, '%Y-%m-%d') &lt;=
+            DATE_FORMAT(#{storeCelebrityPrivateModel.endCooperationTime},
+            '%Y-%m-%d')
+        </if>
+
+        <if test="storeCelebrityPrivateModel.startContractTime != '' and storeCelebrityPrivateModel.startContractTime != null">
+            and DATE_FORMAT(contract_time, '%Y-%m-%d') >=
+            DATE_FORMAT(#{storeCelebrityPrivateModel.startContractTime},
+            '%Y-%m-%d')
+        </if>
+        <if test="storeCelebrityPrivateModel.endContractTime != '' and storeCelebrityPrivateModel.endContractTime != null">
+            and DATE_FORMAT(contract_time, '%Y-%m-%d') &lt;=
+            DATE_FORMAT(#{storeCelebrityPrivateModel.endContractTime},
+            '%Y-%m-%d')
+        </if>
+        <if test="storeCelebrityPrivateModel.countryId != '' and storeCelebrityPrivateModel.countryId != null">
+            and country_id = #{storeCelebrityPrivateModel.countryId}
+        </if>
+        <if test="storeCelebrityPrivateModel.isAbnormalAccount != null and storeCelebrityPrivateModel.isAbnormalAccount != 1">
+            and is_abnormal_account = #{storeCelebrityPrivateModel.isAbnormalAccount}
+        </if>
+        <if test="storeCelebrityPrivateModel.isAbnormalAccount != null and storeCelebrityPrivateModel.isAbnormalAccount == 1">
+            and (is_abnormal_account = #{storeCelebrityPrivateModel.isAbnormalAccount} or (is_abnormal_account =0 and followers_num = 0 and abnormal_code = -419))
+        </if>
+        <if test="storeCelebrityPrivateModel.column != null and storeCelebrityPrivateModel.column != ''and storeCelebrityPrivateModel.order != null and storeCelebrityPrivateModel.order != ''">
+            order by ${storeCelebrityPrivateModel.column} ${storeCelebrityPrivateModel.order}
+        </if>
+    </select>
+
+    <select id="getCelebrityPrivateList" resultType="org.jeecg.modules.instagram.storecelebrity.model.StoreCelebrityPrivateModel">
+        SELECT stcp.*,
+        scppt.personal_tag_ids,
+        scppt.personal_tag_names,
+        CASE
+        WHEN stcp.celebrity_counselor_id = #{storeCelebrityPrivateModel.userId} THEN 1
+        ELSE 0
+        END AS isAttributeUpdate
+        FROM store_celebrity_private stcp
+        <if test="storeCelebrityPrivateModel.attributeIds != null and storeCelebrityPrivateModel.attributeIds != ''">
+            <bind name="attributeIdList" value="storeCelebrityPrivateModel.attributeIds.split(',')"/>
+            <if test="attributeIdList != null and attributeIdList.length > 0">
+                INNER JOIN (
+                SELECT celebrity_private_id
+                FROM store_celebrity_private_attribute_relation
+                WHERE attribute_id IN (
+                <foreach item="item" index="index" collection="attributeIdList" separator=",">
+                    #{item,jdbcType=VARCHAR}
+                </foreach>
+                )
+                AND ( `rank` &lt; 4 OR `rank` IS NULL )
+                group by celebrity_private_id
+                ) mc ON stcp.id = mc.celebrity_private_id
+            </if>
+        </if>
+        <if test="storeCelebrityPrivateModel.categoryCode != null and storeCelebrityPrivateModel.categoryCode != ''">
+            INNER JOIN (
+            SELECT id
+            FROM store_celebrity_private
+            WHERE JSON_CONTAINS(industry_labels, JSON_OBJECT('labelID', JSON_QUOTE(#{item})), '$[*]')
+            <foreach item="item" index="index" collection="storeCelebrityPrivateModel.categoryCode.split(',')" separator=" OR ">
+                JSON_CONTAINS(industry_labels, JSON_OBJECT('labelID', JSON_QUOTE(#{item})), '$[*]')
+            </foreach>
+            ) il ON stcp.id = il.id
+        </if>
+        <if test="storeCelebrityPrivateModel.selectedProductIds != null and storeCelebrityPrivateModel.selectedProductIds != ''">
+            INNER JOIN (
+            SELECT celebrity_id
+            FROM store_celebrity_private_product
+            WHERE product_id IN (
+            <foreach item="item" index="index" collection="storeCelebrityPrivateModel.selectedProductIds.split(',')" separator=",">
+                #{item}
+            </foreach>
+            )
+            GROUP BY celebrity_id
+            ) sp ON stcp.id = sp.celebrity_id
+        </if>
+        <if test="storeCelebrityPrivateModel.cooperatedProductIds != null and storeCelebrityPrivateModel.cooperatedProductIds != ''">
+            INNER JOIN (
+            SELECT celebrity_id
+            FROM store_celebrity_private_product
+            WHERE relation_status = 1
+            AND product_id IN (
+            <foreach item="item" index="index" collection="storeCelebrityPrivateModel.cooperatedProductIds.split(',')" separator=",">
+                #{item}
+            </foreach>
+            )
+            GROUP BY celebrity_id
+            ) cp ON stcp.id = cp.celebrity_id
+        </if>
+        <if test="storeCelebrityPrivateModel.kolTypes != null and storeCelebrityPrivateModel.kolTypes!=''">
+            inner join ( SELECT
+            celebrity_name,
+            platform_type,
+            group_concat( kol_type ) as kol_types
+            FROM
+            kol_history_celebrity_kol_type
+            where
+            kol_type in
+            <foreach collection="storeCelebrityPrivateModel.kolTypes.split(',')" open="(" separator="," item="item" close=")">
+                #{item}
+            </foreach>
+            GROUP BY
+            celebrity_name,platform_type ) hct on stcp.account = hct.celebrity_name and stcp.platform_type = hct.platform_type
+        </if>
+        JOIN (
+        SELECT *
+        FROM store_celebrity_private_counselor
+        <where>
+            <if test="storeCelebrityPrivateModel.celebrityCounselorId != null and storeCelebrityPrivateModel.celebrityCounselorId != ''">
+                AND celebrity_counselor_id = #{storeCelebrityPrivateModel.celebrityCounselorId}
+            </if>
+            <if test="storeCelebrityPrivateModel.email != null and storeCelebrityPrivateModel.email != ''">
+                AND email LIKE CONCAT(CONCAT('%', #{storeCelebrityPrivateModel.email}), '%')
+            </if>
+        </where>
+        group by celebrity_private_id
+        ) scpc ON stcp.id = scpc.celebrity_private_id
+        LEFT JOIN ( SELECT
+        celebrity_id,
+        GROUP_CONCAT( scppt.tag_id ORDER BY sort_code, tag_id) AS personal_tag_ids,
+        GROUP_CONCAT( spt.tag_name ORDER BY sort_code, tag_id) AS personal_tag_names
+        FROM
+        store_celebrity_private_personal_tags scppt
+        INNER JOIN store_personal_tags spt ON scppt.tag_id = spt.id
+        GROUP BY
+        celebrity_id
+        ) scppt ON stcp.id = scppt.celebrity_id
+
+        <where>
+            <if test="permissionSql != null and permissionSql != ''">
+                ${permissionSql}
+            </if>
+            <if test="storeCelebrityPrivateModel.nickName != null and storeCelebrityPrivateModel.nickName != ''">
+                AND nick_name LIKE CONCAT(CONCAT('%', #{storeCelebrityPrivateModel.nickName}), '%')
+            </if>
+            <if test="storeCelebrityPrivateModel.webUrl != null and storeCelebrityPrivateModel.webUrl != ''">
+                AND web_url LIKE CONCAT(CONCAT('%', #{storeCelebrityPrivateModel.webUrl}), '%')
+            </if>
+            <if test="storeCelebrityPrivateModel.platformType != null">
+                AND stcp.platform_type = #{storeCelebrityPrivateModel.platformType}
+            </if>
+            <if test="storeCelebrityPrivateModel.platFormTypeStr != null and storeCelebrityPrivateModel.platFormTypeStr != ''">
+                AND stcp.platform_type in (
+                <foreach item="item" index="index" collection="storeCelebrityPrivateModel.platFormTypeStr.split(',')" separator=",">
+                    #{item}
+                </foreach>
+                )
+            </if>
+            <if test="storeCelebrityPrivateModel.gender != null">
+                AND gender = #{storeCelebrityPrivateModel.gender}
+            </if>
+            <if test="storeCelebrityPrivateModel.isMcn != null">
+                AND is_mcn = #{storeCelebrityPrivateModel.isMcn}
+            </if>
+            <if test="storeCelebrityPrivateModel.mcnName != null and storeCelebrityPrivateModel.mcnName != ''">
+                AND mcn_name LIKE CONCAT(CONCAT('%', #{storeCelebrityPrivateModel.mcnName}), '%')
+            </if>
+            <!--  <if test="storeCelebrityPrivateModel.celebrityCounselorId != null and storeCelebrityPrivateModel.celebrityCounselorId != ''">
+                 AND scpc.celebrity_counselor_id = #{storeCelebrityPrivateModel.celebrityCounselorId}
+             </if> -->
+            <if test="storeCelebrityPrivateModel.personalTags != null and storeCelebrityPrivateModel.personalTags != ''">
+                AND scppt.personal_tag_names LIKE CONCAT(CONCAT('%', #{storeCelebrityPrivateModel.personalTags}), '%')
+            </if>
+            <if test="storeCelebrityPrivateModel.personalTagIds != null and storeCelebrityPrivateModel.personalTagIds != ''">
+                AND (
+                <foreach collection="storeCelebrityPrivateModel.personalTagIds.split(',')" item="tagId" index="index" separator=" OR ">
+                    scppt.personal_tag_ids LIKE CONCAT('%', #{tagId}, '%')
+                </foreach>
+                )
+            </if>
+            <if test="storeCelebrityPrivateModel.isTopStar != null">
+                AND is_top_star = #{storeCelebrityPrivateModel.isTopStar}
+            </if>
+            <if test="storeCelebrityPrivateModel.isAttributeConfirmed != null">
+                AND is_attribute_confirmed = #{storeCelebrityPrivateModel.isAttributeConfirmed}
+            </if>
+            <if test="storeCelebrityPrivateModel.account != null and storeCelebrityPrivateModel.account != ''">
+                AND stcp.account LIKE CONCAT(CONCAT('%', #{storeCelebrityPrivateModel.account}), '%')
+            </if>
+            <!--         <if test="storeCelebrityPrivateModel.email != null and storeCelebrityPrivateModel.email != ''">
+                        AND stcp.email LIKE CONCAT(CONCAT('%', #{storeCelebrityPrivateModel.email}), '%')
+                    </if> -->
+            <if test="storeCelebrityPrivateModel.celebrityTel != null and storeCelebrityPrivateModel.celebrityTel != ''">
+                AND celebrity_tel LIKE CONCAT(CONCAT('%', #{storeCelebrityPrivateModel.celebrityTel}), '%')
+            </if>
+            <if test="storeCelebrityPrivateModel.likeTags != null and storeCelebrityPrivateModel.likeTags != ''">
+                AND (
+                <foreach item="item" index="index" collection="storeCelebrityPrivateModel.likeTags.split(',')" separator=" OR ">
+                    FIND_IN_SET(#{item}, like_tags)
+                </foreach>
+                )
+            </if>
+            <if test="storeCelebrityPrivateModel.followersStartNum != null">
+                AND followers_num &gt;= #{storeCelebrityPrivateModel.followersStartNum}
+            </if>
+            <if test="storeCelebrityPrivateModel.followersEndNum != null">
+                AND followers_num &lt;= #{storeCelebrityPrivateModel.followersEndNum}
+            </if>
+            <!-- 均播起始值 -->
+            <if test="storeCelebrityPrivateModel.playAvgStartNum != null">
+                <if test="storeCelebrityPrivateModel.isTop == 0">
+                    AND JSON_EXTRACT(video_data, '$.non_pinned.play_avg_num') &gt;= #{storeCelebrityPrivateModel.playAvgStartNum}
+                </if>
+                <if test="storeCelebrityPrivateModel.isTop == 1">
+                    AND JSON_EXTRACT(video_data, '$.total.play_avg_num') &gt;= #{storeCelebrityPrivateModel.playAvgStartNum}
+                </if>
+            </if>
+
+            <!-- 均播结束值 -->
+            <if test="storeCelebrityPrivateModel.playAvgEndNum != null">
+                <if test="storeCelebrityPrivateModel.isTop == 0">
+                    AND JSON_EXTRACT(video_data, '$.non_pinned.play_avg_num') &lt;= #{storeCelebrityPrivateModel.playAvgEndNum}
+                </if>
+                <if test="storeCelebrityPrivateModel.isTop == 1">
+                    AND JSON_EXTRACT(video_data, '$.total.play_avg_num') &lt;= #{storeCelebrityPrivateModel.playAvgEndNum}
+                </if>
+            </if>
+
+            <!--     <if test="storeCelebrityPrivateModel.mixContractAmount != null and storeCelebrityPrivateModel.celebrityCounselorId == null">
+                    AND stcp.contract_amount &gt;= #{storeCelebrityPrivateModel.mixContractAmount}
+                </if>
+                <if test="storeCelebrityPrivateModel.maxContractAmount != null and storeCelebrityPrivateModel.celebrityCounselorId == null">
+                    AND stcp.contract_amount &lt;= #{storeCelebrityPrivateModel.maxContractAmount}
+                </if> -->
+            <if test="storeCelebrityPrivateModel.mixContractAmount != null or storeCelebrityPrivateModel.maxContractAmount != null">
+                AND (EXISTS (
+                SELECT 1
+                FROM store_celebrity_private_counselor scpc
+                WHERE scpc.celebrity_private_id = stcp.id
+                AND scpc.celebrity_counselor_id = stcp.celebrity_counselor_id
+                AND scpc.contract_info IS NOT NULL
+                AND scpc.contract_info != ''
+                AND scpc.contract_info != '[]'
+                <choose>
+                    <when test="storeCelebrityPrivateModel.mixContractAmount != null and storeCelebrityPrivateModel.maxContractAmount != null">
+                        AND (
+                            (JSON_EXTRACT(scpc.contract_info, '$[0].contractAmount') BETWEEN #{storeCelebrityPrivateModel.mixContractAmount,jdbcType=DECIMAL} AND #{storeCelebrityPrivateModel.maxContractAmount,jdbcType=DECIMAL})
+                            OR (JSON_EXTRACT(scpc.contract_info, '$[1].contractAmount') BETWEEN #{storeCelebrityPrivateModel.mixContractAmount,jdbcType=DECIMAL} AND #{storeCelebrityPrivateModel.maxContractAmount,jdbcType=DECIMAL})
+                            OR (JSON_EXTRACT(scpc.contract_info, '$[2].contractAmount') BETWEEN #{storeCelebrityPrivateModel.mixContractAmount,jdbcType=DECIMAL} AND #{storeCelebrityPrivateModel.maxContractAmount,jdbcType=DECIMAL})
+                            OR (JSON_EXTRACT(scpc.contract_info, '$[3].contractAmount') BETWEEN #{storeCelebrityPrivateModel.mixContractAmount,jdbcType=DECIMAL} AND #{storeCelebrityPrivateModel.maxContractAmount,jdbcType=DECIMAL})
+                            OR (JSON_EXTRACT(scpc.contract_info, '$[4].contractAmount') BETWEEN #{storeCelebrityPrivateModel.mixContractAmount,jdbcType=DECIMAL} AND #{storeCelebrityPrivateModel.maxContractAmount,jdbcType=DECIMAL})
+                        )
+                    </when>
+                    <when test="storeCelebrityPrivateModel.mixContractAmount != null and storeCelebrityPrivateModel.maxContractAmount == null">
+                        AND (
+                            (JSON_EXTRACT(scpc.contract_info, '$[0].contractAmount') &gt;= #{storeCelebrityPrivateModel.mixContractAmount,jdbcType=DECIMAL})
+                            OR (JSON_EXTRACT(scpc.contract_info, '$[1].contractAmount') &gt;= #{storeCelebrityPrivateModel.mixContractAmount,jdbcType=DECIMAL})
+                            OR (JSON_EXTRACT(scpc.contract_info, '$[2].contractAmount') &gt;= #{storeCelebrityPrivateModel.mixContractAmount,jdbcType=DECIMAL})
+                            OR (JSON_EXTRACT(scpc.contract_info, '$[3].contractAmount') &gt;= #{storeCelebrityPrivateModel.mixContractAmount,jdbcType=DECIMAL})
+                            OR (JSON_EXTRACT(scpc.contract_info, '$[4].contractAmount') &gt;= #{storeCelebrityPrivateModel.mixContractAmount,jdbcType=DECIMAL})
+                        )
+                    </when>
+                    <when test="storeCelebrityPrivateModel.mixContractAmount == null and storeCelebrityPrivateModel.maxContractAmount != null">
+                        AND (
+                            (JSON_EXTRACT(scpc.contract_info, '$[0].contractAmount') &lt;= #{storeCelebrityPrivateModel.maxContractAmount,jdbcType=DECIMAL})
+                            OR (JSON_EXTRACT(scpc.contract_info, '$[1].contractAmount') &lt;= #{storeCelebrityPrivateModel.maxContractAmount,jdbcType=DECIMAL})
+                            OR (JSON_EXTRACT(scpc.contract_info, '$[2].contractAmount') &lt;= #{storeCelebrityPrivateModel.maxContractAmount,jdbcType=DECIMAL})
+                            OR (JSON_EXTRACT(scpc.contract_info, '$[3].contractAmount') &lt;= #{storeCelebrityPrivateModel.maxContractAmount,jdbcType=DECIMAL})
+                            OR (JSON_EXTRACT(scpc.contract_info, '$[4].contractAmount') &lt;= #{storeCelebrityPrivateModel.maxContractAmount,jdbcType=DECIMAL})
+                        )
+                    </when>
+                </choose>
+                ))
+            </if>
+            <if test="storeCelebrityPrivateModel.startCooperationTime != '' and storeCelebrityPrivateModel.startCooperationTime != null">
+                AND DATE_FORMAT(cooperation_time, '%Y-%m-%d') &gt;= DATE_FORMAT(#{storeCelebrityPrivateModel.startCooperationTime}, '%Y-%m-%d')
+            </if>
+            <if test="storeCelebrityPrivateModel.endCooperationTime != '' and storeCelebrityPrivateModel.endCooperationTime != null">
+                AND DATE_FORMAT(cooperation_time, '%Y-%m-%d') &lt;= DATE_FORMAT(#{storeCelebrityPrivateModel.endCooperationTime}, '%Y-%m-%d')
+            </if>
+            <if test="storeCelebrityPrivateModel.startContractTime != '' and storeCelebrityPrivateModel.startContractTime != null">
+                AND DATE_FORMAT(contract_time, '%Y-%m-%d') &gt;= DATE_FORMAT(#{storeCelebrityPrivateModel.startContractTime}, '%Y-%m-%d')
+            </if>
+            <if test="storeCelebrityPrivateModel.endContractTime != '' and storeCelebrityPrivateModel.endContractTime != null">
+                AND DATE_FORMAT(contract_time, '%Y-%m-%d') &lt;= DATE_FORMAT(#{storeCelebrityPrivateModel.endContractTime}, '%Y-%m-%d')
+            </if>
+            <if test="storeCelebrityPrivateModel.countryId != '' and storeCelebrityPrivateModel.countryId != null">
+                AND country_id = #{storeCelebrityPrivateModel.countryId}
+            </if>
+            <if test="storeCelebrityPrivateModel.isAbnormalAccount != null and storeCelebrityPrivateModel.isAbnormalAccount != 1">
+                AND is_abnormal_account = #{storeCelebrityPrivateModel.isAbnormalAccount}
+            </if>
+            <if test="storeCelebrityPrivateModel.isAbnormalAccount != null and storeCelebrityPrivateModel.isAbnormalAccount == 1">
+                AND (is_abnormal_account = #{storeCelebrityPrivateModel.isAbnormalAccount} OR (is_abnormal_account = 0 AND followers_num = 0 AND abnormal_code = -419))
+            </if>
+            <if test="storeCelebrityPrivateModel.videoCreateTimeLastStart != null and storeCelebrityPrivateModel.videoCreateTimeLastStart != ''">
+                AND STR_TO_DATE( TRIM( BOTH '"' FROM JSON_EXTRACT( video_data, '$.total.video_create_time_last' )), '%Y-%m-%d %H:%i:%s' ) &gt;= #{storeCelebrityPrivateModel.videoCreateTimeLastStart}
+            </if>
+            <if test="storeCelebrityPrivateModel.videoGmvValueStart != null">
+                AND video_gmv_value &gt;= #{storeCelebrityPrivateModel.videoGmvValueStart}
+            </if>
+            <if test="storeCelebrityPrivateModel.videoGmvValueEnd != null">
+                AND video_gmv_value &lt;= #{storeCelebrityPrivateModel.videoGmvValueEnd}
+            </if>
+            <if test="storeCelebrityPrivateModel.isPersonalTagsConfirmed != null">
+                AND is_personal_tags_confirmed = #{storeCelebrityPrivateModel.isPersonalTagsConfirmed}
+            </if>
+            <if test="storeCelebrityPrivateModel.isAttributeConfirmed != null or storeCelebrityPrivateModel.isPersonalTagsConfirmed != null">
+                and stcp.celebrity_counselor_id = #{storeCelebrityPrivateModel.userId}
+            </if>
+        </where>
+        <if test="storeCelebrityPrivateModel.column != null and storeCelebrityPrivateModel.column != '' and storeCelebrityPrivateModel.order != null and storeCelebrityPrivateModel.order != ''">
+            ORDER BY ${storeCelebrityPrivateModel.column} ${storeCelebrityPrivateModel.order}
+        </if>
+    </select>
+
+    <select id="getAllCelebrityPrivates"
+            resultType="org.jeecg.modules.instagram.storecelebrity.model.StoreCelebrityPrivateModel">
+        SELECT
+        stcp.*
+        FROM
+        store_celebrity_private stcp
+        <if test="storeCelebrityPrivateModel.celebrityCounselorId !=null and storeCelebrityPrivateModel.celebrityCounselorId != ''">
+            LEFT JOIN
+            ( SELECT * FROM store_celebrity_private_counselor
+            WHERE 1=1
+            <if test="storeCelebrityPrivateModel.celebrityCounselorId !=null and storeCelebrityPrivateModel.celebrityCounselorId != ''">
+                and celebrity_counselor_id = #{storeCelebrityPrivateModel.celebrityCounselorId}
+            </if>
+            ) scpc ON stcp.id = scpc.celebrity_private_id
+        </if>
+        where
+        1=1
+        <if test="storeCelebrityPrivateModel.nickName !=null and storeCelebrityPrivateModel.nickName !=''">
+            and nick_name like CONCAT(CONCAT('%',#{storeCelebrityPrivateModel.nickName}),'%')
+        </if>
+        <if test="storeCelebrityPrivateModel.webUrl !=null and storeCelebrityPrivateModel.webUrl !=''">
+            and web_url like CONCAT(CONCAT('%',#{storeCelebrityPrivateModel.webUrl}),'%')
+        </if>
+        <if test="storeCelebrityPrivateModel.platformType !=null">
+            and platform_type = #{storeCelebrityPrivateModel.platformType}
+        </if>
+
+        <if test="storeCelebrityPrivateModel.gender !=null">
+            and gender = #{storeCelebrityPrivateModel.gender}
+        </if>
+
+        <if test="storeCelebrityPrivateModel.isMcn !=null">
+            and is_mcn = #{storeCelebrityPrivateModel.isMcn}
+        </if>
+        <if test="storeCelebrityPrivateModel.mcnName !=null and storeCelebrityPrivateModel.mcnName !=''">
+            and mcn_name like CONCAT(CONCAT('%',#{storeCelebrityPrivateModel.mcnName}),'%')
+        </if>
+        <if test="storeCelebrityPrivateModel.celebrityCounselorId !=null and storeCelebrityPrivateModel.celebrityCounselorId != ''">
+            and scpc.celebrity_counselor_id = #{storeCelebrityPrivateModel.celebrityCounselorId}
+        </if>
+
+        <if test="storeCelebrityPrivateModel.personalTags !=null and storeCelebrityPrivateModel.personalTags !=''">
+            and personal_tags like CONCAT(CONCAT('%',#{storeCelebrityPrivateModel.personalTags}),'%')
+        </if>
+        <if test="storeCelebrityPrivateModel.isTopStar !=null">
+            and is_top_star = #{storeCelebrityPrivateModel.isTopStar}
+        </if>
+        <if test="storeCelebrityPrivateModel.account !=null and storeCelebrityPrivateModel.account !=''">
+            and stcp.account like CONCAT(CONCAT('%',#{storeCelebrityPrivateModel.account}),'%')
+        </if>
+        <if test="storeCelebrityPrivateModel.email !=null and storeCelebrityPrivateModel.email  !=''">
+            and stcp.email like CONCAT(CONCAT('%',#{storeCelebrityPrivateModel.email}),'%')
+        </if>
+        <if test="storeCelebrityPrivateModel.celebrityTel !=null and storeCelebrityPrivateModel.celebrityTel !=''">
+            and celebrity_tel like CONCAT(CONCAT('%',#{storeCelebrityPrivateModel.celebrityTel}),'%')
+        </if>
+        <if test="storeCelebrityPrivateModel.likeTags !=null and storeCelebrityPrivateModel.likeTags !=''">
+            <foreach item="item" index="index" collection="storeCelebrityPrivateModel.likeTags.split(',')">
+                AND find_in_set('${item}',like_tags)
+            </foreach>
+        </if>
+
+        <if test="storeCelebrityPrivateModel.followersStartNum !=null">
+            and followers_num &gt;= #{storeCelebrityPrivateModel.followersStartNum}
+        </if>
+        <if test="storeCelebrityPrivateModel.followersEndNum !=null">
+            and followers_num &lt;= #{storeCelebrityPrivateModel.followersEndNum}
+        </if>
+        <if test="storeCelebrityPrivateModel.playAvgStartNum !=null">
+            and play_avg_num &gt;= #{storeCelebrityPrivateModel.playAvgStartNum}
+        </if>
+        <if test="storeCelebrityPrivateModel.playAvgEndNum !=null">
+            and play_avg_num &lt;= #{storeCelebrityPrivateModel.playAvgEndNum}
+        </if>
+
+        <if test="storeCelebrityPrivateModel.mixContractAmount !=null">
+            and contract_amount &gt;= #{storeCelebrityPrivateModel.mixContractAmount}
+        </if>
+        <if test="storeCelebrityPrivateModel.maxContractAmount !=null">
+            and contract_amount &lt;= #{storeCelebrityPrivateModel.maxContractAmount}
+        </if>
+
+        <if test="storeCelebrityPrivateModel.startCooperationTime != '' and storeCelebrityPrivateModel.startCooperationTime != null">
+            and DATE_FORMAT(cooperation_time, '%Y-%m-%d') >=
+            DATE_FORMAT(#{storeCelebrityPrivateModel.startCooperationTime},
+            '%Y-%m-%d')
+        </if>
+        <if test="storeCelebrityPrivateModel.endCooperationTime != '' and storeCelebrityPrivateModel.endCooperationTime != null">
+            and DATE_FORMAT(cooperation_time, '%Y-%m-%d') &lt;=
+            DATE_FORMAT(#{storeCelebrityPrivateModel.endCooperationTime},
+            '%Y-%m-%d')
+        </if>
+
+        <if test="storeCelebrityPrivateModel.startContractTime != '' and storeCelebrityPrivateModel.startContractTime != null">
+            and DATE_FORMAT(contract_time, '%Y-%m-%d') >=
+            DATE_FORMAT(#{storeCelebrityPrivateModel.startContractTime},
+            '%Y-%m-%d')
+        </if>
+        <if test="storeCelebrityPrivateModel.endContractTime != '' and storeCelebrityPrivateModel.endContractTime != null">
+            and DATE_FORMAT(contract_time, '%Y-%m-%d') &lt;=
+            DATE_FORMAT(#{storeCelebrityPrivateModel.endContractTime},
+            '%Y-%m-%d')
+        </if>
+        <if test="storeCelebrityPrivateModel.countryId != '' and storeCelebrityPrivateModel.countryId != null">
+            and country_id = #{storeCelebrityPrivateModel.countryId}
+        </if>
+        <if test="storeCelebrityPrivateModel.column!=null and storeCelebrityPrivateModel.column!=''and  storeCelebrityPrivateModel.order!=null and storeCelebrityPrivateModel.order!=''">
+            order by ${storeCelebrityPrivateModel.column} ${storeCelebrityPrivateModel.order}
+        </if>
+    </select>
+
+
+    <select id="getPlatformDistribution" resultType="org.jeecg.modules.instagram.storecelebrity.model.PlatformDistributionModel">
+        SELECT CASE platform_type
+                   WHEN 0 THEN 'Instagram'
+                   WHEN 1 THEN 'YouTube'
+                   WHEN 2 THEN 'TikTok'
+                   ELSE 'Other'
+                   END                                                                   AS platform,
+               COUNT(*)                                                                  AS count,
+               ROUND(COUNT(*) / (SELECT COUNT(*) FROM store_celebrity_private) * 100, 2) AS percentage
+        FROM store_celebrity_private
+        GROUP BY platform_type;
+    </select>
+    <select id="getSignedCelebrityStats" resultType="org.jeecg.modules.instagram.storecelebrity.model.CelebritySignedModel">
+        SELECT (SELECT COUNT(*) FROM store_celebrity_private WHERE contract_time IS NOT NULL)                                                                  AS signed_count,
+               (SELECT COUNT(*) FROM store_celebrity_private)                                                                                                  AS total_count,
+               ROUND((SELECT COUNT(*) FROM store_celebrity_private WHERE contract_time IS NOT NULL) / (SELECT COUNT(*) FROM store_celebrity_private) * 100, 2) AS percentage;
+    </select>
+
+    <select id="getCelebrityFollowersStats" resultType="java.util.HashMap" parameterType="map">
+        SELECT
+        platform_name,
+        follower_range,
+        COUNT(*) AS total_count,
+        <foreach item="item" index="index" collection="dictItems" separator=",">
+            SUM(CASE WHEN is_top_star = #{item.itemValue} THEN 1 ELSE 0 END) AS "${item.itemText}"
+        </foreach>
+        FROM (
+        SELECT
+        CASE platform_type
+        WHEN 0 THEN 'Instagram'
+        WHEN 1 THEN 'YouTube'
+        WHEN 2 THEN 'TikTok'
+        ELSE 'Other'
+        END AS platform_name,
+        CASE
+        WHEN platform_type = 2 THEN
+        CASE
+        WHEN followers_num >= 10000000 THEN '10M+'
+        WHEN followers_num BETWEEN 1000000 AND 9999999 THEN '1M-10M'
+        WHEN followers_num BETWEEN 500000 AND 999999 THEN '500K-1M'
+        WHEN followers_num BETWEEN 100000 AND 499999 THEN '100K-500K'
+        ELSE '100K以内'
+        END
+        WHEN platform_type IN (0, 1) THEN
+        CASE
+        WHEN followers_num >= 1000000 THEN '1M+'
+        WHEN followers_num BETWEEN 600000 AND 999999 THEN '600K-1M'
+        WHEN followers_num BETWEEN 300000 AND 599999 THEN '300K-600K'
+        WHEN followers_num BETWEEN 100000 AND 299999 THEN '100K-300K'
+        ELSE '10K-100K'
+        END
+        END AS follower_range,
+        is_top_star
+        FROM store_celebrity_private
+        WHERE 1=1
+        <if test="platformType != null">
+            AND platform_type = #{platformType}
+        </if>
+        <if test="platformType == null">
+            AND platform_type IN (0, 1, 2)
+        </if>
+        ) AS sub
+        GROUP BY platform_name, follower_range
+        ORDER BY
+        FIELD(platform_name, 'TikTok', 'YouTube', 'Instagram'),
+        CASE
+        WHEN follower_range LIKE '%+%' THEN 0
+        WHEN follower_range LIKE '%M%' THEN 1
+        WHEN follower_range LIKE '%K%' THEN 2
+        ELSE 3
+        END,
+        CAST(SUBSTRING_INDEX(follower_range, 'K', 1) AS DECIMAL(10,0)) DESC
+    </select>
+    <select id="getCelebrityCostStats" parameterType="map" resultType="java.util.HashMap">
+        SELECT
+        platform_name,
+        cost_range ,
+        COUNT(*) AS total_count,
+        <foreach item="item" index="index" collection="dictItems" separator=",">
+            SUM(CASE WHEN is_top_star = #{item.itemValue} THEN 1 ELSE 0 END) AS "${item.itemText}"
+        </foreach>
+        FROM (
+        SELECT
+        CASE platform_type
+        WHEN 0 THEN 'Instagram'
+        WHEN 1 THEN 'YouTube'
+        WHEN 2 THEN 'TikTok'
+        ELSE 'Other'
+        END AS platform_name,
+        CASE
+        WHEN platform_type = 2 THEN
+        CASE
+        WHEN contract_amount BETWEEN 0 AND 200 THEN '0~200$'
+        WHEN contract_amount BETWEEN 200.01 AND 500 THEN '200~500$'
+        WHEN contract_amount BETWEEN 500.01 AND 800 THEN '500~800$'
+        WHEN contract_amount BETWEEN 800.01 AND 1500 THEN '800~1500$'
+        WHEN contract_amount BETWEEN 1500.01 AND 3000 THEN '1500~3000$'
+        ELSE '3000$+'
+        END
+        WHEN platform_type = 1 THEN
+        CASE
+        WHEN contract_amount BETWEEN 0 AND 500 THEN '0~500$'
+        WHEN contract_amount BETWEEN 500.01 AND 1500 THEN '500~1500$'
+        WHEN contract_amount BETWEEN 1500.01 AND 3000 THEN '1500~3000$'
+        WHEN contract_amount BETWEEN 3000.01 AND 8000 THEN '3000~8000$'
+        ELSE '8000$+'
+        END
+        WHEN platform_type = 0 THEN
+        CASE
+        WHEN contract_amount BETWEEN 0 AND 300 THEN '0~300$'
+        WHEN contract_amount BETWEEN 300.01 AND 800 THEN '300~800$'
+        WHEN contract_amount BETWEEN 800.01 AND 3000 THEN '800~3000$'
+        WHEN contract_amount BETWEEN 3000.01 AND 8000 THEN '3000~8000$'
+        ELSE '8000$+'
+        END
+        END AS cost_range,
+        is_top_star
+        FROM store_celebrity_private
+        WHERE 1=1
+        <if test="platformType != null">
+            AND platform_type = #{platformType}
+        </if>
+        <if test="platformType == null">
+            AND platform_type IN (0, 1, 2)
+        </if>
+        ) AS sub
+        GROUP BY platform_name, cost_range
+        ORDER BY
+        FIELD(platform_name, 'TikTok', 'YouTube', 'Instagram'),
+        CASE
+        WHEN cost_range LIKE '%+' THEN 999999999
+        ELSE CAST(SUBSTRING_INDEX(cost_range, '~', 1) AS DECIMAL(10,2))
+        END
+    </select>
+    <select id="getCelebrityCounselorStats" parameterType="map" resultType="java.util.HashMap">
+        SELECT
+        CASE COALESCE(c.platform_type, 0)
+        WHEN 0 THEN 'Instagram'
+        WHEN 1 THEN 'YouTube'
+        WHEN 2 THEN 'TikTok'
+        ELSE 'Other'
+        END AS platformName,
+        u.realname AS counselorName,
+        u.id AS counselorId,
+        COUNT(c.id) AS totalSignedCount,
+        <foreach item="item" index="index" collection="params.dictItems" separator=",">
+            COUNT(CASE WHEN c.is_top_star = #{item.itemValue} THEN c.id END) AS "${item.remark}"
+        </foreach>
+        FROM sys_user u
+        LEFT JOIN store_celebrity_private_counselor s
+        ON u.id = s.celebrity_counselor_id
+        <if test="params.contractStartTime != null">
+            AND s.contract_time &gt;= #{params.contractStartTime}
+        </if>
+        <if test="params.contractEndTime != null">
+            AND s.contract_time &lt;= #{params.contractEndTime}
+        </if>
+        LEFT JOIN store_celebrity_private c
+        ON s.celebrity_private_id = c.id
+        <if test="params.platformType != null">
+            AND c.platform_type = #{params.platformType}
+        </if>
+        WHERE u.del_flag = '0'
+        AND u.user_type = 4
+        AND u.is_leave = 0
+        GROUP BY
+        u.id,
+        u.realname
+        ORDER BY
+        platformName,
+        totalSignedCount DESC
+    </select>
+    <select id="getCelebrityCategoryStats" parameterType="map" resultType="java.util.HashMap">
+        SELECT
+        CASE scp.platform_type
+        WHEN 0 THEN 'Instagram'
+        WHEN 1 THEN 'YouTube'
+        WHEN 2 THEN 'TikTok'
+        ELSE 'Other'
+        END AS platformName,
+        st.like_tag_name AS categoryName,
+        <foreach item="item" index="index" collection="dictItems" separator=",">
+            COUNT(DISTINCT CASE WHEN scp.is_top_star = #{item.itemValue} THEN scp.id END) AS "${item.remark}"
+        </foreach>,
+        COUNT(DISTINCT scp.id) AS totalCelebrityCount
+        FROM store_celebrity_private scp
+        JOIN (
+        SELECT 1 AS n UNION SELECT 2 UNION SELECT 3 UNION SELECT 4 UNION SELECT 5
+        ) numbers ON CHAR_LENGTH(scp.like_tags) - CHAR_LENGTH(REPLACE(scp.like_tags, ',', '')) >= numbers.n - 1
+        JOIN store_tags st ON st.like_tag_name = TRIM(
+        SUBSTRING_INDEX(SUBSTRING_INDEX(scp.like_tags, ',', numbers.n), ',', -1)
+        )
+        WHERE scp.like_tags IS NOT NULL AND scp.like_tags != ''
+        <if test="platformType != null">
+            AND scp.platform_type = #{platformType}
+        </if>
+        GROUP BY scp.platform_type, st.like_tag_name
+        ORDER BY platformName, totalCelebrityCount DESC
+    </select>
+
+    <select id="getCounselorCategoryStats" resultType="org.jeecg.modules.instagram.storecelebrity.model.CounselorCategoryStatsModel">
+        SELECT
+        CASE scp.platform_type
+        WHEN 0 THEN 'Instagram'
+        WHEN 1 THEN 'YouTube'
+        WHEN 2 THEN 'TikTok'
+        ELSE 'Other'
+        END AS platformName,
+        scpc.celebrity_counselor_name AS counselorName,
+        TRIM(SUBSTRING_INDEX(SUBSTRING_INDEX(scp.like_tags, ',', numbers.n), ',', -1)) AS categoryName,
+        CASE scp.is_top_star
+        <foreach item="item" index="index" collection="dictItems" separator=" ">
+            WHEN #{item.itemValue} THEN #{item.remark}
+        </foreach>
+        END AS starLevel,
+        COUNT(DISTINCT scpc.id) AS count
+        FROM
+        store_celebrity_private scp
+        JOIN store_celebrity_private_counselor scpc
+        ON scp.id = scpc.celebrity_private_id
+        JOIN (SELECT 1 AS n UNION SELECT 2 UNION SELECT 3 UNION SELECT 4 UNION SELECT 5) numbers
+        ON CHAR_LENGTH(scp.like_tags) - CHAR_LENGTH(REPLACE(scp.like_tags, ',', '')) >= numbers.n - 1
+        WHERE
+        scp.like_tags IS NOT NULL
+        AND scp.like_tags != ''
+        <if test="platformType != null">
+            AND scp.platform_type = #{platformType}
+        </if>
+        GROUP BY
+        scp.platform_type,
+        scpc.celebrity_counselor_name,
+        TRIM(SUBSTRING_INDEX(SUBSTRING_INDEX(scp.like_tags, ',', numbers.n), ',', -1)),
+        scp.is_top_star
+        ORDER BY
+        platformName,
+        counselorName,
+        starLevel
+    </select>
+
+    <select id="getCelebrityPrivateExportListOld" resultType="org.jeecg.modules.instagram.storecelebrity.model.CelebrityPrivateExportModel">
+        SELECT stcp.*
+        FROM
+        store_celebrity_private stcp
+        <if test="storeCelebrityPrivateModel.celebrityCounselorId != null and storeCelebrityPrivateModel.celebrityCounselorId != ''">
+            LEFT JOIN
+            ( SELECT *
+            FROM store_celebrity_private_counselor
+            <where>
+                <if test="storeCelebrityPrivateModel.celebrityCounselorId != null and storeCelebrityPrivateModel.celebrityCounselorId != ''">
+                    and celebrity_counselor_id = #{storeCelebrityPrivateModel.celebrityCounselorId}
+                </if>
+                <if test="storeCelebrityPrivateModel.mixContractAmount != null">
+                    and contract_amount &gt;= #{storeCelebrityPrivateModel.mixContractAmount}
+                </if>
+                <if test="storeCelebrityPrivateModel.maxContractAmount != null">
+                    and contract_amount &lt;= #{storeCelebrityPrivateModel.maxContractAmount}
+                </if>
+            </where>
+            ) scpc ON stcp.id = scpc.celebrity_private_id
+        </if>
+        <where>
+            <if test="storeCelebrityPrivateModel.nickName != null and storeCelebrityPrivateModel.nickName != ''">
+                and nick_name like CONCAT(CONCAT('%', #{storeCelebrityPrivateModel.nickName}), '%')
+            </if>
+            <if test="storeCelebrityPrivateModel.webUrl != null and storeCelebrityPrivateModel.webUrl != ''">
+                and web_url like CONCAT(CONCAT('%', #{storeCelebrityPrivateModel.webUrl}), '%')
+            </if>
+            <if test="storeCelebrityPrivateModel.platformType != null">
+                and platform_type = #{storeCelebrityPrivateModel.platformType}
+            </if>
+
+            <if test="storeCelebrityPrivateModel.gender != null">
+                and gender = #{storeCelebrityPrivateModel.gender}
+            </if>
+
+            <if test="storeCelebrityPrivateModel.isMcn != null">
+                and is_mcn = #{storeCelebrityPrivateModel.isMcn}
+            </if>
+            <if test="storeCelebrityPrivateModel.mcnName != null and storeCelebrityPrivateModel.mcnName != ''">
+                and mcn_name like CONCAT(CONCAT('%', #{storeCelebrityPrivateModel.mcnName}), '%')
+            </if>
+            <if test="storeCelebrityPrivateModel.celebrityCounselorId != null and storeCelebrityPrivateModel.celebrityCounselorId != ''">
+                and scpc.celebrity_counselor_id = #{storeCelebrityPrivateModel.celebrityCounselorId}
+            </if>
+
+            <if test="storeCelebrityPrivateModel.personalTags != null and storeCelebrityPrivateModel.personalTags != ''">
+                and personal_tags like CONCAT(CONCAT('%', #{storeCelebrityPrivateModel.personalTags}), '%')
+            </if>
+            <if test="storeCelebrityPrivateModel.isTopStar != null">
+                and is_top_star = #{storeCelebrityPrivateModel.isTopStar}
+            </if>
+            <if test="storeCelebrityPrivateModel.account != null and storeCelebrityPrivateModel.account != ''">
+                and stcp.account like CONCAT(CONCAT('%', #{storeCelebrityPrivateModel.account}), '%')
+            </if>
+            <if test="storeCelebrityPrivateModel.email != null and storeCelebrityPrivateModel.email != ''">
+                and stcp.email like CONCAT(CONCAT('%', #{storeCelebrityPrivateModel.email}), '%')
+            </if>
+            <if test="storeCelebrityPrivateModel.celebrityTel != null and storeCelebrityPrivateModel.celebrityTel != ''">
+                and celebrity_tel like CONCAT(CONCAT('%', #{storeCelebrityPrivateModel.celebrityTel}), '%')
+            </if>
+            <if test="storeCelebrityPrivateModel.likeTags != null and storeCelebrityPrivateModel.likeTags != ''">
+                AND (
+                <foreach item="item" index="index" collection="storeCelebrityPrivateModel.likeTags.split(',')" separator=" or ">
+                    find_in_set('${item}', like_tags)
+                </foreach>
+                )
+            </if>
+
+            <if test="storeCelebrityPrivateModel.followersStartNum != null">
+                and followers_num &gt;= #{storeCelebrityPrivateModel.followersStartNum}
+            </if>
+            <if test="storeCelebrityPrivateModel.followersEndNum != null">
+                and followers_num &lt;= #{storeCelebrityPrivateModel.followersEndNum}
+            </if>
+            <if test="storeCelebrityPrivateModel.playAvgStartNum != null">
+                and play_avg_num &gt;= #{storeCelebrityPrivateModel.playAvgStartNum}
+            </if>
+            <if test="storeCelebrityPrivateModel.playAvgEndNum != null">
+                and play_avg_num &lt;= #{storeCelebrityPrivateModel.playAvgEndNum}
+            </if>
+
+            <if test="storeCelebrityPrivateModel.mixContractAmount != null and  storeCelebrityPrivateModel.celebrityCounselorId == null ">
+                and stcp.contract_amount &gt;= #{storeCelebrityPrivateModel.mixContractAmount}
+            </if>
+            <if test="storeCelebrityPrivateModel.maxContractAmount != null and  storeCelebrityPrivateModel.celebrityCounselorId == null  ">
+                and stcp.contract_amount &lt;= #{storeCelebrityPrivateModel.maxContractAmount}
+            </if>
+
+            <if test="storeCelebrityPrivateModel.startCooperationTime != '' and storeCelebrityPrivateModel.startCooperationTime != null">
+                and DATE_FORMAT(cooperation_time, '%Y-%m-%d') >=
+                DATE_FORMAT(#{storeCelebrityPrivateModel.startCooperationTime},
+                '%Y-%m-%d')
+            </if>
+            <if test="storeCelebrityPrivateModel.endCooperationTime != '' and storeCelebrityPrivateModel.endCooperationTime != null">
+                and DATE_FORMAT(cooperation_time, '%Y-%m-%d') &lt;=
+                DATE_FORMAT(#{storeCelebrityPrivateModel.endCooperationTime},
+                '%Y-%m-%d')
+            </if>
+
+            <if test="storeCelebrityPrivateModel.startContractTime != '' and storeCelebrityPrivateModel.startContractTime != null">
+                and DATE_FORMAT(contract_time, '%Y-%m-%d') >=
+                DATE_FORMAT(#{storeCelebrityPrivateModel.startContractTime},
+                '%Y-%m-%d')
+            </if>
+            <if test="storeCelebrityPrivateModel.endContractTime != '' and storeCelebrityPrivateModel.endContractTime != null">
+                and DATE_FORMAT(contract_time, '%Y-%m-%d') &lt;=
+                DATE_FORMAT(#{storeCelebrityPrivateModel.endContractTime},
+                '%Y-%m-%d')
+            </if>
+            <if test="storeCelebrityPrivateModel.countryId != '' and storeCelebrityPrivateModel.countryId != null">
+                and country_id = #{storeCelebrityPrivateModel.countryId}
+            </if>
+            <if test="storeCelebrityPrivateModel.isAbnormalAccount != null and storeCelebrityPrivateModel.isAbnormalAccount != 1">
+                and is_abnormal_account = #{storeCelebrityPrivateModel.isAbnormalAccount}
+            </if>
+            <if test="storeCelebrityPrivateModel.isAbnormalAccount != null and storeCelebrityPrivateModel.isAbnormalAccount == 1">
+                and (is_abnormal_account = #{storeCelebrityPrivateModel.isAbnormalAccount} or (is_abnormal_account =0 and followers_num = 0 and abnormal_code = -419))
+            </if>
+        </where>
+        <if test="storeCelebrityPrivateModel.column != null and storeCelebrityPrivateModel.column != ''and storeCelebrityPrivateModel.order != null and storeCelebrityPrivateModel.order != ''">
+            order by ${storeCelebrityPrivateModel.column} ${storeCelebrityPrivateModel.order}
+        </if>
+    </select>
+
+    <select id="getCelebrityPrivateExportList" resultType="org.jeecg.modules.instagram.storecelebrity.model.CelebrityPrivateExportModel">
+        SELECT
+        stcp.*,
+        COALESCE(
+        JSON_UNQUOTE(JSON_EXTRACT(stcp.video_data,
+        CASE stcp.platform_type
+        WHEN 0 THEN '$.non_pinned.play_avg_num'
+        WHEN 1 THEN '$.total.play_avg_num'
+        WHEN 2 THEN '$.non_pinned.play_avg_num'
+        ELSE NULL
+        END
+        )),
+        0
+        ) AS avgNum,
+        GROUP_CONCAT(DISTINCT spt.tag_name ORDER BY spt.tag_name SEPARATOR ', ') AS personalTagsList,
+        GROUP_CONCAT(DISTINCT scpar.attribute_name ORDER BY scpar.attribute_name SEPARATOR ', ') AS attributeNames
+        FROM
+        store_celebrity_private stcp
+        LEFT JOIN
+        store_celebrity_private_personal_tags scppt
+        ON stcp.id = scppt.celebrity_id
+        AND scppt.is_del = 0
+        LEFT JOIN
+        store_personal_tags spt
+        ON scppt.tag_id = spt.id
+        AND spt.del_flag = 0
+        LEFT JOIN
+        store_celebrity_private_attribute_relation scpar
+        ON stcp.id = scpar.celebrity_private_id AND ( `rank` &lt; 4 OR `rank` IS NULL )
+        <if test="storeCelebrityPrivateModel.celebrityCounselorId != null and storeCelebrityPrivateModel.celebrityCounselorId != ''">
+            LEFT JOIN
+            ( SELECT *
+            FROM store_celebrity_private_counselor
+            <where>
+                <if test="storeCelebrityPrivateModel.celebrityCounselorId != null and storeCelebrityPrivateModel.celebrityCounselorId != ''">
+                    and celebrity_counselor_id = #{storeCelebrityPrivateModel.celebrityCounselorId}
+                </if>
+                <if test="storeCelebrityPrivateModel.mixContractAmount != null or storeCelebrityPrivateModel.maxContractAmount != null">
+                    and contract_info IS NOT NULL
+                    and JSON_VALID(contract_info)
+                    and EXISTS (
+                    SELECT 1 FROM JSON_TABLE(contract_info, '$[*]' COLUMNS (contractAmount DECIMAL(15,2) PATH '$.contractAmount')) jt
+                    WHERE 1=1
+                    <if test="storeCelebrityPrivateModel.mixContractAmount != null and storeCelebrityPrivateModel.maxContractAmount != null">
+                        AND jt.contractAmount BETWEEN #{storeCelebrityPrivateModel.mixContractAmount,jdbcType=DECIMAL} AND #{storeCelebrityPrivateModel.maxContractAmount,jdbcType=DECIMAL}
+                    </if>
+                    <if test="storeCelebrityPrivateModel.mixContractAmount != null and storeCelebrityPrivateModel.maxContractAmount == null">
+                        AND jt.contractAmount &gt;= #{storeCelebrityPrivateModel.mixContractAmount,jdbcType=DECIMAL}
+                    </if>
+                    <if test="storeCelebrityPrivateModel.mixContractAmount == null and storeCelebrityPrivateModel.maxContractAmount != null">
+                        AND jt.contractAmount &lt;= #{storeCelebrityPrivateModel.maxContractAmount,jdbcType=DECIMAL}
+                    </if>
+                    )
+                </if>
+            </where>
+            ) scpc ON stcp.id = scpc.celebrity_private_id
+        </if>
+        <where>
+            <if test="storeCelebrityPrivateModel.selectedIds != null and storeCelebrityPrivateModel.selectedIds != ''">
+                AND stcp.id in (
+                <foreach item="item" index="index" collection="storeCelebrityPrivateModel.selectedIds.split(',')" separator=",">
+                    #{item}
+                </foreach>
+                )
+            </if>
+            <if test="storeCelebrityPrivateModel.nickName != null and storeCelebrityPrivateModel.nickName != ''">
+                and nick_name like CONCAT(CONCAT('%', #{storeCelebrityPrivateModel.nickName}), '%')
+            </if>
+            <if test="storeCelebrityPrivateModel.webUrl != null and storeCelebrityPrivateModel.webUrl != ''">
+                and web_url like CONCAT(CONCAT('%', #{storeCelebrityPrivateModel.webUrl}), '%')
+            </if>
+            <if test="storeCelebrityPrivateModel.platformType != null">
+                and platform_type = #{storeCelebrityPrivateModel.platformType}
+            </if>
+            <if test="storeCelebrityPrivateModel.platFormTypeStr != null and storeCelebrityPrivateModel.platFormTypeStr != ''">
+                AND platform_type in (
+                <foreach item="item" index="index" collection="storeCelebrityPrivateModel.platFormTypeStr.split(',')" separator=",">
+                    #{item}
+                </foreach>
+                )
+            </if>
+            <if test="storeCelebrityPrivateModel.gender != null">
+                and gender = #{storeCelebrityPrivateModel.gender}
+            </if>
+
+            <if test="storeCelebrityPrivateModel.isMcn != null">
+                and is_mcn = #{storeCelebrityPrivateModel.isMcn}
+            </if>
+            <if test="storeCelebrityPrivateModel.mcnName != null and storeCelebrityPrivateModel.mcnName != ''">
+                and mcn_name like CONCAT(CONCAT('%', #{storeCelebrityPrivateModel.mcnName}), '%')
+            </if>
+            <if test="storeCelebrityPrivateModel.celebrityCounselorId != null and storeCelebrityPrivateModel.celebrityCounselorId != ''">
+                and scpc.celebrity_counselor_id = #{storeCelebrityPrivateModel.celebrityCounselorId}
+            </if>
+
+            <if test="storeCelebrityPrivateModel.personalTags != null and storeCelebrityPrivateModel.personalTags != ''">
+                and EXISTS (
+                SELECT 1 FROM store_celebrity_private_personal_tags scppt2
+                INNER JOIN store_personal_tags spt2 ON scppt2.tag_id = spt2.id
+                WHERE scppt2.celebrity_id = stcp.id
+                AND scppt2.is_del = 0
+                AND spt2.del_flag = 0
+                AND spt2.tag_name LIKE CONCAT(CONCAT('%', #{storeCelebrityPrivateModel.personalTags}), '%')
+                )
+            </if>
+            <if test="storeCelebrityPrivateModel.isTopStar != null">
+                and is_top_star = #{storeCelebrityPrivateModel.isTopStar}
+            </if>
+            <if test="storeCelebrityPrivateModel.account != null and storeCelebrityPrivateModel.account != ''">
+                and stcp.account like CONCAT(CONCAT('%', #{storeCelebrityPrivateModel.account}), '%')
+            </if>
+            <if test="storeCelebrityPrivateModel.email != null and storeCelebrityPrivateModel.email != ''">
+                and stcp.email like CONCAT(CONCAT('%', #{storeCelebrityPrivateModel.email}), '%')
+            </if>
+            <if test="storeCelebrityPrivateModel.celebrityTel != null and storeCelebrityPrivateModel.celebrityTel != ''">
+                and celebrity_tel like CONCAT(CONCAT('%', #{storeCelebrityPrivateModel.celebrityTel}), '%')
+            </if>
+            <if test="storeCelebrityPrivateModel.likeTags != null and storeCelebrityPrivateModel.likeTags != ''">
+                AND (
+                <foreach item="item" index="index" collection="storeCelebrityPrivateModel.likeTags.split(',')" separator=" or ">
+                    find_in_set('${item}', like_tags)
+                </foreach>
+                )
+            </if>
+
+            <if test="storeCelebrityPrivateModel.followersStartNum != null">
+                and followers_num &gt;= #{storeCelebrityPrivateModel.followersStartNum}
+            </if>
+            <if test="storeCelebrityPrivateModel.followersEndNum != null">
+                and followers_num &lt;= #{storeCelebrityPrivateModel.followersEndNum}
+            </if>
+            <if test="storeCelebrityPrivateModel.playAvgStartNum != null">
+                and play_avg_num &gt;= #{storeCelebrityPrivateModel.playAvgStartNum}
+            </if>
+            <if test="storeCelebrityPrivateModel.playAvgEndNum != null">
+                and play_avg_num &lt;= #{storeCelebrityPrivateModel.playAvgEndNum}
+            </if>
+
+            <if test="storeCelebrityPrivateModel.mixContractAmount != null and  storeCelebrityPrivateModel.celebrityCounselorId == null ">
+                and stcp.contract_amount &gt;= #{storeCelebrityPrivateModel.mixContractAmount}
+            </if>
+            <if test="storeCelebrityPrivateModel.maxContractAmount != null and  storeCelebrityPrivateModel.celebrityCounselorId == null  ">
+                and stcp.contract_amount &lt;= #{storeCelebrityPrivateModel.maxContractAmount}
+            </if>
+
+            <if test="storeCelebrityPrivateModel.startCooperationTime != '' and storeCelebrityPrivateModel.startCooperationTime != null">
+                and DATE_FORMAT(cooperation_time, '%Y-%m-%d') &gt;=
+                DATE_FORMAT(#{storeCelebrityPrivateModel.startCooperationTime},
+                '%Y-%m-%d')
+            </if>
+            <if test="storeCelebrityPrivateModel.endCooperationTime != '' and storeCelebrityPrivateModel.endCooperationTime != null">
+                and DATE_FORMAT(cooperation_time, '%Y-%m-%d') &lt;=
+                DATE_FORMAT(#{storeCelebrityPrivateModel.endCooperationTime},
+                '%Y-%m-%d')
+            </if>
+
+            <if test="storeCelebrityPrivateModel.startContractTime != '' and storeCelebrityPrivateModel.startContractTime != null">
+                and DATE_FORMAT(contract_time, '%Y-%m-%d') &gt;=
+                DATE_FORMAT(#{storeCelebrityPrivateModel.startContractTime},
+                '%Y-%m-%d')
+            </if>
+            <if test="storeCelebrityPrivateModel.endContractTime != '' and storeCelebrityPrivateModel.endContractTime != null">
+                and DATE_FORMAT(contract_time, '%Y-%m-%d') &lt;=
+                DATE_FORMAT(#{storeCelebrityPrivateModel.endContractTime},
+                '%Y-%m-%d')
+            </if>
+            <if test="storeCelebrityPrivateModel.countryId != '' and storeCelebrityPrivateModel.countryId != null">
+                and country_id = #{storeCelebrityPrivateModel.countryId}
+            </if>
+            <if test="storeCelebrityPrivateModel.isAbnormalAccount != null and storeCelebrityPrivateModel.isAbnormalAccount != 1">
+                and is_abnormal_account = #{storeCelebrityPrivateModel.isAbnormalAccount}
+            </if>
+            <if test="storeCelebrityPrivateModel.isAbnormalAccount != null and storeCelebrityPrivateModel.isAbnormalAccount == 1">
+                and (is_abnormal_account = #{storeCelebrityPrivateModel.isAbnormalAccount} or (is_abnormal_account =0 and followers_num = 0 and abnormal_code = -419))
+            </if>
+        </where>
+        GROUP BY
+        stcp.id
+        <if test="storeCelebrityPrivateModel.column != null and storeCelebrityPrivateModel.column != ''and storeCelebrityPrivateModel.order != null and storeCelebrityPrivateModel.order != ''">
+            order by ${storeCelebrityPrivateModel.column} ${storeCelebrityPrivateModel.order}
+        </if>
+    </select>
+
+    <select id="getCelebrityPrivateListNew" resultType="org.jeecg.modules.instagram.storecelebrity.model.StoreCelebrityPrivateModel">
+        SELECT stcp.*
+        FROM store_celebrity_private stcp
+        <if test="storeCelebrityPrivateModel.celebrityCounselorId != null and storeCelebrityPrivateModel.celebrityCounselorId != ''">
+            INNER JOIN (
+            SELECT *
+            FROM store_celebrity_private_counselor
+            WHERE 1 = 1
+            <if test="storeCelebrityPrivateModel.celebrityCounselorId != null and storeCelebrityPrivateModel.celebrityCounselorId != ''">
+                AND celebrity_counselor_id = #{storeCelebrityPrivateModel.celebrityCounselorId}
+            </if>
+            <if test="storeCelebrityPrivateModel.mixContractAmount != null">
+                AND contract_amount &gt;= #{storeCelebrityPrivateModel.mixContractAmount}
+            </if>
+            <if test="storeCelebrityPrivateModel.maxContractAmount != null">
+                AND contract_amount &lt;= #{storeCelebrityPrivateModel.maxContractAmount}
+            </if>
+            <if test="storeCelebrityPrivateModel.celebrityContactEmail != null and storeCelebrityPrivateModel.celebrityContactEmail != ''">
+                AND celebrity_contact_email = #{storeCelebrityPrivateModel.celebrityContactEmail}
+            </if>
+            ) scpc ON stcp.id = scpc.celebrity_private_id
+        </if>
+        <where>
+            <if test="storeCelebrityPrivateModel.nickName != null and storeCelebrityPrivateModel.nickName != ''">
+                AND nick_name LIKE CONCAT(CONCAT('%', #{storeCelebrityPrivateModel.nickName}), '%')
+            </if>
+            <if test="storeCelebrityPrivateModel.webUrl != null and storeCelebrityPrivateModel.webUrl != ''">
+                AND web_url LIKE CONCAT(CONCAT('%', #{storeCelebrityPrivateModel.webUrl}), '%')
+            </if>
+            <if test="storeCelebrityPrivateModel.platformType != null">
+                AND platform_type = #{storeCelebrityPrivateModel.platformType}
+            </if>
+            <if test="storeCelebrityPrivateModel.gender != null">
+                AND gender = #{storeCelebrityPrivateModel.gender}
+            </if>
+            <if test="storeCelebrityPrivateModel.isMcn != null">
+                AND is_mcn = #{storeCelebrityPrivateModel.isMcn}
+            </if>
+            <if test="storeCelebrityPrivateModel.mcnName != null and storeCelebrityPrivateModel.mcnName != ''">
+                AND mcn_name LIKE CONCAT(CONCAT('%', #{storeCelebrityPrivateModel.mcnName}), '%')
+            </if>
+            <if test="storeCelebrityPrivateModel.celebrityCounselorId != null and storeCelebrityPrivateModel.celebrityCounselorId != ''">
+                AND scpc.celebrity_counselor_id = #{storeCelebrityPrivateModel.celebrityCounselorId}
+            </if>
+            <if test="storeCelebrityPrivateModel.personalTags != null and storeCelebrityPrivateModel.personalTags != ''">
+                AND personal_tags LIKE CONCAT(CONCAT('%', #{storeCelebrityPrivateModel.personalTags}), '%')
+            </if>
+            <if test="storeCelebrityPrivateModel.isTopStar != null">
+                AND is_top_star = #{storeCelebrityPrivateModel.isTopStar}
+            </if>
+            <if test="storeCelebrityPrivateModel.account != null and storeCelebrityPrivateModel.account != ''">
+                AND stcp.account in (
+                <foreach collection="storeCelebrityPrivateModel.account.split(',')" item="item" separator=",">
+                    #{item}
+                </foreach>
+                )
+            </if>
+            <if test="storeCelebrityPrivateModel.email != null and storeCelebrityPrivateModel.email != ''">
+                AND stcp.email LIKE CONCAT(CONCAT('%', #{storeCelebrityPrivateModel.email}), '%')
+            </if>
+            <if test="storeCelebrityPrivateModel.celebrityTel != null and storeCelebrityPrivateModel.celebrityTel != ''">
+                AND celebrity_tel LIKE CONCAT(CONCAT('%', #{storeCelebrityPrivateModel.celebrityTel}), '%')
+            </if>
+            <if test="storeCelebrityPrivateModel.likeTags != null and storeCelebrityPrivateModel.likeTags != ''">
+                AND (
+                <foreach item="item" index="index" collection="storeCelebrityPrivateModel.likeTags.split(',')" separator=" OR ">
+                    FIND_IN_SET(#{item}, like_tags)
+                </foreach>
+                )
+            </if>
+            <if test="storeCelebrityPrivateModel.followersStartNum != null">
+                AND followers_num &gt;= #{storeCelebrityPrivateModel.followersStartNum}
+            </if>
+            <if test="storeCelebrityPrivateModel.followersEndNum != null">
+                AND followers_num &lt;= #{storeCelebrityPrivateModel.followersEndNum}
+            </if>
+            <if test="storeCelebrityPrivateModel.playAvgStartNum != null">
+                AND play_avg_num &gt;= #{storeCelebrityPrivateModel.playAvgStartNum}
+            </if>
+            <if test="storeCelebrityPrivateModel.playAvgEndNum != null">
+                AND play_avg_num &lt;= #{storeCelebrityPrivateModel.playAvgEndNum}
+            </if>
+            <if test="storeCelebrityPrivateModel.mixContractAmount != null and storeCelebrityPrivateModel.celebrityCounselorId == null">
+                AND stcp.contract_amount &gt;= #{storeCelebrityPrivateModel.mixContractAmount}
+            </if>
+            <if test="storeCelebrityPrivateModel.maxContractAmount != null and storeCelebrityPrivateModel.celebrityCounselorId == null">
+                AND stcp.contract_amount &lt;= #{storeCelebrityPrivateModel.maxContractAmount}
+            </if>
+            <if test="storeCelebrityPrivateModel.startCooperationTime != '' and storeCelebrityPrivateModel.startCooperationTime != null">
+                AND DATE_FORMAT(cooperation_time, '%Y-%m-%d') &gt;= DATE_FORMAT(#{storeCelebrityPrivateModel.startCooperationTime}, '%Y-%m-%d')
+            </if>
+            <if test="storeCelebrityPrivateModel.endCooperationTime != '' and storeCelebrityPrivateModel.endCooperationTime != null">
+                AND DATE_FORMAT(cooperation_time, '%Y-%m-%d') &lt;= DATE_FORMAT(#{storeCelebrityPrivateModel.endCooperationTime}, '%Y-%m-%d')
+            </if>
+            <if test="storeCelebrityPrivateModel.startContractTime != '' and storeCelebrityPrivateModel.startContractTime != null">
+                AND DATE_FORMAT(contract_time, '%Y-%m-%d') &gt;= DATE_FORMAT(#{storeCelebrityPrivateModel.startContractTime}, '%Y-%m-%d')
+            </if>
+            <if test="storeCelebrityPrivateModel.endContractTime != '' and storeCelebrityPrivateModel.endContractTime != null">
+                AND DATE_FORMAT(contract_time, '%Y-%m-%d') &lt;= DATE_FORMAT(#{storeCelebrityPrivateModel.endContractTime}, '%Y-%m-%d')
+            </if>
+            <if test="storeCelebrityPrivateModel.countryId != '' and storeCelebrityPrivateModel.countryId != null">
+                AND country_id = #{storeCelebrityPrivateModel.countryId}
+            </if>
+            <if test="storeCelebrityPrivateModel.isAbnormalAccount != null and storeCelebrityPrivateModel.isAbnormalAccount != 1">
+                AND is_abnormal_account = #{storeCelebrityPrivateModel.isAbnormalAccount}
+            </if>
+            <if test="storeCelebrityPrivateModel.isAbnormalAccount != null and storeCelebrityPrivateModel.isAbnormalAccount == 1">
+                AND (is_abnormal_account = #{storeCelebrityPrivateModel.isAbnormalAccount} OR (is_abnormal_account = 0 AND followers_num = 0 AND abnormal_code = -419))
+            </if>
+        </where>
+        <if test="storeCelebrityPrivateModel.column != null and storeCelebrityPrivateModel.column != '' and storeCelebrityPrivateModel.order != null and storeCelebrityPrivateModel.order != ''">
+            ORDER BY ${storeCelebrityPrivateModel.column} ${storeCelebrityPrivateModel.order}
+        </if>
+    </select>
+</mapper>

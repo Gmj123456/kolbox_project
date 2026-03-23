@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jeecg.modules.tiktok.mapper.TiktokVideoMapper">
+
+    <select id="queryList" resultType="org.jeecg.modules.tiktok.model.TiktokVideoModel">
+        SELECT
+            id,
+            unique_id,
+            video_url,
+            video_create_time ,
+            video_desc ,
+            video_collect_count,
+            video_comment_count ,
+            video_digg_count,
+            video_play_count,
+            video_share_count,
+            batch_no,
+            user_id,
+            author_id,
+            nick_name,
+            sec_uid,
+            video_id
+        FROM tiktok_video
+        <where>
+            <if test="tiktokVideoModel.uniqueId != null and tiktokVideoModel.uniqueId != ''">
+                AND unique_id = #{tiktokVideoModel.uniqueId}
+            </if>
+            <if test="tiktokVideoModel.videoUrl != null and tiktokVideoModel.videoUrl != ''">
+                AND video_url = '${tiktokVideoModel.videoUrl}'
+            </if>
+            <if test="tiktokVideoModel.batchNo != null and tiktokVideoModel.batchNo != ''">
+                AND batch_no = #{tiktokVideoModel.batchNo}
+            </if>
+            <if test="tiktokVideoModel.userId != null and tiktokVideoModel.userId != ''">
+                AND user_id = #{tiktokVideoModel.userId}
+            </if>
+            <if test="tiktokVideoModel.startDateTime != null and tiktokVideoModel.startDateTime != ''">
+                AND create_time >= #{tiktokVideoModel.startDateTime}
+            </if>
+            <if test="tiktokVideoModel.endDateTime != null and tiktokVideoModel.endDateTime != ''">
+                AND create_time &lt;= #{tiktokVideoModel.endDateTime}
+            </if>
+
+        </where>
+        order by id asc
+    </select>
+
+    <select id="queryPageList" resultType="org.jeecg.modules.tiktok.entity.TiktokVideo">
+        SELECT
+            id,
+            unique_id,
+            video_url,
+            video_create_time ,
+            video_desc ,
+            video_collect_count,
+            video_comment_count ,
+            video_digg_count,
+            video_play_count,
+            video_share_count,
+            video_id,
+            author_id,
+            nick_name,
+            sec_uid,
+            batch_no,
+            user_id,
+            user_name,
+            remark,
+            create_time
+        FROM tiktok_video
+        <where>
+            <if test="tiktokVideoModel.uniqueId != null and tiktokVideoModel.uniqueId != ''">
+                AND unique_id = #{tiktokVideoModel.uniqueId}
+            </if>
+            <if test="tiktokVideoModel.videoUrl != null and tiktokVideoModel.videoUrl != ''">
+                AND video_url = '${tiktokVideoModel.videoUrl}'
+            </if>
+            <if test="tiktokVideoModel.batchNo != null and tiktokVideoModel.batchNo != ''">
+                AND batch_no = #{tiktokVideoModel.batchNo}
+            </if>
+            <if test="tiktokVideoModel.userId != null and tiktokVideoModel.userId != ''">
+                AND user_id = #{tiktokVideoModel.userId}
+            </if>
+            <if test="tiktokVideoModel.startDateTime != null and tiktokVideoModel.startDateTime != ''">
+                AND create_time >= #{tiktokVideoModel.startDateTime}
+            </if>
+            <if test="tiktokVideoModel.endDateTime != null and tiktokVideoModel.endDateTime != ''">
+                AND create_time &lt;= #{tiktokVideoModel.endDateTime}
+            </if>
+        </where>
+        order by create_time desc
+    </select>
+</mapper>

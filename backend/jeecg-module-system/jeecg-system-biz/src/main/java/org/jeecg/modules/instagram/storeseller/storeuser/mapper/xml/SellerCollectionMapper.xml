@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jeecg.modules.instagram.storeseller.storeuser.mapper.SellerCollectionMapper">
+    <select id="parentList"
+            resultType="org.jeecg.modules.instagram.storeseller.storeuser.model.SellerCollectionAndCelebrityModel">
+        SELECT
+        sc.id,
+        sc.seller_id,
+        sc.seller_Name,
+        sc.celebrity_name,
+        sc.celebrity_id,
+        sc.create_time,
+        scb.account,
+        scb.avatar_url,
+        scb.username,
+        scb.nick_name,
+        scb.email,
+        scb.description,
+        scb.following_num,
+        scb.followers_num,
+        scb.posts_num,
+        scb.like_avg_num,
+        scb.comment_avg_num,
+        scb.play_avg_num,
+        scb.tag,
+        scb.country,
+        scb.platform_type,
+        scb.keyword,
+        scb.new_tag,
+        scb.face_status,
+        scb.del_flag,
+        scb.kol_price_min,
+        scb.kol_price_max,
+        scb.dislike_tags,
+        scb.like_tags,
+        scb.remark,
+        scb.create_by,
+        scb.update_by,
+        scb.update_time,
+        scb.is_tag_confirm,
+        scb.star,
+        scb.gender,
+        smp.send_email_count AS sendEmailCount
+        from store_seller_collection sc
+        LEFT JOIN store_celebrity scb on scb.id = sc.celebrity_id
+        LEFT JOIN ( SELECT kol_email, COUNT( id ) AS send_email_count FROM store_message_push_detail where seller_id =
+        #{sellerCollectionAndCelebrityModel.sellerId} GROUP BY kol_email ) smp ON smp.kol_email = scb.email
+        where sc.seller_id = #{sellerCollectionAndCelebrityModel.sellerId}
+        and scb.del_flag = 0
+        <if test="sellerCollectionAndCelebrityModel.platformType !=null">
+            and scb.platform_type = #{sellerCollectionAndCelebrityModel.platformType}
+        </if>
+        <if test="sellerCollectionAndCelebrityModel.sendEmailCount !=null">
+            and IF(smp.send_email_count is null
+            ,0,smp.send_email_count)=#{sellerCollectionAndCelebrityModel.sendEmailCount}
+        </if>
+        <if test="sellerCollectionAndCelebrityModel.gender !=null and sellerCollectionAndCelebrityModel.gender >= 0">
+            and scb.gender = #{sellerCollectionAndCelebrityModel.gender}
+        </if>
+
+        <if test="sellerCollectionAndCelebrityModel.gender !=null and sellerCollectionAndCelebrityModel.gender &lt; 0">
+            and (scb.gender &lt;= -1 or scb.gender is null)
+        </if>
+
+        <if test="sellerCollectionAndCelebrityModel.star !=null">
+            and scb.star=#{sellerCollectionAndCelebrityModel.star}
+        </if>
+        <if test="sellerCollectionAndCelebrityModel.nickName !=null and sellerCollectionAndCelebrityModel.nickName !=''">
+            and scb.nick_name like '%${sellerCollectionAndCelebrityModel.nickName}%'
+        </if>
+        <if test="sellerCollectionAndCelebrityModel.username !=null and sellerCollectionAndCelebrityModel.username !=''">
+            and scb.username like '%${sellerCollectionAndCelebrityModel.username}%'
+        </if>
+        <if test="sellerCollectionAndCelebrityModel.country !=null and sellerCollectionAndCelebrityModel.country !=''">
+            and scb.country = #{sellerCollectionAndCelebrityModel.country}
+        </if>
+        <if test="sellerCollectionAndCelebrityModel.likeTags !=null and sellerCollectionAndCelebrityModel.likeTags !=''">
+            <foreach item="item" index="index" collection="sellerCollectionAndCelebrityModel.likeTags.split(',')">
+                AND find_in_set('${item}',like_tags)
+            </foreach>
+        </if>
+        <if test="sellerCollectionAndCelebrityModel.dislikeTags !=null and sellerCollectionAndCelebrityModel.dislikeTags !=''">
+            <foreach item="item" index="index" collection="sellerCollectionAndCelebrityModel.dislikeTags.split(',')">
+                AND find_in_set('${item}',dislike_tags)
+            </foreach>
+        </if>
+        <if test="sellerCollectionAndCelebrityModel.followersStartNum !=null">
+            and followers_num &gt;= #{sellerCollectionAndCelebrityModel.followersStartNum}
+        </if>
+        <if test="sellerCollectionAndCelebrityModel.followersEndNum !=null">
+            and followers_num &lt;= #{sellerCollectionAndCelebrityModel.followersEndNum}
+        </if>
+        <if test="sellerCollectionAndCelebrityModel.postsStartNum !=null">
+            and posts_num &gt;= #{sellerCollectionAndCelebrityModel.postsStartNum}
+        </if>
+        <if test="sellerCollectionAndCelebrityModel.postsEndNum !=null">
+            and posts_num &lt;= #{sellerCollectionAndCelebrityModel.postsEndNum}
+        </if>
+        <if test="sellerCollectionAndCelebrityModel.playAvgStartNum !=null">
+            and play_avg_num &gt;= #{sellerCollectionAndCelebrityModel.playAvgStartNum}
+        </if>
+        <if test="sellerCollectionAndCelebrityModel.playAvgEndNum !=null">
+            and play_avg_num &lt;= #{sellerCollectionAndCelebrityModel.playAvgEndNum}
+        </if>
+        ORDER BY sc.create_time desc
+
+    </select>
+</mapper>

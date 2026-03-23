@@ -1,0 +1,713 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jeecg.modules.instagram.mapper.IgCelebrityTagsMapper">
+    <!-- 组合列表JOIN条件 -->
+    <sql id="listJoinConditions">
+        <!-- <include refid="ig.common.tagCounselorLeftJoinCondition"/> -->
+        <include refid="kol.common.brandJoinCondition">
+            <property name="uniqueId" value="ic.ig_username"/>
+        </include>
+        <!-- <include refid="ig.common.tagListJoinCondition"/> -->
+        <if test="searchModel.tempTableName != null and searchModel.tempTableName !=''">
+            <include refid="kol.common.tempTableJoinCondition">
+                <property name="alias" value="ict"/>
+            </include>
+        </if>
+        <if test="searchModel.tempTableName == null or searchModel.tempTableName ==''">
+            <include refid="ig.common.tagListInCondition"/>
+        </if>
+        <include refid="ig.common.usernameJoinCondition"/>
+        <include refid="kol.common.emailJoinCondition">
+            <property name="alias" value="ic"/>
+        </include>
+    </sql>
+    <!-- 组合列表查询条件 -->
+    <sql id="listQueryConditions">
+        <!-- <include refid="kol.common.isHighFollowerCountCondition"> -->
+        <!--     <property name="alias" value="ic"/> -->
+        <!-- </include> -->
+        <!--   <include refid="kol.common.isHighFollowerCountCondition">
+              <property name="alias" value="ict"/>
+          </include> -->
+        <if test="searchModel.productId == null">
+            <include refid="kol.common.isNotAllotCondition">
+                <property name="alias" value="ict"/>
+            </include>
+        </if>
+        <include refid="kol.common.tagCounselorIdCondition">
+            <property name="alias" value="ictc"/>
+        </include>
+        <include refid="kol.common.countryCodeCondition">
+            <property name="alias" value="ic"/>
+        </include>
+        <include refid="kol.common.countryCodeCondition">
+            <property name="alias" value="ict"/>
+        </include>
+        <include refid="kol.common.videoStandardCountCondition">
+            <property name="alias" value="ic"/>
+        </include>
+        <include refid="kol.common.followerCountCondition">
+            <property name="followerCount" value="ic.follower_count"/>
+        </include>
+        <include refid="kol.common.isHasEmailCondition">
+            <property name="alias" value="ic"/>
+        </include>
+        <include refid="kol.common.isPrivateKolConditionNew"/>
+        <include refid="ig.common.signatureCondition"/>
+        <!--  <include refid="kol.common.tagTypeCondition">
+              <property name="alias" value="ict"/>
+          </include>-->
+    </sql>
+    <sql id="listQueryConditionsNew">
+        <include refid="kol.common.tagCounselorIdCondition">
+            <property name="alias" value="ictc"/>
+        </include>
+        <include refid="kol.common.followerCountCondition">
+            <property name="followerCount" value="ic.follower_count"/>
+        </include>
+        <include refid="kol.common.isHasEmailCondition">
+            <property name="alias" value="ic"/>
+        </include>
+        <include refid="kol.common.isPrivateKolConditionNew"/>
+        <include refid="ig.common.signatureCondition"/>
+        <!--  <include refid="kol.common.tagTypeCondition">
+              <property name="alias" value="ict"/>
+          </include>-->
+    </sql>
+    <!-- 导出excel，未分配标签对应的网红列表查询条件 -->
+    <sql id="exportUnassignedKolListForExcel">
+        <include refid="kol.common.isNotAllotCondition">
+            <property name="alias" value="ict"/>
+        </include>
+        <include refid="kol.common.countryCodeCondition">
+            <property name="alias" value="ict"/>
+        </include>
+        <include refid="kol.common.countryCodeCondition">
+            <property name="alias" value="ict"/>
+        </include>
+        <include refid="kol.common.followerCountCondition">
+            <property name="followerCount" value="ict.follower_count"/>
+        </include>
+    </sql>
+    <sql id="JoinTagsWhereConditions">
+        <include refid="kol.common.countryCodeCondition">
+            <property name="alias" value="ict"/>
+        </include>
+        <include refid="kol.common.followerCountCondition">
+            <property name="followerCount" value="ic.follower_count"/>
+        </include>
+        <if test="searchModel.productId == null">
+            <include refid="kol.common.isNotAllotCondition">
+                <property name="alias" value="ict"/>
+            </include>
+        </if>
+    </sql>
+    <sql id="JoinCelebrityWhereConditions">
+        <include refid="kol.common.countryCodeCondition">
+            <property name="alias" value="ic"/>
+        </include>
+        <include refid="kol.common.followerCountCondition">
+            <property name="followerCount" value="ic.follower_count"/>
+        </include>
+        <include refid="kol.common.videoStandardCountCondition">
+            <property name="alias" value="ic"/>
+        </include>
+        <include refid="ig.common.signatureCondition"/>
+    </sql>
+    <sql id="filteredTagsCondition">
+        ,filtered_tags AS (
+        SELECT
+        ict.id,
+        ict.account,
+        ict.ig_username,
+        ict.tag_name,
+        ict.country,
+        ict.tag_type
+        FROM
+        ig_celebrity_tags ict
+        <include refid="kol.common.tagNameJoinConditionPlus">
+            <property name="alias" value="ict"/>
+        </include>
+        <where>
+            <include refid="JoinTagsWhereConditions"/>
+            <!--   <include refid="kol.common.isHighFollowerCountCondition">
+                  <property name="alias" value="ict"/>
+              </include> -->
+        </where>
+        )
+    </sql>
+    <sql id="filteredTagsConditionNew">
+   WITH filtered_tags AS (
+        SELECT
+        ict.id,
+        ict.account,
+        ict.ig_username,
+        ict.tag_name,
+        ict.country,
+        ict.tag_type
+        FROM ${searchModel.tempTableName} tl
+        STRAIGHT_JOIN ig_celebrity_tags ict ON ict.tag_name = tl.tag_name
+        <where>
+            <include refid="kol.common.countryCodeCondition">
+                <property name="alias" value="ict"/>
+            </include>
+            <include refid="kol.common.followerCountCondition">
+                <property name="followerCount" value="ict.follower_count"/>
+            </include>
+            <if test="searchModel.productId == null">
+                <include refid="kol.common.isNotAllotCondition">
+                    <property name="alias" value="ict"/>
+                </include>
+            </if>
+        </where>
+        GROUP BY ict.account
+        )
+    </sql>
+    <sql id="notAllotCountCondition">
+        WITH filtered_ic AS (
+        SELECT ic.account
+        FROM ig_celebrity ic
+        <include refid="kol.common.uniqueIdJoinConditionPlus">
+            <property name="unique_field" value="ic.ig_username"/>
+        </include>
+        <include refid="kol.common.emailJoinConditionPlus">
+            <property name="alias" value="ic"/>
+        </include>
+        <where>
+            <include refid="JoinCelebrityWhereConditions"/>
+            <include refid="kol.common.isHasEmailCondition">
+                <property name="alias" value="ic"/>
+            </include>
+            <include refid="kol.common.videoStandardCountCondition">
+                <property name="alias" value="ic"/>
+            </include>
+        </where>
+        ORDER BY
+        ic.update_time DESC
+        <include refid="kol.common.totalCountCondition"/>
+        )
+    </sql>
+    <sql id="filteredTagsConditionCountNew">
+         ,filtered_tags AS (
+        SELECT distinct
+        ict.account
+        FROM ig_celebrity_tags ict
+        INNER JOIN ${searchModel.tempTableName} tl
+        ON ict.tag_name = tl.tag_name
+        <where>
+            <if test="searchModel.countryCode != null and searchModel.countryCode != ''">
+                AND ict.country = #{searchModel.countryCode}
+            </if>
+            <if test="searchModel.minFollowers != null">
+                AND ict.follower_count >= #{searchModel.minFollowers}
+            </if>
+            AND (ict.is_allot = 0 OR ict.allot_time &lt; DATE_SUB(CURDATE(), INTERVAL #{searchModel.allotDays} DAY))
+        </where>
+        )
+    </sql>
+    <sql id="filteredCelebrityCondition">
+        ,filtered_ic AS (
+        SELECT ic.account,ic.follower_count,ic.ig_username,ic.email
+        FROM ig_celebrity ic
+        <include refid="kol.common.uniqueIdJoinConditionPlus">
+            <property name="unique_field" value="ic.ig_username"/>
+        </include>
+        <include refid="kol.common.emailJoinConditionPlus">
+            <property name="alias" value="ic"/>
+        </include>
+        <where>
+            <include refid="JoinCelebrityWhereConditions"/>
+            <include refid="kol.common.isHasEmailCondition">
+                <property name="alias" value="ic"/>
+            </include>
+            <include refid="kol.common.videoStandardCountCondition">
+                <property name="alias" value="ic"/>
+            </include>
+        </where>
+        ORDER BY
+        ic.update_time DESC
+        <include refid="kol.common.totalCountCondition"/>
+        )
+    </sql>
+    <sql id="tagsCounselorProductCondition">
+        ,filtered_icic AS ( SELECT id, ig_username, account FROM ig_celebrity_tags_counselor icic
+        <where>
+            <include refid="kol.common.countryCodeCondition">
+                <property name="alias" value="icic"/>
+            </include>
+            <include refid="kol.common.productIdCondition">
+                <property name="alias" value="icic"/>
+            </include>
+        </where>
+        )
+    </sql>
+    <!-- 查询Instagram网红未分配的数量 -->
+    <select id="getUnallottedTagCount" resultType="java.lang.Long">
+        <if test="searchModel.tempTableName == null">
+            <include refid="kol.common.tagNameTempTable"/>
+            <include refid="filteredTagsCondition"/>
+        </if>
+        <if test="searchModel.tempTableName != null and searchModel.tempTableName !=''">
+            <include refid="filteredTagsConditionNew"/>
+        </if>
+        <include refid="kol.common.uniqueIdTempTable"/>
+        <include refid="kol.common.emailTempTable"/>
+        <include refid="filteredCelebrityCondition"/>
+        <if test="searchModel.productId != null and searchModel.productId != ''">
+            <include refid="tagsCounselorProductCondition"/>
+        </if>
+        SELECT count(*) FROM filtered_tags AS ict
+        LEFT JOIN filtered_ic AS ic ON ic.account = ict.account
+        <if test="searchModel.productId != null and searchModel.productId != ''">
+            left join filtered_icic on ict.account = filtered_icic.account
+        </if>
+        <where>
+            <include refid="kol.common.tagCounselorIdCondition">
+                <property name="alias" value="ictc"/>
+            </include>
+            <include refid="kol.common.followerCountCondition">
+                <property name="followerCount" value="ic.follower_count"/>
+            </include>
+            <include refid="kol.common.isHasEmailCondition">
+                <property name="alias" value="ic"/>
+            </include>
+            <include refid="ig.common.signatureCondition"/>
+            <include refid="kol.common.tagTypeCondition">
+                <property name="alias" value="ict"/>
+            </include>
+            <if test="searchModel.productId != null and searchModel.productId != ''">
+                and filtered_icic.id is null
+            </if>
+        </where>
+    </select>
+    <!-- 获取Instagram未分配网红标签列表 -->
+    <select id="getUnallottedTagList" resultType="org.jeecg.modules.kol.model.UserTagAllotModel">
+        <include refid="kol.common.celebrityPrivateCondition">
+            <property name="alias" value="0"/>
+        </include>
+        SELECT ict.id,
+        ict.account,
+        ict.ig_username AS unique_id,
+        ict.tag_name,
+        ict.country,
+        ic.follower_count as author_follower_count,
+        cp.id as celebrity_private_id,
+        cp.celebrity_counselor_id AS counselor_id,
+        cp.celebrity_counselor_name AS counselor_name
+        FROM ig_celebrity_tags AS ict
+        LEFT JOIN ig_celebrity AS ic ON ic.ig_username = ict.ig_username
+        <include refid="kol.common.celebrityPrivateJoinCondition">
+            <property name="alias" value="ic.account"/>
+            <property name="account" value="ic.ig_username"/>
+        </include>
+        <include refid="listJoinConditions"/>
+        <where>
+            <include refid="listQueryConditions"/>
+        </where>
+    </select>
+
+    <!-- 获取Instagram标签未分配数量分类汇总 -->
+    <select id="getUnallottedTagCountSummary" resultType="org.jeecg.modules.kol.model.KolTagCountModel">
+        SELECT tag_name,
+        count(*) AS tag_num
+        FROM ig_celebrity_tags AS ict
+        <where>
+            <include refid="kol.common.isNotAllotCondition">
+                <property name="alias" value="ict"/>
+            </include>
+            <include refid="kol.common.countryCodeCondition">
+                <property name="alias" value="ict"/>
+            </include>
+            <include refid="kol.common.tagListInCondition"/>
+            <!--      <include refid="kol.common.isHighFollowerCountCondition">
+                     <property name="alias" value="ict"/>
+                 </include> -->
+        </where>
+        GROUP BY tag_name
+        ORDER BY tag_num DESC
+    </select>
+    <select id="exportTagsExcel" resultType="org.jeecg.modules.tiktok.model.TiktokTagsNumModel">
+        <include refid="kol.common.celebrityPrivateCondition">
+            <property name="alias" value="0"/>
+        </include>
+        SELECT ict.ig_username AS unique_id,
+        ic.follower_count AS author_follower_count,
+        ic.video_standard_count AS video_standard_count,
+        ict.tag_name,
+        ic.email
+        FROM ig_celebrity_tags ict
+        <include refid="kol.common.joinTagNameListForFilter">
+            <property name="tagCelebrityTable" value="ict"/>
+        </include>
+        LEFT JOIN ig_celebrity ic ON ict.ig_username = ic.ig_username
+        <include refid="kol.common.celebrityPrivateJoinCondition">
+            <property name="alias" value="ict.account"/>
+            <property name="account" value="ict.ig_username"/>
+        </include>
+        WHERE cp.id IS NULL
+        <include refid="exportUnassignedKolListForExcel"/>
+    </select>
+
+    <select id="getUnAlloteTagList" resultType="org.jeecg.modules.instagram.model.IgCelebrityTagsModel">
+        SELECT
+        ict.id,
+        ict.account,
+        ict.ig_username,
+        ict.tag_name,
+        ict.country,
+        ict.tag_type,
+        ict.follower_count
+        <if test="searchModel.isPrivateKol !=null">
+            ,
+            cp.id AS celebrity_private_id,
+            cp.celebrity_counselor_id AS counselor_id,
+            cp.celebrity_counselor_name AS counselor_name
+        </if>
+        FROM
+        ig_celebrity ic
+        LEFT JOIN ig_celebrity_tags ict ON ic.account = ict.account
+        INNER JOIN ${searchModel.tempTableName} tl ON ict.tag_name = tl.tag_name
+        LEFT JOIN ig_celebrity_tags_counselor AS ictc ON ictc.account = ict.account
+        <if test="searchModel.countryCode != null and searchModel.countryCode != ''">
+            AND ictc.country = #{searchModel.countryCode}
+        </if>
+        <if test="searchModel.productId != null and searchModel.productId != ''">
+            AND ictc.product_id = #{searchModel.productId}
+        </if>
+        <if test="searchModel.productId != null and searchModel.productId != ''">
+            AND ictc.allot_time &gt; DATE_SUB(CURDATE(), INTERVAL #{searchModel.allotDays} DAY)
+        </if>
+        <if test="searchModel.isPrivateKol == 1">
+            INNER JOIN store_celebrity_private cp ON cp.account = ic.ig_username AND cp.platform_type = 0
+        </if>
+        <if test="searchModel.isPrivateKol == 0">
+            LEFT JOIN store_celebrity_private cp ON cp.account = ic.ig_username AND cp.platform_type = 0
+        </if>
+        <where>
+            <!-- 私有KOL筛选 -->
+            <if test="searchModel.isPrivateKol == 0">
+                AND cp.id is null
+            </if>
+            <if test="searchModel.countryCode != null and searchModel.countryCode != ''">
+                AND ict.country = #{searchModel.countryCode}
+            </if>
+            <if test="searchModel.countryCode != null and searchModel.countryCode != ''">
+                AND ic.country = #{searchModel.countryCode}
+            </if>
+            <if test="searchModel.minFollowers != null">
+                AND ict.follower_count >= #{searchModel.minFollowers}
+            </if>
+            <if test="searchModel.maxFollowers != null">
+                AND ict.follower_count &lt;= #{searchModel.maxFollowers}
+            </if>
+            <if test="searchModel.productId == null or searchModel.productId == ''">
+                AND (ict.is_allot = 0 OR ict.allot_time &lt; DATE_SUB(CURDATE(), INTERVAL #{searchModel.allotDays} DAY))
+            </if>
+            <if test="searchModel.productId != null and searchModel.productId != ''">
+                AND ictc.id IS NULL
+            </if>
+            <if test="searchModel.minVideoStandardCount != null">
+                AND ic.video_standard_count &gt;= #{searchModel.minVideoStandardCount}
+            </if>
+            <if test="searchModel.maxVideoStandardCount != null">
+                AND ic.video_standard_count &lt;= #{searchModel.maxVideoStandardCount}
+            </if>
+            <if test="searchModel.isHasEmail != null">
+                <choose>
+                    <when test="searchModel.isHasEmail == 1">
+                        AND ic.email != ''
+                    </when>
+                    <when test="searchModel.isHasEmail == 0">
+                        AND ( ic.email IS NULL OR ic.email = '')
+                    </when>
+                </choose>
+            </if>
+            <if test="searchModel.uniqueId != null and searchModel.uniqueId != ''">
+                and ic.ig_username in
+                <foreach collection="searchModel.uniqueId.split(',')" item="item" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="searchModel.emailKeyword != null and searchModel.emailKeyword != '' and searchModel.isHasEmail != 0">
+                and ic.email in
+                <foreach collection="searchModel.emailKeyword.split(',')" item="item" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+        </where>
+        GROUP BY
+        ict.id
+    </select>
+    <select id="getUnAlloteTagListBack" resultType="org.jeecg.modules.instagram.model.IgCelebrityTagsModel">
+        <include refid="kol.common.celebrityPrivateCondition">
+            <property name="alias" value="0"/>
+        </include>
+        SELECT ict.id,
+        ict.account,
+        ict.ig_username,
+        ict.tag_name,
+        ict.country,
+        ic.follower_count,
+        cp.id as celebrity_private_id,
+        cp.celebrity_counselor_id AS counselor_id,
+        cp.celebrity_counselor_name AS counselor_name
+        FROM ig_celebrity_tags AS ict
+        LEFT JOIN ig_celebrity AS ic ON ic.ig_username = ict.ig_username
+        <include refid="kol.common.celebrityPrivateJoinCondition">
+            <property name="alias" value="ic.account"/>
+            <property name="account" value="ic.ig_username"/>
+        </include>
+        <include refid="listJoinConditions"/>
+        <where>
+            <include refid="listQueryConditions"/>
+            <include refid="kol.common.emailTotalCondition">
+                <property name="alias" value="ic"/>
+            </include>
+        </where>
+        <include refid="kol.common.totalCountCondition"/>
+    </select>
+    <select id="getNotAllotTagsList" resultType="org.jeecg.modules.kol.model.KolTagUpdateDTO">
+        <include refid="kol.common.tagsCountTempTable">
+            <property name="platform_type" value="0"/>
+            <property name="alias" value="ig_celebrity_tags"/>
+        </include>
+    </select>
+
+    <select id="getCelebrityTagsList" resultType="org.jeecg.modules.instagram.entity.IgCelebrityTags">
+        select
+        ict.account,
+        ict.tag_name,
+        ict.is_allot,
+        ict.tag_type,
+        ict.allot_time
+        from ${tempTableName} t STRAIGHT_JOIN ig_celebrity_tags ict on ict.account = t.unique_id
+        <if test="searchModel.productId != null and searchModel.productId != ''">
+            join kol_tag_product ktp on ict.tag_name = ktp.tag_name and ktp.platform_type = 0 and ktp.product_id = #{searchModel.productId}
+        </if>
+        <where>
+            <if test="searchModel.countryCode != null and searchModel.countryCode != ''">
+                and ict.country = #{searchModel.countryCode}
+            </if>
+            <if test="searchModel.tagType != null">
+                and ict.tag_type = #{searchModel.tagType}
+            </if>
+        </where>
+        ORDER BY
+        ict.update_time DESC
+    </select>
+
+    <select id="getUnAlloteTagPageList" resultType="org.jeecg.modules.instagram.model.IgCelebrityTagsModel">
+        <include refid="kol.common.tagNameCondition"/>
+        , filtered_tags AS (
+        SELECT
+        ict.id,
+        ict.account,
+        ict.ig_username,
+        ict.tag_name,
+        ict.country,
+        ict.tag_type,
+        ict.is_allot,
+        ict.allot_time,
+        ict.follower_count
+        FROM ig_celebrity_tags ict
+        <if test="searchModel.tagNameList != null and searchModel.tagNameList.size() > 0 or (searchModel.tempTableName != null and searchModel.tempTableName != '')">
+            INNER JOIN tag_source ts ON ict.tag_name = ts.tag_name
+        </if>
+        <where>
+            <if test="searchModel.countryCode != null and searchModel.countryCode != ''">
+                AND ict.country = #{searchModel.countryCode}
+            </if>
+            <if test="searchModel.minFollowers != null">
+                AND ict.follower_count &gt;= #{searchModel.minFollowers}
+            </if>
+            <if test="searchModel.maxFollowers != null">
+                AND ict.follower_count &lt;= #{searchModel.maxFollowers}
+            </if>
+            <if test="searchModel.productId == null">
+                AND (ict.is_allot = 0 OR ict.allot_time &lt; DATE_SUB(CURDATE(), INTERVAL #{searchModel.allotDays} DAY))
+            </if>
+        </where>
+        )
+
+        <!-- ig_celebrity 过滤 -->
+        , filtered_ic AS (
+        SELECT ic.account, ic.follower_count, ic.ig_username, ic.email
+        FROM ig_celebrity ic
+        <include refid="kol.common.uniqueIdJoinConditionPlus">
+            <property name="unique_field" value="ic.ig_username"/>
+        </include>
+        <include refid="kol.common.emailJoinConditionPlus">
+            <property name="alias" value="ic"/>
+        </include>
+        <where>
+            <include refid="JoinCelebrityWhereConditions"/>
+            <include refid="kol.common.isHasEmailCondition">
+                <property name="alias" value="ic"/>
+            </include>
+            <include refid="kol.common.videoStandardCountCondition">
+                <property name="alias" value="ic"/>
+            </include>
+            <if test="searchModel.uniqueId != null and searchModel.uniqueId != ''">
+                AND ic.ig_username IN
+                <foreach collection="searchModel.uniqueId.split(',')" item="item" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+
+            <if test="searchModel.emailKeyword != null and searchModel.emailKeyword != '' and searchModel.isHasEmail != 0">
+                AND ic.email IN
+                <foreach collection="searchModel.emailKeyword.split(',')" item="item" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+        </where>
+        ORDER BY ic.update_time DESC
+        <include refid="kol.common.totalCountCondition"/>
+        )
+
+        <!-- 排除已分配给 productId 的账号 -->
+        <if test="searchModel.productId != null and searchModel.productId != ''">
+            , filtered_icic AS (
+            SELECT id, ig_username, account
+            FROM ig_celebrity_tags_counselor icic
+            <where>
+                <include refid="kol.common.countryCodeCondition">
+                    <property name="alias" value="icic"/>
+                </include>
+                <include refid="kol.common.productIdCondition">
+                    <property name="alias" value="icic"/>
+                </include>
+            </where>
+            )
+        </if>
+
+        <!-- celebrity_private -->
+        , celebrity_private AS (
+        SELECT
+        a.id,
+        a.celebrity_id,
+        a.celebrity_counselor_id,
+        a.celebrity_counselor_name,
+        b.contract_time
+        FROM store_celebrity_private a
+        LEFT JOIN (
+        SELECT celebrity_private_id, MAX(contract_time) AS contract_time
+        FROM store_celebrity_private_counselor
+        GROUP BY celebrity_private_id
+        ) b ON a.id = b.celebrity_private_id
+        WHERE a.platform_type = 0
+        GROUP BY a.id, a.celebrity_id, a.celebrity_counselor_id, a.celebrity_counselor_name, b.contract_time
+        )
+
+        <!-- 最终查询 -->
+        SELECT
+        ft.id,
+        ft.account,
+        ft.ig_username,
+        ft.tag_name,
+        ft.country,
+        ft.tag_type,
+        ic.follower_count,
+        cp.id AS celebrity_private_id,
+        cp.celebrity_counselor_id AS counselor_id,
+        cp.celebrity_counselor_name AS counselor_name
+        FROM filtered_tags ft
+        INNER JOIN filtered_ic ic ON ic.account = ft.account
+        <include refid="kol.common.celebrityPrivateJoinCondition">
+            <property name="alias" value="ic.account"/>
+            <property name="account" value="ic.ig_username"/>
+        </include>
+        <if test="searchModel.productId != null and searchModel.productId != ''">
+            LEFT JOIN filtered_icic fic ON ft.account = fic.account
+        </if>
+        <where>
+            <include refid="listQueryConditionsNew"/>
+            <if test="searchModel.productId != null and searchModel.productId != ''">
+                AND fic.id IS NULL
+            </if>
+        </where>
+    </select>
+
+    <select id="getNotAllotCount" resultType="int">
+        SELECT
+        count(*)
+        FROM
+        (
+        SELECT
+        ic.ig_username
+        FROM
+        ig_celebrity ic
+        LEFT JOIN ig_celebrity_tags ict ON ic.ig_username = ict.ig_username
+        INNER JOIN ${searchModel.tempTableName} tl ON ict.tag_name = tl.tag_name
+        LEFT JOIN ig_celebrity_tags_counselor AS ictc ON ictc.ig_username = ict.ig_username
+        <if test="searchModel.countryCode != null and searchModel.countryCode != ''">
+            AND ictc.country = #{searchModel.countryCode}
+        </if>
+        <if test="searchModel.productId != null and searchModel.productId != ''">
+            AND ictc.product_id = #{searchModel.productId}
+        </if>
+        <if test="searchModel.productId != null and searchModel.productId != ''">
+            AND ictc.allot_time &gt; DATE_SUB(CURDATE(), INTERVAL #{searchModel.allotDays} DAY)
+        </if>
+        <if test="searchModel.isPrivateKol == 1">
+            INNER JOIN store_celebrity_private cp ON cp.account = ic.ig_username AND cp.platform_type = 0
+        </if>
+        <if test="searchModel.isPrivateKol == 0">
+            LEFT JOIN store_celebrity_private cp ON cp.account = ic.ig_username AND cp.platform_type = 0
+        </if>
+        <where>
+            <if test="searchModel.isPrivateKol == 0">
+                AND cp.id IS NULL
+            </if>
+            <if test="searchModel.countryCode != null and searchModel.countryCode != ''">
+                AND ict.country = #{searchModel.countryCode}
+            </if>
+            <if test="searchModel.countryCode != null and searchModel.countryCode != ''">
+                AND ic.country = #{searchModel.countryCode}
+            </if>
+            <if test="searchModel.minFollowers != null">
+                AND ict.follower_count >= #{searchModel.minFollowers}
+            </if>
+            <if test="searchModel.maxFollowers != null">
+                AND ict.follower_count &lt;= #{searchModel.maxFollowers}
+            </if>
+            <if test="searchModel.productId == null or searchModel.productId == ''">
+                AND (ict.is_allot = 0 OR ict.allot_time &lt; DATE_SUB(CURDATE(), INTERVAL #{searchModel.allotDays} DAY))
+            </if>
+            <if test="searchModel.productId != null and searchModel.productId != ''">
+                AND ictc.id IS NULL
+            </if>
+            <if test="searchModel.minVideoStandardCount != null">
+                AND ic.video_standard_count &gt;= #{searchModel.minVideoStandardCount}
+            </if>
+            <if test="searchModel.maxVideoStandardCount != null">
+                AND ic.video_standard_count &lt;= #{searchModel.maxVideoStandardCount}
+            </if>
+            <if test="searchModel.isHasEmail != null">
+                <choose>
+                    <when test="searchModel.isHasEmail == 1">
+                        AND ic.email != ''
+                    </when>
+                    <when test="searchModel.isHasEmail == 0">
+                        AND ( ic.email IS NULL OR ic.email = '')
+                    </when>
+                </choose>
+            </if>
+            <if test="searchModel.uniqueId != null and searchModel.uniqueId != ''">
+                and ic.ig_username in
+                <foreach collection="searchModel.uniqueId.split(',')" item="item" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="searchModel.emailKeyword != null and searchModel.emailKeyword != '' and searchModel.isHasEmail != 0">
+                and ic.email in
+                <foreach collection="searchModel.emailKeyword.split(',')" item="item" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+        </where>
+        GROUP BY
+        ict.account
+        ) total_tc
+    </select>
+</mapper>

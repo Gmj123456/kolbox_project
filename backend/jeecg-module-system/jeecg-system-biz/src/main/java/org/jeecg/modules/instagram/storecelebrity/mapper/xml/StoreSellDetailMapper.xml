@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jeecg.modules.instagram.storecelebrity.mapper.StoreSellDetailMapper">
+    <select id="queryByCelebrityPrivateId" parameterType="org.jeecg.modules.instagram.storecelebrity.model.StoreSellDetailModel"
+            resultType="org.jeecg.modules.instagram.storecelebrity.model.StoreSellDetailModel">
+        SELECT
+        ssd.*,
+        ssg.seller_name,
+        ssg.goods_title,
+        ssg.goods_url,
+        ssg.goods_pic_url
+        FROM
+            `store_sell_detail` ssd
+            LEFT JOIN `store_seller_goods` ssg ON ssd.goods_id = ssg.id
+        WHERE
+            celebrity_private_id = #{storeSellDetailModel.celebrityPrivateId}
+            <if test="storeSellDetailModel.year !=null and storeSellDetailModel.year !=''">
+                AND ssd.year = #{storeSellDetailModel.year}
+            </if>
+            <if test="storeSellDetailModel.month !=null and storeSellDetailModel.month !=''">
+                AND ssd.month = #{storeSellDetailModel.month}
+            </if>
+            <if test="storeSellDetailModel.sellerName !=null and storeSellDetailModel.sellerName !=''">
+                AND ssg.seller_name like '%${storeSellDetailModel.sellerName}%'
+            </if>
+            <if test="storeSellDetailModel.settlementStatus !=null">
+                AND ssd.settlement_status = #{storeSellDetailModel.settlementStatus}
+            </if>
+        ORDER BY
+        `year` DESC,
+        `month` DESC
+    </select>
+    <select id="celebrityDetailList"
+            resultType="org.jeecg.modules.instagram.storecelebrity.model.CelebrityPrivateGoodsDetailModel">
+        select
+        ssd.id,
+        ssd.celebrity_private_id,
+        ssd.settlement_id,
+        ssd.goods_id,
+        ssd.year,
+        ssd.month,
+        ssd.goods_code,
+        ssd.code_start_time,
+        ssd.code_end_time,
+        ssd.code_discount_rate,
+        ssd.goods_property,
+        ssd.share_time,
+        ssd.settlement_status,
+        ssd.settlement_amount,
+        ssd.settlement_time,
+        ssd.seller_counselor_id,
+        ssd.seller_counselor_name,
+        ssd.create_by,
+        ssd.create_time,
+        scp.nick_name,
+        scp.account,
+        ssg.goods_pic_url,
+        ssg.goods_title,
+        ssg.seller_name
+        from
+        store_sell_detail ssd
+        left join store_celebrity_private scp on scp.id = ssd.celebrity_private_id
+        left join store_seller_goods ssg on ssg.id = ssd.goods_id
+
+        <where>
+                <if test="celebrityPrivateGoodsDetailModel.sellerName !=null and celebrityPrivateGoodsDetailModel.sellerName !=''">
+                    and ssg.seller_name like '%${celebrityPrivateGoodsDetailModel.sellerName}%'
+                </if>
+
+                <if test="celebrityPrivateGoodsDetailModel.account !=null and celebrityPrivateGoodsDetailModel.account !=''">
+                    and scp.account like '%${celebrityPrivateGoodsDetailModel.account}%'
+                </if>
+
+                <if test="celebrityPrivateGoodsDetailModel.year !=null">
+                    and ssd.year = #{celebrityPrivateGoodsDetailModel.year}
+                </if>
+
+                <if test="celebrityPrivateGoodsDetailModel.month !=null">
+                    and ssd.month = #{celebrityPrivateGoodsDetailModel.month}
+                </if>
+
+                <if test="celebrityPrivateGoodsDetailModel.settlementStatus !=null">
+                    and ssd.settlement_status = #{celebrityPrivateGoodsDetailModel.settlementStatus}
+                </if>
+                <if test="celebrityPrivateGoodsDetailModel.goodsCode !=null">
+                    and ssd.goods_code = #{celebrityPrivateGoodsDetailModel.goodsCode}
+                </if>
+            </where>
+            order by ssd.create_time desc
+    </select>
+</mapper>

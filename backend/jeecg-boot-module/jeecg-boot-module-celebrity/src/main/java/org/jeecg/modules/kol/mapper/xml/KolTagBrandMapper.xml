@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jeecg.modules.kol.mapper.KolTagBrandMapper">
+    <select id="pageList" resultType="org.jeecg.modules.kol.entity.KolTagBrand">
+        select titb.id,
+               titb.tag_id,
+               titb.tag_name,
+               titb.brand_id,
+               titb.brand_name,
+               titb.tag_product,
+               titb.remark,
+               titb.create_by,
+               titb.create_time,
+               titb.update_by,
+               titb.update_time,
+               titb.is_delete,
+               tt.store_tags,
+               titb.platform_type
+        from kol_tag_brand titb
+                 left join kol_tags tt on tt.id = titb.tag_id
+        <where>
+            <if test="kolTagBrand.brandId != null and kolTagBrand.brandId != ''">
+                and titb.brand_id = #{kolTagBrand.brandId}
+            </if>
+            <if test="kolTagBrand.brandName != null and kolTagBrand.brandName != ''">
+                and titb.brand_name like concat('%', #{kolTagBrand.brandName}, '%')
+            </if>
+            <if test="kolTagBrand.tagName != null and kolTagBrand.tagName != ''">
+                and titb.tag_name like concat('%', #{kolTagBrand.tagName}, '%')
+            </if>
+            <if test="kolTagBrand.platformType != null">
+                and titb.platform_type = #{kolTagBrand.platformType}
+            </if>
+            <if test="kolTagBrand.storeTags != null and kolTagBrand.storeTags != ''">
+                and(
+                <foreach collection="kolTagBrand.storeTags.split(',')" item="item" separator="or">
+                    titb.store_tags like concat('%', #{item}, '%')
+                </foreach>
+                )
+            </if>
+        </where>
+        order by titb.create_time desc
+    </select>
+
+    <select id="queryList" resultType="org.jeecg.modules.kol.model.KolTagBrandExportModel">
+       select titb.id,
+               titb.tag_id,
+               titb.tag_name,
+               titb.brand_id,
+               titb.brand_name,
+               titb.tag_product,
+               titb.remark,
+               titb.create_by,
+               titb.create_time,
+               titb.update_by,
+               titb.update_time,
+               titb.is_delete,
+               tt.store_tags,
+               titb.platform_type
+        from kol_tag_brand titb
+                 left join kol_tags tt on tt.id = titb.tag_id
+        <where>
+            <if test="kolTagBrand.brandId != null and kolTagBrand.brandId != ''">
+                and titb.brand_id = #{kolTagBrand.brandId}
+            </if>
+            <if test="kolTagBrand.brandName != null and kolTagBrand.brandName != ''">
+                and titb.brand_name like concat('%', #{kolTagBrand.brandName}, '%')
+            </if>
+            <if test="kolTagBrand.tagName != null and kolTagBrand.tagName != ''">
+                and titb.tag_name like concat('%', #{kolTagBrand.tagName}, '%')
+            </if>
+            <if test="kolTagBrand.platformType != null">
+                and titb.platform_type = #{kolTagBrand.platformType}
+            </if>
+            <if test="kolTagBrand.storeTags != null and kolTagBrand.storeTags != ''">
+                and(
+                <foreach collection="kolTagBrand.storeTags.split(',')" item="item" separator="or">
+                    titb.store_tags like concat('%', #{item}, '%')
+                </foreach>
+                )
+            </if>
+        </where>
+        order by titb.create_time desc
+    </select>
+
+    <insert id="saveBatchData">
+        insert into kol_tag_brand (id, tag_name, brand_id, brand_name, store_tags, create_by, create_time, is_del)
+        VALUES
+        <foreach collection="tkTagsBrands" item="item" open="(" close=")" separator=",">
+            #{item.id}, #{item.tagName}, #{item.brandId}, #{item.brandName}, #{item.storeTags}, #{item.createBy},
+            #{item.createTime}, 0
+        </foreach>
+    </insert>
+</mapper>

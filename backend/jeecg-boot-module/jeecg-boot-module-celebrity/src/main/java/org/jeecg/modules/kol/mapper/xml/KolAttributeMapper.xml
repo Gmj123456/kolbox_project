@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jeecg.modules.kol.mapper.KolAttributeMapper">
+
+	<select id="queryListByParentId" parameterType="Object" resultType="org.jeecg.modules.kol.model.TreeSelectModel">
+		select category_code,
+			   category_name as "title",
+			   id as "key",
+			   (case when is_has_child = 1 then 0 else 1 end) as isLeaf,
+		       parent_id as parentId
+			   from kol_category
+			where parent_id = #{parentId}
+			<if test="query!= null">
+				<foreach collection="query.entrySet()" item="value"  index="key" >
+					and ${key} = #{value}
+				</foreach>
+			</if>
+	</select>
+
+	<!-- 递归查询类目路径 -->
+	<select id="findCategoryWithSubNodes" resultType="org.jeecg.modules.kol.entity.KolAttribute">
+		WITH RECURSIVE cte AS (
+			SELECT id, category_name, parent_id
+			FROM kol_category
+			WHERE id = #{categoryId}
+			UNION ALL
+			SELECT k.id, k.category_name, k.parent_id
+			FROM kol_category k
+					 INNER JOIN cte ON k.parent_id = cte.id
+		)
+		SELECT * FROM cte
+	</select>
+
+	<select id="getAttributeList" resultType="org.jeecg.modules.kol.model.KolAttributeModel">
+		SELECT a.id,
+		a.attribute_name,
+		a.attribute_en_name,
+		a.attribute_type_id,
+		a.attribute_type_name,
+		a.id AS attribute_id,
+		b.tag_id,
+		b.tag_name
+		FROM (SELECT attribute_id, tag_id, tag_name FROM kol_tag_attribute_relation WHERE platform_type = #{searchModel.platformType}
+		<if test="searchModel.productId != null and searchModel.productId != ''">
+			and product_id = #{searchModel.productId}
+		</if>
+		) b
+		INNER JOIN ${searchModel.tempTableName} c ON b.tag_name = c.tag_name
+		INNER JOIN kol_attribute a ON a.id = b.attribute_id
+	</select>
+
+	<select id="queryAttributeIdsByProductId" resultType="java.lang.String">
+		SELECT DISTINCT ka.id
+		FROM kol_attribute ka
+		WHERE ka.attribute_name IN (
+		SELECT SUBSTRING_INDEX(ka3.attribute_name_path, '|', 1)
+		FROM kol_attribute ka3
+		INNER JOIN kol_tag_attribute_relation ktar
+		ON ka3.id = ktar.attribute_id and ktar.product_id = #{productId}
+		INNER JOIN kol_tag_product ktp
+		ON ktar.tag_id = ktp.tag_id and ktp.product_id = #{productId}
+		<where>
+			<if test="platformType !=null">
+				and ktp.platform_type = #{platformType}
+			</if>
+		</where>
+		)
+	</select>
+
+	<select id="queryProductAttributes" resultType="java.lang.String">
+		SELECT attribute_id FROM kol_product_attribute_relation WHERE product_id=#{productId}
+	</select>
+</mapper>

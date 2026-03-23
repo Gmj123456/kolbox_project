@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jeecg.modules.instagram.storecelebrity.mapper.StoreCelebrityCounselorChangeDetailMapper">
+
+    <select id="queryList" resultType="java.util.Map">
+        SELECT c.id,
+               c.account,
+               c.platform_type as platformType,
+               c.country_name  as countryName,
+               c.followers_num as followersNum,
+               b.is_cooperated as isCooperated
+        FROM `store_celebrity_counselor_change_detail` a
+                 LEFT JOIN store_celebrity_counselor_change_log b ON a.change_log_id = b.id
+                 LEFT JOIN store_celebrity_private c ON a.celebrity_private_id = c.id
+        WHERE b.id = #{changeDetail.changeLogId}
+        GROUP BY
+            c.id
+    </select>
+</mapper>

@@ -1,0 +1,301 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jeecg.modules.instagram.storepromotion.mapper.StorePromotionGoodsCelebrityMapper">
+
+    <delete id="delProm">
+        DELETE
+        FROM
+        store_promotion_goods_celebrity
+        WHERE
+        prom_id = #{id}
+        AND goods_id IN
+        <foreach item="item" collection="goodsIdList" separator="," open="(" close=")" index="">
+            #{item}
+        </foreach>
+    </delete>
+
+    <select id="queryCelebritiesById"
+            resultType="org.jeecg.modules.instagram.storepromotion.entity.StorePromotionGoodsCelebrity">
+        select *
+        from store_promotion_goods_celebrity
+        where celebrity_private_id = #{celebrityPrivateId}
+    </select>
+    <select id="getOldCelebrity"
+            resultType="org.jeecg.modules.instagram.storepromotion.model.StorePromotionGoodsModel">
+        SELECT spg.id,
+               ssp.prom_title,
+               spg.goods_title,
+               spg.goods_pic_url,
+               scp.account,
+               scp.platform_type,
+               scp.avatar_url,
+               spgc.create_time,
+               spgc.prom_price,
+               spgc.celebrity_price,
+               scp.followers_num,
+               scp.country_name
+        FROM store_promotion_goods spg
+                 LEFT JOIN store_promotion_goods_celebrity spgc ON spg.id = spgc.goods_id
+                 LEFT JOIN store_celebrity_private scp ON spgc.celebrity_private_id = scp.id
+                 LEFT JOIN store_seller_promotion ssp ON ssp.id = spgc.prom_id
+        WHERE spg.prom_id = #{promId}
+    </select>
+    <select id="getRemainingAmount"
+            resultType="org.jeecg.modules.instagram.storepromotion.entity.StorePromotionGoodsCelebrity">
+        SELECT IFNULL(sum(spgc.celebrity_price), 0)       celebrity_price,
+               IFNULL(sum(spgc.celebrity_paypal_fees), 0) celebrity_paypal_fees,
+               IFNULL(sum(spgc.prom_price), 0)            prom_price
+        FROM store_promotion_goods_celebrity spgc
+                 LEFT JOIN store_promotion_goods spg ON spgc.goods_id = spg.id
+        WHERE spgc.prom_id = #{promId}
+          AND spgc.id != #{goodsCelebrityId}
+          AND spgc.celebrity_status =1
+          AND spgc.is_del = 0
+    </select>
+    <select id="getRemainingAmountNew"
+            resultType="org.jeecg.modules.instagram.storepromotion.entity.StorePromotionGoodsCelebrity">
+        SELECT IFNULL(sum(spgc.celebrity_price), 0)       celebrity_price,
+               IFNULL(sum(spgc.tax_amount), 0)            taxAmount,
+               IFNULL(sum(spgc.celebrity_paypal_fees), 0) celebrityPaypalFees,
+               IFNULL(sum(spgc.prom_price), 0)            prom_price
+        FROM store_promotion_goods_celebrity spgc
+                 LEFT JOIN store_promotion_goods spg ON spgc.goods_id = spg.id
+        WHERE spgc.prom_id = #{promId}
+          AND spgc.id != #{goodsCelebrityId}
+          AND spgc.celebrity_status =1
+          AND spgc.celebrity_prom_status !=- 1
+          AND spgc.is_del = 0
+    </select>
+    <select id="getCelebrityStatistics"
+            resultType="org.jeecg.modules.instagram.storepromotion.model.StorePromotionGoodsCelebrityModel">
+        select * from (SELECT spgc.extension_code,
+        spgc.seller_name,
+        spgc.celebrity_counselor_id,
+        spgc.celebrity_counselor_name,
+        spgc.prom_price,
+        spgc.celebrity_price,
+        spgc.celebrity_pay_amount,
+        spgc.online_time,
+        scp.account AS celebrity_account,
+        sep.create_time AS create_time,
+        sep.prom_title AS promTitle,
+        sep.total_amount AS totalAmount,
+        sep.prom_status,
+        spg.goods_title,
+        spg.goods_pic_url,
+        scp.platform_type,
+        qn.nickname,
+        qn.counselor_user_name,
+        qn.counselor_user_id,
+        qn.sid
+        FROM store_promotion_goods_celebrity spgc
+        LEFT JOIN store_celebrity_private scp ON spgc.celebrity_private_id = scp.id
+        LEFT JOIN store_seller_promotion sep ON sep.id = spgc.prom_id
+        LEFT JOIN store_promotion_goods spg ON spg.id = spgc.goods_id
+        LEFT JOIN (
+        SELECT ssu.id,
+        su.id sid,
+        su.qr_code,
+        su.nickname,
+        su.counselor_user_id,
+        su.counselor_user_name
+        FROM sys_user AS su
+        LEFT JOIN sys_user AS ssu ON su.id = ssu.seller_counselor_id
+        WHERE su.user_type = 3
+        AND su.nickname != ''
+        AND ssu.username != ''
+        ) qn ON sep.seller_id = qn.id) goods
+        WHERE online_time IS NOT NULL
+        <if test="storePromotionGoodsCelebrityModel.extensionCode !=null and storePromotionGoodsCelebrityModel.extensionCode !=''">
+            and extension_code like CONCAT('%', #{storePromotionGoodsCelebrityModel.extensionCode}, '%')
+        </if>
+        <if test="storePromotionGoodsCelebrityModel.promStatus !=null">
+            and prom_status = #{storePromotionGoodsCelebrityModel.promStatus}
+        </if>
+        <if test="storePromotionGoodsCelebrityModel.celebrityAccount !=null ">
+            and celebrity_account like '%${storePromotionGoodsCelebrityModel.celebrityAccount}%'
+        </if>
+        <if test="storePromotionGoodsCelebrityModel.celebrityCounselorId !=null ">
+            and celebrity_counselor_id like '%${storePromotionGoodsCelebrityModel.celebrityCounselorId}%'
+        </if>
+        <if test="storePromotionGoodsCelebrityModel.sellerName !=null and storePromotionGoodsCelebrityModel.sellerName !=''">
+            and seller_name like '%${storePromotionGoodsCelebrityModel.sellerName}%'
+        </if>
+        <if test="storePromotionGoodsCelebrityModel.sid !=null and storePromotionGoodsCelebrityModel.sid !='' ">
+            AND sid = #{storePromotionGoodsCelebrityModel.sid}
+        </if>
+        <if test="storePromotionGoodsCelebrityModel.counselorUserId !=null">
+            AND counselor_user_id = #{storePromotionGoodsCelebrityModel.counselorUserId}
+        </if>
+        <if test="storePromotionGoodsCelebrityModel.startOnlineTime !=null">
+            and DATE_FORMAT(online_time, '%Y-%m-%d') &gt;=
+            DATE_FORMAT(#{storePromotionGoodsCelebrityModel.startOnlineTime},'%Y-%m-%d')
+        </if>
+        <if test="storePromotionGoodsCelebrityModel.endOnlineTime !=null">
+            and DATE_FORMAT(online_time, '%Y-%m-%d') &lt;=
+            DATE_FORMAT(#{storePromotionGoodsCelebrityModel.endOnlineTime},'%Y-%m-%d')
+        </if>
+        ORDER BY online_time DESC
+    </select>
+    <select id="getCelebrityStatisticsList"
+            resultType="org.jeecg.modules.instagram.storepromotion.model.GoodsCelebrityModel">
+        select * from (SELECT
+        spgc.extension_code,
+        spgc.seller_name,
+        spgc.celebrity_counselor_id,
+        spgc.celebrity_counselor_name,
+        spgc.prom_price,
+        spgc.celebrity_price,
+        spgc.celebrity_pay_amount,
+        DATE_FORMAT( spgc.online_time, '%Y-%m-%d' ) AS online_time,
+        scp.account AS celebrity_account,
+        DATE_FORMAT( sep.create_time, '%Y-%m-%d' ) AS promTime,
+        sep.prom_title AS promTitle,
+        sep.total_amount AS totalAmount,
+        sep.prom_status as prom_status,
+        spg.goods_title,
+        scp.platform_type AS platform_type,
+        qn.sid,
+        qn.nickname,
+        qn.counselor_user_name,
+        qn.counselor_user_id
+        FROM store_promotion_goods_celebrity spgc
+        LEFT JOIN store_celebrity_private scp ON spgc.celebrity_private_id = scp.id
+        LEFT JOIN store_seller_promotion sep ON sep.id = spgc.prom_id
+        LEFT JOIN store_promotion_goods spg ON spg.id = spgc.goods_id
+        LEFT JOIN (
+        SELECT ssu.id,
+        su.id sid,
+        su.qr_code,
+        su.nickname,
+        su.counselor_user_id,
+        su.counselor_user_name
+        FROM sys_user AS su
+        LEFT JOIN sys_user AS ssu ON su.id = ssu.seller_counselor_id
+        WHERE su.user_type = 3
+        AND su.nickname != ''
+        AND ssu.username != ''
+        ) qn ON sep.seller_id = qn.id) goods
+        WHERE online_time IS NOT NULL
+        <if test="goodsCelebrityModel.extensionCode !=null and goodsCelebrityModel.extensionCode !=''">
+            and extension_code like '%${goodsCelebrityModel.extensionCode}%'
+        </if>
+        <if test="goodsCelebrityModel.promStatus !=null">
+            and prom_status = #{goodsCelebrityModel.promStatus}
+        </if>
+        <if test="goodsCelebrityModel.celebrityAccount !=null ">
+            and celebrity_account like '%${goodsCelebrityModel.celebrityAccount}%'
+        </if>
+        <if test="goodsCelebrityModel.celebrityCounselorId !=null ">
+            and celebrity_counselor_id like '%${goodsCelebrityModel.celebrityCounselorId}%'
+        </if>
+        <if test="goodsCelebrityModel.sellerName !=null and goodsCelebrityModel.sellerName !=''">
+            and seller_name like '%${goodsCelebrityModel.sellerName}%'
+        </if>
+        <if test="goodsCelebrityModel.sid !=null and goodsCelebrityModel.sid !='' ">
+            AND sid = #{goodsCelebrityModel.sid}
+        </if>
+        <if test="goodsCelebrityModel.counselorUserId !=null">
+            AND counselor_user_id = #{goodsCelebrityModel.counselorUserId}
+        </if>
+        <if test="goodsCelebrityModel.startOnlineTime !=null">
+            and DATE_FORMAT(online_time, '%Y-%m-%d') &gt;=
+            DATE_FORMAT(#{goodsCelebrityModel.startOnlineTime},'%Y-%m-%d')
+        </if>
+        <if test="goodsCelebrityModel.endOnlineTime !=null">
+            and DATE_FORMAT(online_time, '%Y-%m-%d') &lt;=
+            DATE_FORMAT(#{goodsCelebrityModel.endOnlineTime},'%Y-%m-%d')
+        </if>
+        ORDER BY online_time DESC
+    </select>
+    <select id="listAll"
+            resultType="org.jeecg.modules.instagram.storepromotion.model.StorePromotionGoodsCelebrityModel">
+        select extension_code,
+        seller_name,
+        celebrity_counselor_id,
+        celebrity_counselor_name,
+        prom_price,
+        celebrity_price,
+        SUM( celebrity_pay_amount ) AS celebrity_pay_amount,
+        online_time,
+        celebrity_account,
+        promStartTime,
+        promEndTime,
+        promTitle,
+        totalAmount,
+        prom_status,
+        goods_title,
+        platform_type,
+        nickname,
+        counselor_user_name,
+        counselor_user_id,
+        sid from (SELECT spgc.extension_code,
+        spgc.seller_name,
+        spgc.celebrity_counselor_id,
+        spgc.celebrity_counselor_name,
+        spgc.prom_price,
+        spgc.celebrity_price,
+        spgc.celebrity_pay_amount,
+        spgc.online_time,
+        scp.account AS celebrity_account,
+        sep.prom_start_time AS promStartTime,
+        sep.prom_end_time AS promEndTime,
+        sep.prom_title AS promTitle,
+        sep.total_amount AS totalAmount,
+        sep.prom_status,
+        spg.goods_title,
+        scp.platform_type,
+        qn.nickname,
+        qn.counselor_user_name,
+        qn.counselor_user_id,
+        qn.sid
+        FROM store_promotion_goods_celebrity spgc
+        LEFT JOIN store_celebrity_private scp ON spgc.celebrity_private_id = scp.id
+        LEFT JOIN store_seller_promotion sep ON sep.id = spgc.prom_id
+        LEFT JOIN store_promotion_goods spg ON spg.id = spgc.goods_id
+        LEFT JOIN (
+        SELECT ssu.id,
+        su.id sid,
+        su.qr_code,
+        su.nickname,
+        su.counselor_user_id,
+        su.counselor_user_name
+        FROM sys_user AS su
+        LEFT JOIN sys_user AS ssu ON su.id = ssu.seller_counselor_id
+        WHERE su.user_type = 3
+        AND su.nickname != ''
+        AND ssu.username != ''
+        ) qn ON sep.seller_id = qn.id) goods
+        WHERE online_time IS NOT NULL
+        <if test="storePromotionGoodsCelebrityModel.extensionCode !=null and storePromotionGoodsCelebrityModel.extensionCode !=''">
+            and extension_code like '%${storePromotionGoodsCelebrityModel.extensionCode}%'
+        </if>
+        <if test="storePromotionGoodsCelebrityModel.promStatus !=null">
+            and prom_status = #{storePromotionGoodsCelebrityModel.promStatus}
+        </if>
+        <if test="storePromotionGoodsCelebrityModel.celebrityAccount !=null ">
+            and celebrity_account like '%${storePromotionGoodsCelebrityModel.celebrityAccount}%'
+        </if>
+        <if test="storePromotionGoodsCelebrityModel.celebrityCounselorId !=null ">
+            and celebrity_counselor_id like '%${storePromotionGoodsCelebrityModel.celebrityCounselorId}%'
+        </if>
+        <if test="storePromotionGoodsCelebrityModel.sellerName !=null and storePromotionGoodsCelebrityModel.sellerName !=''">
+            and seller_name like '%${storePromotionGoodsCelebrityModel.sellerName}%'
+        </if>
+        <if test="storePromotionGoodsCelebrityModel.sid !=null and storePromotionGoodsCelebrityModel.sid !='' ">
+            AND sid = #{storePromotionGoodsCelebrityModel.sid}
+        </if>
+        <if test="storePromotionGoodsCelebrityModel.counselorUserId !=null">
+            AND counselor_user_id = #{storePromotionGoodsCelebrityModel.counselorUserId}
+        </if>
+        <if test="storePromotionGoodsCelebrityModel.startOnlineTime !=null">
+            and DATE_FORMAT(online_time, '%Y-%m-%d') &gt;=
+            DATE_FORMAT(#{storePromotionGoodsCelebrityModel.startOnlineTime},'%Y-%m-%d')
+        </if>
+        <if test="storePromotionGoodsCelebrityModel.endOnlineTime !=null">
+            and DATE_FORMAT(online_time, '%Y-%m-%d') &lt;=
+            DATE_FORMAT(#{storePromotionGoodsCelebrityModel.endOnlineTime},'%Y-%m-%d')
+        </if>
+        ORDER BY online_time DESC
+    </select>
+</mapper>
